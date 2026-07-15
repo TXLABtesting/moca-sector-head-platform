@@ -65,6 +65,7 @@ export function OfficeTasks() {
   const canAdd = !isChair && (can(cu, 'myTasks', 'add') || can(cu, 'myTasks', 'edit'));
   const canDrag = isChair || memberEdit;
   const [taskForm, setTaskForm] = useState<{ id: string | null } | null>(null);
+  const [drawerEdit, setDrawerEdit] = useState(false);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
   const [oSearch, setOSearch] = useState('');
@@ -359,7 +360,7 @@ export function OfficeTasks() {
                           </button>
                         )}
                         {memberEdit && (
-                          <button onClick={() => setTaskForm({ id: a.id })} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: 7, fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                          <button onClick={() => { setSelOtask(a.id); setDrawerEdit(true); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: 7, fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                             <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>{rl('تعديل', 'Edit')}
                           </button>
                         )}
@@ -404,7 +405,7 @@ export function OfficeTasks() {
                       <button onClick={() => openModal('deadline', a.id)} style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 5, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('ot_setDeadline')}</button>
                     )}
                     {memberEdit && (
-                      <button onClick={() => setTaskForm({ id: a.id })} style={{ flex: 'none', background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{rl('تعديل', 'Edit')}</button>
+                      <button onClick={() => { setSelOtask(a.id); setDrawerEdit(true); }} style={{ flex: 'none', background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{rl('تعديل', 'Edit')}</button>
                     )}
                   </div>
                 ))}
@@ -448,7 +449,7 @@ export function OfficeTasks() {
                   </button>
                 )}
                 {memberEdit && (
-                  <button onClick={() => setTaskForm({ id: a.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 11px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{rl('تعديل', 'Edit')}</button>
+                  <button onClick={() => { setSelOtask(a.id); setDrawerEdit(true); }} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 11px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{rl('تعديل', 'Edit')}</button>
                 )}
                 <button onClick={() => setSelOtask(a.id)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 8, padding: '7px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('ot_details')}</button>
               </div>
@@ -458,9 +459,9 @@ export function OfficeTasks() {
         </div>
       )}
 
-      {/* DETAIL DRAWER */}
-      <Drawer open={!!detail} onClose={() => setSelOtask(null)} width={480}>
-        {detail && <TaskDetail
+      {/* DETAIL DRAWER — members edit inline in the same window */}
+      <Drawer open={!!detail} onClose={() => { setSelOtask(null); setDrawerEdit(false); }} width={480}>
+        {detail && !drawerEdit && <TaskDetail
           task={detail}
           canEdit={isChair}
           onClose={() => setSelOtask(null)}
@@ -469,17 +470,29 @@ export function OfficeTasks() {
           onRequestUpdate={reqUpdate}
           onMarkComplete={() => { markComplete(detail.id); }}
         />}
-        {detail && memberEdit && (
+        {detail && !drawerEdit && memberEdit && (
           <div style={{ padding: '0 24px 24px' }}>
-            <button onClick={() => { setSelOtask(null); setTaskForm({ id: detail.id }); }} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+            <button onClick={() => setDrawerEdit(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
               {rl('تعديل المهمة', 'Edit task')}
             </button>
           </div>
         )}
+        {detail && drawerEdit && (
+          <div style={{ padding: '22px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <button onClick={() => setDrawerEdit(false)} title={rl('رجوع', 'Back')} style={{ flex: 'none', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, cursor: 'pointer' }}>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: lang === 'en' ? 'none' : 'scaleX(-1)' }}><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg>
+              </button>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#17211c' }}>{rl('تعديل المهمة', 'Edit task')}</h3>
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: 11.5, color: '#9aa39b' }}>{tr(detail.title)}</p>
+            <TaskEditForm key={detail.id} taskId={detail.id} onDone={() => setDrawerEdit(false)} onCancel={() => setDrawerEdit(false)} />
+          </div>
+        )}
       </Drawer>
 
-      {/* TASK ADD / EDIT MODAL (members) */}
+      {/* NEW TASK MODAL (members) */}
       {taskForm && <TaskEditModal taskId={taskForm.id} onClose={() => setTaskForm(null)} />}
 
       {/* DEADLINE MODAL */}
@@ -621,8 +634,10 @@ function TaskDetail({ task, canEdit, onClose, onEditDeadline, onAddDirective, on
   );
 }
 
-/* ---- Task add/edit modal (office members): all task components ---- */
-function TaskEditModal({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
+/* ---- Task add/edit form (office members): all task components.
+   Rendered inline inside the detail drawer for edits, or in a small modal
+   only when creating a brand-new task from the board header. ---- */
+function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onDone: () => void; onCancel: () => void }) {
   const { lang, tr } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
@@ -666,16 +681,14 @@ function TaskEditModal({ taskId, onClose }: { taskId: string | null; onClose: ()
       r._mlog = log;
     });
     showToast(send ? rl('تم الحفظ والإرسال لمراجعة رئيس القطاع', 'Saved and sent for Sector Head review') : rl('تم حفظ المهمة', 'Task saved'));
-    onClose();
+    onDone();
   };
 
   const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
   const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
 
   return (
-    <Modal open onClose={onClose} width={560}>
-      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? rl('تعديل المهمة', 'Edit task') : rl('مهمة جديدة', 'New task')}</h3>
-      <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{rl('تُحفظ في نفس السجل الذي يراه رئيس القطاع.', 'Saved to the same record the Sector Head sees.')}</p>
+    <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
@@ -687,10 +700,23 @@ function TaskEditModal({ taskId, onClose }: { taskId: string | null; onClose: ()
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الوصف', 'Description')}</Label><textarea value={f.desc} onChange={setI('desc')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={onCancel} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
         <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
         <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ وإرسال لرئيس القطاع', 'Save & send to Sector Head')}</button>
       </div>
+    </>
+  );
+}
+
+/* Small modal used only for creating a new task from the page header. */
+function TaskEditModal({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
+  const { lang } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  return (
+    <Modal open onClose={onClose} width={560}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{taskId ? rl('تعديل المهمة', 'Edit task') : rl('مهمة جديدة', 'New task')}</h3>
+      <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{rl('تُحفظ في نفس السجل الذي يراه رئيس القطاع.', 'Saved to the same record the Sector Head sees.')}</p>
+      <TaskEditForm taskId={taskId} onDone={onClose} onCancel={onClose} />
     </Modal>
   );
 }
