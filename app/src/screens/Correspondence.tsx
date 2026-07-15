@@ -235,11 +235,6 @@ export function Correspondence() {
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14m0 0 5-5m-5 5-5-5" /></svg>{tr('وارد')}
         </button>
         <Dropdown value={cStatus} onChange={setCStatus} options={[{ v: '', label: t('allStatuses') }, ...opt(CORR_STATUSES)]} opt={{ size: 'sm', minWidth: '150px' }} />
-        {canAdd && (
-          <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>صادر / وارد جديد
-          </button>
-        )}
       </div>
 
       <div style={{ fontSize: 12.5, color: '#8a938c', marginBottom: 12 }}>{arPlural(filtered.length, { one: 'مستند واحد', two: 'مستندان', few: 'مستندات', many: 'مستنداً' })}</div>
@@ -283,6 +278,13 @@ export function Correspondence() {
 
         {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 44, color: '#9aa39b', fontSize: 14 }}>{t('noCorr')}</div>}
       </div>
+      {canAdd && (
+        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
+          <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>صادر / وارد جديد
+          </button>
+        </div>
+      )}
       {renderModal()}
     </Fade>
   );
