@@ -20,7 +20,9 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
   const mutate = useStore((s) => s.mutate);
+  const mutateWork = useStore((s) => s.mutateWork);
   const data = useStore((s) => s.data);
+  const work = useStore((s) => s.work);
   const { showToast } = useToast();
 
   const sec = section || memberDefaultSection(cu.id);
@@ -32,6 +34,10 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
     if (editId && coll) {
       const r = coll.get(data).find((x: any) => x.id === editId);
       if (r) return { ...coll.load(r) };
+    }
+    if (editId) {
+      const w = work.find((x) => x.id === editId);
+      if (w) return { title: w.title, note: '', fstatus: w.status };
     }
     return { title: '', note: '', fstatus: '' };
   })();
@@ -57,9 +63,18 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
         }
         if (r) {
           r._mret = ''; r._mrev = !!send;
+          if (send) r._mowner = r._mowner || cu.id;
           r._mlog = r._mlog || [];
           r._mlog.unshift({ at: lang === 'en' ? 'Just now' : 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (f.fstatus || coll.status(r)), note: (f.note || '').trim(), sent: !!send, by: cu.name });
         }
+      });
+    } else {
+      // sections without a shared collection (e.g. finReports, recommendations) → workflow items
+      const status = send ? 'بانتظار مراجعة رئيس القطاع' : ((f.fstatus || '').trim() || 'مسودة');
+      mutateWork((w) => {
+        const it = editId ? w.find((x) => x.id === editId) : undefined;
+        if (it) { it.title = title; it.status = status; it.date = rl('اليوم', 'Today'); if (send) it.reason = undefined; }
+        else w.unshift({ id: 'wf' + Date.now(), owner: cu.id, section: sec, title, status, date: rl('اليوم', 'Today') });
       });
     }
     showToast(send ? rl('تم الإرسال لمراجعة رئيس القطاع — ظاهر لديه الآن', 'Sent for review — visible to Sector Head') : rl('تم الحفظ في السجل المشترك', 'Saved to the shared record'));

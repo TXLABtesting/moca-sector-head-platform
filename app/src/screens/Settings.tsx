@@ -3,6 +3,7 @@ import { Fade } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Dropdown } from '../components/Dropdown';
 import { useStore } from '../store/store';
+import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { ACTIONS, SECTIONS, TYPES, SCOPES, SEED_USERS, effectivePerms, type SeedUser, type ActionKey } from '../domain/permissions';
@@ -27,7 +28,11 @@ export function Settings() {
   const users = useStore((s) => s.users);
   const setUsers = useStore((s) => s.setUsers);
   const { showToast } = useToast();
-  const [tab, setTab] = useState<Tab>('users');
+  const { params } = useNav();
+  const [tab, setTab] = useState<Tab>(() => {
+    const p = params.adminTab as Tab | undefined;
+    return p && ['users', 'types', 'sections', 'extra', 'log'].includes(p) ? p : 'users';
+  });
   const [permUser, setPermUser] = useState('moza');
   const [, force] = useState(0);
 

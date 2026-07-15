@@ -5,6 +5,8 @@ import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { PS } from '../shared/constants';
+import { ChairReview } from './chair/ChairReview';
+import { DemoHint } from '../components/DemoHint';
 
 type Tab = 'approvals' | 'updates' | 'minutes' | 'follow' | 'corr';
 
@@ -171,6 +173,8 @@ export function ChairDashboard() {
 
   return (
     <Fade>
+      <DemoHint />
+      <ChairReview />
       <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 13, marginBottom: 24 }}>
         {cards.map(({ key, def }) => {
           const on = tab === key;

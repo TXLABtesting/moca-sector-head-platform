@@ -9,6 +9,7 @@ import { WFS, SECTIONS } from '../domain/permissions';
 import { MEMBER_DIRECTIVES, MEMBER_RECENT } from '../domain/workflow';
 import { mColl, editableCollections } from './member/workflow';
 import { MemberForm } from './member/MemberForm';
+import { DemoHint } from '../components/DemoHint';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -30,14 +31,17 @@ export function MemberDashboard() {
 
   const secItems = (sec: string): Item[] => {
     const coll = mColl(sec);
+    // own workflow items always show, so the chief's decisions flow back to this board
+    const own: Item[] = work.filter((x) => x.owner === cu.id && x.section === sec).map((x) => ({ id: x.id, sec, title: x.title, status: x.status, review: x.status === 'بانتظار مراجعة رئيس القطاع', returned: x.status === 'أعيد للتعديل', reason: x.reason || '' }));
     if (coll) {
-      return coll.get(data).map((r: any) => ({
+      const real: Item[] = coll.get(data).map((r: any) => ({
         id: r.id, sec, title: coll.title(r),
         status: r._mrev ? 'بانتظار مراجعة رئيس القطاع' : (r._mret ? 'أعيد للتعديل' : coll.status(r)),
         review: !!r._mrev, returned: !!r._mret, reason: r._mret || '',
       }));
+      return [...own, ...real];
     }
-    return work.filter((x) => x.owner === cu.id && x.section === sec).map((x) => ({ id: x.id, sec, title: x.title, status: x.status, review: x.status === 'بانتظار مراجعة رئيس القطاع', returned: x.status === 'أعيد للتعديل', reason: x.reason || '' }));
+    return own;
   };
 
   const groups = editableCollections(cu).map((sec) => ({ sec, label: secName(sec), items: secItems(sec).slice(0, 6) }));
@@ -57,7 +61,7 @@ export function MemberDashboard() {
 
   const sendForReview = (id: string) => {
     const rec = findRecord(id);
-    if (rec.real) { mutate((d) => { const coll = mColl(rec.sec)!; const r = coll.get(d).find((x: any) => x.id === id); if (r) { r._mrev = true; r._mret = ''; } }); }
+    if (rec.real) { mutate((d) => { const coll = mColl(rec.sec)!; const r = coll.get(d).find((x: any) => x.id === id); if (r) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; } }); }
     else { mutateWork((w) => { const it = w.find((x) => x.id === id); if (it) { it.status = 'بانتظار مراجعة رئيس القطاع'; it.reason = undefined; } }); }
     showToast(rl('تم إرسال البند لمراجعة رئيس القطاع', 'Sent for Sector Head review'));
   };
@@ -68,6 +72,7 @@ export function MemberDashboard() {
         <h2 style={{ margin: '0 0 5px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{rl('مرحباً، ', 'Welcome, ') + cu.name}</h2>
         <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{cu.job}</p>
       </div>
+      <DemoHint />
 
       {returned.map((it) => (
         <div key={it.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: '#fdf3f2', border: '1px solid #f3d9d6', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>

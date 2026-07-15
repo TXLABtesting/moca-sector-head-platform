@@ -2,6 +2,7 @@ import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { ChairDashboard } from '../screens/ChairDashboard';
 import { MemberDashboard } from '../screens/MemberDashboard';
+import { AdminDashboard } from '../screens/AdminDashboard';
 import { TeamOverview } from '../screens/TeamOverview';
 import { Projects } from '../screens/Projects';
 import { Meetings } from '../screens/Meetings';
@@ -21,7 +22,7 @@ export function Router() {
 
   switch (page) {
     case 'dashboard':
-      return cu.type === 'chair' ? <ChairDashboard /> : <MemberDashboard />;
+      return cu.type === 'chair' ? <ChairDashboard /> : cu.type === 'sysadmin' ? <AdminDashboard /> : <MemberDashboard />;
     case 'team':
       return <TeamOverview />;
     case 'projects':

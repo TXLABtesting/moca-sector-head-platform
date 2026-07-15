@@ -15,6 +15,7 @@ export function TeamWorkspace() {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
   const data = useStore((s) => s.data);
+  const work = useStore((s) => s.work);
   const [form, setForm] = useState<{ section: string; editId: string | null } | null>(null);
 
   const wf = (st: string): [string, string] => WFS[st] || WFS['مسودة'];
@@ -22,8 +23,9 @@ export function TeamWorkspace() {
 
   const groups = editableCollections(cu).map((sec) => {
     const coll = mColl(sec);
-    const items = coll ? coll.get(data).map((r: any) => ({ id: r.id, title: coll.title(r), status: r._mrev ? 'بانتظار مراجعة رئيس القطاع' : (r._mret ? 'أعيد للتعديل' : coll.status(r)), log: r._mlog || [] })) : [];
-    return { sec, label: secName(sec), items };
+    const own = work.filter((x) => x.owner === cu.id && x.section === sec).map((x) => ({ id: x.id, title: x.title, status: x.status, log: [] as any[] }));
+    const real = coll ? coll.get(data).map((r: any) => ({ id: r.id, title: coll.title(r), status: r._mrev ? 'بانتظار مراجعة رئيس القطاع' : (r._mret ? 'أعيد للتعديل' : coll.status(r)), log: r._mlog || [] })) : [];
+    return { sec, label: secName(sec), items: [...own, ...real] };
   });
 
   // aggregate change log across the member's editable records

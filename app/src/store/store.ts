@@ -64,7 +64,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 3,
+      version: 4,
     }
   )
 );
