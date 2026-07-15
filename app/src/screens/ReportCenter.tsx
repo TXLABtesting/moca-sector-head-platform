@@ -8,6 +8,7 @@ import { AuditReport } from './reportcenter/AuditReport';
 import { FinancialSummary } from './reportcenter/FinancialSummary';
 import { ReportsRegister } from './reportcenter/ReportsRegister';
 import { RetentionReport } from './reportcenter/RetentionReport';
+import { SectionAddButton } from '../components/SectionAddButton';
 
 interface CardData {
   cat: string; icon: string; statusLabel: string; stBg: string; stFg: string;
@@ -30,9 +31,9 @@ export function ReportCenter() {
   const canApprove = can(cu, 'reportCenter', 'approve') || can(cu, 'auditReports', 'approve')
     || can(cu, 'finReports', 'approve') || can(cu, 'reportLog', 'approve');
 
-  if (page === 'auditDetail') return <Fade><AuditReport canApprove={canApprove} /></Fade>;
-  if (page === 'finDetail') return <Fade><FinancialSummary /></Fade>;
-  if (page === 'reglog') return <Fade><ReportsRegister /></Fade>;
+  if (page === 'auditDetail') return <Fade><AuditReport canApprove={canApprove} /><SectionAddButton section="auditReports" /></Fade>;
+  if (page === 'finDetail') return <Fade><FinancialSummary /><SectionAddButton section="finReports" /></Fade>;
+  if (page === 'reglog') return <Fade><ReportsRegister /><SectionAddButton section="reportLog" /></Fade>;
   if (page === 'reportDetail') return <Fade><RetentionReport /></Fade>;
 
   // ---- HUB ----
@@ -102,6 +103,7 @@ export function ReportCenter() {
           </div>
         ))}
       </div>
+      <SectionAddButton section="reportCenter" />
     </Fade>
   );
 }

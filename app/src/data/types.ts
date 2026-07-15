@@ -272,6 +272,9 @@ export interface ReqMeeting {
   notes: string;
   newDate?: string;
   newTime?: string;
+  location?: string;
+  link?: string;
+  agenda?: string[];
 }
 
 export interface CommitteeDecision {

@@ -7,6 +7,7 @@ import { can } from '../domain/permissions';
 import { useToast } from '../components/Toast';
 import { initials, memberImg, asset } from '../shared/helpers';
 import type { Committee, CommitteeMeeting, CommitteeTask, CommitteeDecision } from '../data/types';
+import { SectionAddButton } from '../components/SectionAddButton';
 
 /* ---- status / colour maps (ported verbatim from the prototype) ---- */
 const STC: Record<string, [string, string]> = {
@@ -108,6 +109,7 @@ export function Committees() {
           </>
         )}
       </Modal>
+      <SectionAddButton section="committees" />
     </Fade>
   );
 }

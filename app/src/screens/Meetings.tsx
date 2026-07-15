@@ -9,6 +9,7 @@ import { can } from '../domain/permissions';
 import { PS, AS } from '../shared/constants';
 import { initials } from '../shared/helpers';
 import { MinuteTasks } from './meetings/MinuteTasks';
+import { SectionAddButton } from '../components/SectionAddButton';
 
 const DETAIL_CARD: CSSProperties = {
   background: '#ffffff', border: 'none', borderRadius: 24,
@@ -100,6 +101,7 @@ function MinutesList() {
           );
         })}
       </div>
+      <SectionAddButton section="minutes" />
     </Fade>
   );
 }

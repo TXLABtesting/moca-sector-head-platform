@@ -10,6 +10,7 @@ import { useStore } from '../../store/store';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import type { MinuteTask } from '../../data/types';
+import { SectionAddButton } from '../../components/SectionAddButton';
 import { MTS, GS, MT_STATUSES, mtNeedsSupport, mtMonKey, mtMonLabel } from './mtShared';
 
 const CARD_SHADOW = '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)';
@@ -392,6 +393,7 @@ export function MinuteTasks() {
           <button onClick={() => setDirModalId(null)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#5b6b62', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{t('mt_cancel')}</button>
         </div>
       </Modal>
+      <SectionAddButton section="minuteTasks" />
     </Fade>
   );
 }

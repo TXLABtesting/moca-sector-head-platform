@@ -9,6 +9,7 @@ import { can } from '../domain/permissions';
 import { useI18n } from '../i18n/i18n';
 import { parseAr } from '../shared/helpers';
 import type { Leave, LeaveCat } from '../data/types';
+import { SectionAddButton } from '../components/SectionAddButton';
 
 const DAY = 86400000;
 const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -457,6 +458,7 @@ export function TeamLeaves() {
           onReviewed={() => doReviewed(selLv.id)}
         />}
       </Drawer>
+      <SectionAddButton section="leaves" />
     </Fade>
   );
 }

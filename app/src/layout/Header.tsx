@@ -4,10 +4,6 @@ import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { TYPES } from './headerHelpers';
-import { NAV_SECTION } from './navConfig';
-import { can } from '../domain/permissions';
-import { sectionFormKind } from '../screens/member/workflow';
-import { MemberForm } from '../screens/member/MemberForm';
 import { Icon } from '../components/Icon';
 import { asset } from '../shared/helpers';
 
@@ -21,23 +17,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   const users = useStore((s) => s.users);
   const setCurrentUser = useStore((s) => s.setCurrentUser);
   const [roleOpen, setRoleOpen] = useState(false);
-  const [mfOpen, setMfOpen] = useState(false);
 
-  // Member "add / update" button for the section being viewed (ported from the
-  // prototype's headerCanCreate): visible whenever the current user can add or
-  // edit in this section — the main in-section entry point for the office team.
-  const headerSection = NAV_SECTION[page];
-  // pages that carry their own in-page add/edit controls
-  const hasInlineAdd = page === 'projects' || page === 'projectDetail' || page === 'otasks';
-  const headerCanCreate = cu.type !== 'chair' && !!headerSection && page !== 'dashboard'
-    && headerSection !== 'permissions' && !hasInlineAdd
-    && (can(cu, headerSection, 'add') || can(cu, headerSection, 'edit'));
-  const headerKind = headerSection ? sectionFormKind(headerSection) : 'generic';
-  const headerCreateLabel = headerKind === 'finance' ? rl('تقرير جديد', 'New report')
-    : headerKind === 'audit' ? rl('ملاحظة جديدة', 'New note')
-    : headerKind === 'minutes' ? rl('بند جديد', 'New item')
-    : headerKind === 'correspondence' ? rl('صادر/وارد جديد', 'New correspondence')
-    : rl('إضافة / تحديث', 'Add / update');
 
   const titles: Record<string, string> = {
     dashboard: t('t_dashboard'), workspace: rl('لوحة فريق المكتب', 'Office Team Workspace'),
@@ -85,12 +65,6 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        {headerCanCreate && (
-          <button onClick={() => setMfOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 42, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 12, padding: '0 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(30,70,52,.55)' }}>
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-            {headerCreateLabel}
-          </button>
-        )}
         <div className="hide-sm" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <svg style={{ position: 'absolute', pointerEvents: 'none', insetInlineStart: 12 }} width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('searchPh')} style={{ border: '1px solid #ebeee9', background: '#fff', borderRadius: 12, padding: '10px 14px', paddingInlineStart: 40, fontSize: 13, width: 240, outline: 'none', color: '#17211c', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }} />
@@ -137,7 +111,6 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         </button>
         <img src={asset('assets/logo.png')} alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} className="hide-sm" />
       </div>
-      {mfOpen && headerSection && <MemberForm open onClose={() => setMfOpen(false)} section={headerSection} editId={null} />}
     </header>
   );
 }

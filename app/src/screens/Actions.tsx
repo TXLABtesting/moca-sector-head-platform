@@ -5,6 +5,7 @@ import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { AS, PR } from '../shared/constants';
+import { SectionAddButton } from '../components/SectionAddButton';
 
 interface Act {
   id: string; title: string; source: string; sourceType: string; owner: string;
@@ -92,6 +93,7 @@ export function Actions() {
         })}
         {filtered.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>{rl('لا توجد إجراءات مطابقة', 'No matching actions')}</div>}
       </div>
+      <SectionAddButton section="followups" />
     </Fade>
   );
 }
