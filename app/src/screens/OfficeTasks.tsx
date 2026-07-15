@@ -59,6 +59,12 @@ export function OfficeTasks() {
   const { showToast } = useToast();
 
   const canEdit = cu.type === 'chair' || can(cu, 'myTasks', 'edit');
+  const isChair = cu.type === 'chair';
+  const memberEdit = !isChair && can(cu, 'myTasks', 'edit');
+  const canAdd = !isChair && (can(cu, 'myTasks', 'add') || can(cu, 'myTasks', 'edit'));
+  const canDrag = isChair || memberEdit;
+  const [taskForm, setTaskForm] = useState<{ id: string | null } | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
   const [oSearch, setOSearch] = useState('');
   const [oStatus, setOStatus] = useState('');
@@ -227,6 +233,20 @@ export function OfficeTasks() {
 
   return (
     <Fade>
+      {/* PAGE HEADER with in-page add button */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{isChair ? rl('مهام فريق المكتب', 'Office team tasks') : rl('مهامي', 'My tasks')}</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{rl('متابعة مهام المكتب وتحديث حالاتها', 'Track office tasks and update their statuses')}</p>
+        </div>
+        {canAdd && (
+          <button type="button" onClick={() => setTaskForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.55)', flex: 'none' }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            {rl('إضافة مهمة', 'Add task')}
+          </button>
+        )}
+      </div>
+
       {/* filters (mobile toggle button) */}
       <button className="fbtn" onClick={() => setFiltersOpen((v) => !v)}>
         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="17" x2="14" y2="17" /></svg>
@@ -267,7 +287,31 @@ export function OfficeTasks() {
       {viewMode === 'board' && (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', overflowY: 'hidden', paddingBottom: 12, alignItems: 'flex-start', height: 640 }}>
           {columns.map((c) => (
-            <div key={c.key} style={{ flex: 'none', width: 288, background: '#f4f6f2', borderRadius: 16, padding: '12px 12px 6px', maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div key={c.key}
+              onDragOver={canDrag ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverCol(c.key); } : undefined}
+              onDragLeave={canDrag ? () => setDragOverCol((v) => (v === c.key ? null : v)) : undefined}
+              onDrop={canDrag ? (e) => {
+                e.preventDefault(); setDragOverCol(null);
+                const tid = e.dataTransfer.getData('text/plain'); if (!tid) return;
+                const tk = data.otasks.find((x) => x.id === tid); if (!tk) return;
+                const cur = rows.find((r) => r.id === tid);
+                if (cur && c.match(cur)) return; // dropped on its own column
+                const wasNoDue = noDueOf(tk);
+                mutate((d) => {
+                  const r = d.otasks.find((x) => x.id === tid); if (!r) return;
+                  if (c.key === 'nodue') { r.due = ''; r.end = ''; if (r.status === 'مكتمل') r.status = 'قيد التنفيذ'; }
+                  else if (c.key === 'done') { r.status = 'مكتمل'; }
+                  else { r.status = c.key === 'inprogress' ? 'قيد التنفيذ' : c.key === 'late' ? 'متأخر' : 'لم يبدأ'; }
+                  r.lastUpdate = rl('اليوم', 'Today');
+                });
+                if (c.key !== 'nodue' && c.key !== 'done' && wasNoDue) {
+                  openModal('deadline', tid);
+                  showToast(rl('حدّد الموعد النهائي لتظهر المهمة في عمود «' + c.label + '»', 'Set a deadline so the task appears under “' + c.label + '”'));
+                } else {
+                  showToast(rl('تم نقل المهمة إلى «' + c.label + '»', 'Task moved to “' + c.label + '”'));
+                }
+              } : undefined}
+              style={{ flex: 'none', width: 288, background: dragOverCol === c.key ? '#e7efe6' : '#f4f6f2', outline: dragOverCol === c.key ? '2px dashed #2b5c44' : 'none', outlineOffset: -2, borderRadius: 16, padding: '12px 12px 6px', maxHeight: '100%', display: 'flex', flexDirection: 'column', transition: 'background .12s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px 12px', flex: 'none' }}>
                 <span style={{ width: 9, height: 9, borderRadius: '50%', background: c.dot, flex: 'none' }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#2a332d' }}>{c.label}</span>
@@ -275,7 +319,10 @@ export function OfficeTasks() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', paddingBottom: 6 }}>
                 {c.tasks.map((a) => (
-                  <div key={a.id} style={{ background: '#ffffff', border: '1px solid #edf0ea', borderRadius: 14, boxShadow: '0 1px 3px rgba(23,40,32,.05)', padding: '13px 14px', display: 'flex', flexDirection: 'column' }}>
+                  <div key={a.id}
+                    draggable={canDrag}
+                    onDragStart={canDrag ? (e) => { e.dataTransfer.setData('text/plain', a.id); e.dataTransfer.effectAllowed = 'move'; } : undefined}
+                    style={{ background: '#ffffff', border: '1px solid #edf0ea', borderRadius: 14, boxShadow: '0 1px 3px rgba(23,40,32,.05)', padding: '13px 14px', display: 'flex', flexDirection: 'column', cursor: canDrag ? 'grab' : 'default' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: a.prBg, color: a.prFg }}>{a.prLabel}</span>
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: '#eef3f0', color: '#2b5c44', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>{a.dept}</span>
@@ -300,14 +347,19 @@ export function OfficeTasks() {
                         <button onClick={() => setSelOtask(a.id)} title={t('pv_openBtn')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: 7, fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>{t('pv_openBtn')}
                         </button>
-                        {canEdit && (
+                        {isChair && (
                           <button onClick={reqUpdate} title={t('ot_requestUpdate')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f2', color: '#5b6b62', border: '1px solid #e6eae4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
                             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
                           </button>
                         )}
-                        {canEdit && (
+                        {isChair && (
                           <button onClick={() => openModal('directive', a.id)} title={t('ot_addDirective')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fbf3df', color: '#a9791f', border: '1px solid #f0e4c4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
                             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                          </button>
+                        )}
+                        {memberEdit && (
+                          <button onClick={() => setTaskForm({ id: a.id })} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: 7, fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>{rl('تعديل', 'Edit')}
                           </button>
                         )}
                       </div>
@@ -347,8 +399,11 @@ export function OfficeTasks() {
                     </div>
                     <span style={{ flex: 'none', fontSize: 9.5, fontWeight: 700, borderRadius: 20, padding: '3px 9px', background: a._bg, color: a._fg }}>{a.statusLabel}</span>
                     <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: a.dueColor, minWidth: 96, justifyContent: 'flex-end' }}>{calIcon(12)}{a.dueLabel}</div>
-                    {canEdit && (
+                    {isChair && (
                       <button onClick={() => openModal('deadline', a.id)} style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 5, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('ot_setDeadline')}</button>
+                    )}
+                    {memberEdit && (
+                      <button onClick={() => setTaskForm({ id: a.id })} style={{ flex: 'none', background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{rl('تعديل', 'Edit')}</button>
                     )}
                   </div>
                 ))}
@@ -386,10 +441,13 @@ export function OfficeTasks() {
               <div style={{ fontSize: 12, fontWeight: 600, color: a.dueColor }}>{a.dueLabel}</div>
               <div style={{ fontSize: 11.5, color: '#8a938c' }}>{a.lastUpdate}</div>
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                {canEdit && (
+                {isChair && (
                   <button onClick={() => openModal('deadline', a.id)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 11px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                     <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>{t('ot_setDeadline')}
                   </button>
+                )}
+                {memberEdit && (
+                  <button onClick={() => setTaskForm({ id: a.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 11px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{rl('تعديل', 'Edit')}</button>
                 )}
                 <button onClick={() => setSelOtask(a.id)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 8, padding: '7px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('ot_details')}</button>
               </div>
@@ -403,14 +461,25 @@ export function OfficeTasks() {
       <Drawer open={!!detail} onClose={() => setSelOtask(null)} width={480}>
         {detail && <TaskDetail
           task={detail}
-          canEdit={canEdit}
+          canEdit={isChair}
           onClose={() => setSelOtask(null)}
           onEditDeadline={() => openModal('deadline', detail.id)}
           onAddDirective={() => openModal('directive', detail.id)}
           onRequestUpdate={reqUpdate}
           onMarkComplete={() => { markComplete(detail.id); }}
         />}
+        {detail && memberEdit && (
+          <div style={{ padding: '0 24px 24px' }}>
+            <button onClick={() => { setSelOtask(null); setTaskForm({ id: detail.id }); }} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+              {rl('تعديل المهمة', 'Edit task')}
+            </button>
+          </div>
+        )}
       </Drawer>
+
+      {/* TASK ADD / EDIT MODAL (members) */}
+      {taskForm && <TaskEditModal taskId={taskForm.id} onClose={() => setTaskForm(null)} />}
 
       {/* DEADLINE MODAL */}
       <Modal open={oModal?.type === 'deadline'} onClose={() => setOModal(null)} width={460}>
@@ -548,5 +617,79 @@ function TaskDetail({ task, canEdit, onClose, onEditDeadline, onAddDirective, on
         )}
       </div>
     </div>
+  );
+}
+
+/* ---- Task add/edit modal (office members): all task components ---- */
+function TaskEditModal({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
+  const { lang, tr } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const cu = useCurrentUser();
+  const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+
+  const existing = taskId ? data.otasks.find((x) => x.id === taskId) : null;
+  const [f, setF] = useState<Record<string, string>>(() => existing ? {
+    title: existing.title, label: existing.label || '', dept: existing.dept || '',
+    owner: existing.owner, status: existing.status, start: existing.start || '',
+    end: existing.end || '', desc: existing.desc || '',
+  } : {
+    title: '', label: 'مهمة', dept: 'مكتب رئيس القطاع', owner: cu.name,
+    status: 'قيد التنفيذ', start: '', end: '', desc: '',
+  });
+  const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+
+  const ownerNames = Array.from(new Set([...data.members.map((m) => m.name), ...(f.owner ? [f.owner] : [])]));
+  const STATUSES = ['لم يبدأ', 'قيد التنفيذ', 'يحتاج توجيه', 'متأخر', 'مكتمل'];
+
+  const save = (send: boolean) => {
+    const title = (f.title || '').trim();
+    if (!title) { showToast(rl('يرجى إدخال عنوان المهمة', 'Please enter the task title')); return; }
+    mutate((d) => {
+      let r: (typeof d.otasks)[number] & Record<string, unknown>;
+      if (existing) r = d.otasks.find((x) => x.id === taskId)! as never;
+      else {
+        r = { id: 'ot' + Date.now(), attachments: [], directives: [], reviewed: false, notes: '', due: '', lastUpdate: '' } as never;
+        d.otasks.unshift(r as never);
+        r._mowner = cu.id;
+      }
+      if (!r) return;
+      r.title = title; r.label = f.label; r.dept = f.dept; r.owner = f.owner;
+      r.status = f.status; r.start = f.start; r.end = f.end; r.due = f.end;
+      r.desc = f.desc; r.lastUpdate = rl('اليوم', 'Today');
+      if (send) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
+      const log = (r._mlog as unknown[] | undefined) || [];
+      log.unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : f.status, sent: !!send, by: cu.name });
+      r._mlog = log;
+    });
+    showToast(send ? rl('تم الحفظ والإرسال لمراجعة رئيس القطاع', 'Saved and sent for Sector Head review') : rl('تم حفظ المهمة', 'Task saved'));
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+  const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
+
+  return (
+    <Modal open onClose={onClose} width={560}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? rl('تعديل المهمة', 'Edit task') : rl('مهمة جديدة', 'New task')}</h3>
+      <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{rl('تُحفظ في نفس السجل الذي يراه رئيس القطاع.', 'Saved to the same record the Sector Head sees.')}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
+        <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
+        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
+        <div><Label>{rl('المسؤول', 'Owner')}</Label><Dropdown value={f.owner} options={ownerNames.map((n) => ({ v: n, label: tr(n) }))} onChange={set('owner')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><input value={f.start} onChange={setI('start')} placeholder={rl('مثال: 1 يوليو 2026', 'e.g. 1 يوليو 2026')} style={inputStyle} /></div>
+        <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><input value={f.end} onChange={setI('end')} placeholder={rl('اتركه فارغاً = بدون موعد', 'Empty = no deadline')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الوصف', 'Description')}</Label><textarea value={f.desc} onChange={setI('desc')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
+        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ وإرسال لرئيس القطاع', 'Save & send to Sector Head')}</button>
+      </div>
+    </Modal>
   );
 }

@@ -28,7 +28,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   // edit in this section — the main in-section entry point for the office team.
   const headerSection = NAV_SECTION[page];
   // pages that carry their own in-page add/edit controls
-  const hasInlineAdd = page === 'projects' || page === 'projectDetail';
+  const hasInlineAdd = page === 'projects' || page === 'projectDetail' || page === 'otasks';
   const headerCanCreate = cu.type !== 'chair' && !!headerSection && page !== 'dashboard'
     && headerSection !== 'permissions' && !hasInlineAdd
     && (can(cu, headerSection, 'add') || can(cu, headerSection, 'edit'));
