@@ -59,6 +59,11 @@ const COLLS: Record<string, MColl> = {
     make: (f, me) => ({ id: uid('rg'), n: '', title: f.title, dept: f.entity || '—', resp: f.respOwner || me, freq: f.docType || 'شهري', type: 'الأداء المالي', due: '7 من كل شهر', jan: '—', feb: '—', mar: '—', apr: '—', may: f.fstatus || 'قيد المراجعة', lastDate: '', approval: '', notes: '', _mstatus: f.fstatus || 'قيد المراجعة' }),
     load: (r) => ({ title: r.title, entity: r.dept, respOwner: r.resp, docType: r.freq, fstatus: r._mstatus || r.may }),
   },
+  retention: {
+    key: 'retReports', get: (d) => d.retReports || [], title: (r) => 'تقرير الدفعات المستبقاة — ' + r.quarter + ' ' + r.year, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f, me) => ({ id: 'ret' + Math.floor(Math.random() * 1e9), year: '2026', quarter: f.title || 'الربع الثالث', date: f.fdate || '—', status: f.fstatus || 'مسودة', lastUpdate: 'الآن', updatedBy: me, execSummary: f.note ? [f.note] : [], strengths: [], weaknesses: [], improvements: [], recs: [], entities: [], cases: [], conclusion: '' }),
+    load: (r) => ({ title: r.quarter, fdate: r.date, fstatus: r.status, note: (r.execSummary || [])[0] || '' }),
+  },
   myTasks: {
     key: 'otasks', get: (d) => d.otasks, title: (r) => r.title, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
     make: (f, me) => ({ id: uid('ot'), title: f.title, owner: me, dept: f.entity || 'مكتب رئيس القطاع', start: f.start || '—', end: f.due || '—', label: f.label || 'مهمة', status: f.fstatus || 'قيد التنفيذ', desc: f.note || '', lastUpdate: '', due: '', notes: '', directives: [], attachments: [], reviewed: false }),
@@ -69,7 +74,7 @@ const COLLS: Record<string, MColl> = {
 const SEC2COLL: Record<string, string> = {
   correspondence: 'correspondence', followups: 'followups', projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
   minutes: 'minutes', minuteTasks: 'minutes', committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves',
-  auditReports: 'auditReports', reportLog: 'reportLog', myTasks: 'myTasks',
+  auditReports: 'auditReports', reportLog: 'reportLog', myTasks: 'myTasks', reportCenter: 'retention',
 };
 
 export function mColl(sec: string): MColl | null {
@@ -88,6 +93,7 @@ export const OWNER_OF: Record<string, (r: any) => string> = {
   audit: (r) => r.owner || '',
   regReports: (r) => r.resp || '',
   otasks: (r) => r.owner || '',
+  retReports: (r) => r.updatedBy || '',
 };
 
 /** Match a record's owner string against the current member (tolerant of spelling

@@ -8,6 +8,7 @@ import { AuditReport } from './reportcenter/AuditReport';
 import { FinancialSummary } from './reportcenter/FinancialSummary';
 import { ReportsRegister } from './reportcenter/ReportsRegister';
 import { RetentionReport } from './reportcenter/RetentionReport';
+import { RetentionWorkspace } from './reportcenter/RetentionWorkspace';
 import { SectionAddButton } from '../components/SectionAddButton';
 
 interface CardData {
@@ -34,7 +35,10 @@ export function ReportCenter() {
   if (page === 'auditDetail') return <Fade><SectionAddButton section="auditReports" header /><AuditReport canApprove={canApprove} /></Fade>;
   if (page === 'finDetail') return <Fade><SectionAddButton section="finReports" header /><FinancialSummary /></Fade>;
   if (page === 'reglog') return <Fade><SectionAddButton section="reportLog" header /><ReportsRegister /></Fade>;
-  if (page === 'reportDetail') return <Fade><RetentionReport /></Fade>;
+  if (page === 'reportDetail') {
+    const manageRet = cu.type !== 'chair' && (can(cu, 'reportCenter', 'add') || can(cu, 'reportCenter', 'edit'));
+    return <Fade>{manageRet ? <RetentionWorkspace /> : <><RetentionReport /><RetentionWorkspace /></>}</Fade>;
+  }
 
   // ---- HUB ----
   const cards: CardData[] = [

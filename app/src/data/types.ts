@@ -337,6 +337,29 @@ export interface Committee {
   meetings: CommitteeMeeting[];
 }
 
+export interface RetRecommendation { note: string; rec: string; pri: string }
+export interface RetEntityRow { entity: string; count: number; value: number; pct: string; ongoing: number; open: number; closed: number }
+export interface RetCase { contract: string; value: number; reasons: string; status: string }
+/** تقرير الدفعات المستبقاة — one report per year/quarter. */
+export interface RetReport {
+  id: string;
+  year: string;
+  quarter: string;
+  date: string;
+  status: string;
+  lastUpdate: string;
+  updatedBy: string;
+  execSummary: string[];
+  strengths: string[];
+  weaknesses: string[];
+  improvements: string[];
+  recs: RetRecommendation[];
+  entities: RetEntityRow[];
+  cases: RetCase[];
+  conclusion: string;
+  attachments?: string[];
+}
+
 export interface AppData {
   members: Member[];
   sectorManagers: SectorManager[];
@@ -352,4 +375,5 @@ export interface AppData {
   finModel: FinModel;
   reqMeetings: ReqMeeting[];
   committees: Committee[];
+  retReports: RetReport[];
 }
