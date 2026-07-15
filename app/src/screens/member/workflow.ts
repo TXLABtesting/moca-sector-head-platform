@@ -1,0 +1,111 @@
+/* Member-workspace workflow: the office team edits the SAME records the chair sees
+   (window.__DATA equivalent = the store's data). Ported from the main component's mColl/mFindUnit.
+   Records carry transient flags: _mrev (sent for review), _mret (returned reason),
+   _mowner (submitter), _mapproved, _mlog (change log). */
+import type { AppData } from '../../data/types';
+import { SECTIONS, type SeedUser } from '../../domain/permissions';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface MColl {
+  key: keyof AppData;
+  get: (d: AppData) => any[];
+  title: (r: any) => string;
+  status: (r: any) => string;
+  setStatus: (r: any, s: string) => void;
+  make: (f: any, me: string) => any;
+  load: (r: any) => any;
+}
+
+const uid = (p: string) => p + Math.floor(Math.random() * 1e9);
+
+const COLLS: Record<string, MColl> = {
+  correspondence: {
+    key: 'correspondence', get: (d) => d.correspondence, title: (r) => r.name, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f, me) => ({ id: uid('c'), name: f.title, dir: f.dir || 'صادر', type: f.docType || 'رسالة', entity: f.entity || '—', sender: f.sender || '—', recipient: f.recipient || '—', date: f.fdate || '—', recvDate: f.fdate || '—', status: f.fstatus || 'قيد المتابعة', priority: 'متوسطة', followup: f.followup || me, needsAction: true, attachment: 'مرفق.pdf', action: f.note || '—', notes: f.note || '' }),
+    load: (r) => ({ title: r.name, dir: r.dir, docType: r.type, entity: r.entity, sender: r.sender, recipient: r.recipient, fdate: r.date, fstatus: r.status, followup: r.followup, note: r.notes }),
+  },
+  followups: {
+    key: 'actions', get: (d) => d.actions, title: (r) => r.title, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f, me) => ({ id: uid('a'), title: f.title, owner: f.followup || me, source: f.entity || '—', due: f.due || '—', status: f.fstatus || 'مفتوح', priority: 'متوسطة', sourceType: 'صادر أو وارد' }),
+    load: (r) => ({ title: r.title, followup: r.owner, entity: r.source, due: r.due, fstatus: r.status }),
+  },
+  projects: {
+    key: 'projects', get: (d) => d.projects, title: (r) => r.name, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f, me) => ({ id: uid('p'), no: '', name: f.title, owner: f.owner || me, status: f.fstatus || 'لم يبدأ', priority: f.priority || 'متوسطة', progress: +(f.progress || 0), stage: 'PLANNING', unit: f.entity || 'قطاع الخدمات المركزية', dueDate: f.due || '—', startDate: f.start || '', deadline: f.deadline || '', nextStep: f.next || '', risks: f.risks || 'لا يوجد', finalOutput: f.final || '', budget: +(f.budget || 0), desc: f.note || '', scope: [], timeline: [], tasks: [], attachments: [] }),
+    load: (r) => ({ title: r.name, owner: r.owner, fstatus: r.status, priority: r.priority, progress: String(r.progress || ''), due: r.dueDate, start: r.startDate, deadline: r.deadline, next: r.nextStep, risks: r.risks, final: r.finalOutput, budget: String(r.budget || ''), entity: r.unit, note: r.desc }),
+  },
+  minutes: {
+    key: 'meetings', get: (d) => d.meetings, title: (r) => r.title, status: (r) => r._mstatus || 'مسودة', setStatus: (r, s) => { r._mstatus = s; },
+    make: (f, me) => ({ id: uid('mtg'), title: f.title, owner: me, date: f.fdate || '—', summary: f.note || '', status: f.fstatus || 'مسودة', _mstatus: f.fstatus || 'مسودة', attendees: [], keyPoints: [], decisions: [], actions: [] }),
+    load: (r) => ({ title: r.title, fdate: r.date, note: r.summary, fstatus: r._mstatus }),
+  },
+  committees: {
+    key: 'committees', get: (d) => d.committees, title: (r) => r.name, status: (r) => r._mstatus || '—', setStatus: (r, s) => { r._mstatus = s; },
+    make: (f, me) => ({ id: uid('cm'), name: f.title, chair: 'رئيس القطاع', rapporteur: me, purpose: f.note || '', members: [], decisions: [], meetings: [], _mstatus: f.fstatus || 'مسودة' }),
+    load: (r) => ({ title: r.name, note: r.purpose, fstatus: r._mstatus }),
+  },
+  leaves: {
+    key: 'leaves', get: (d) => d.leaves, title: (r) => r.person, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f) => ({ id: uid('lv'), person: f.title, cat: 'office', role: '', dept: f.entity || '', type: f.docType || 'سنوية', start: f.start || '—', end: f.due || '—', days: 0, status: f.fstatus || 'بانتظار الاعتماد', backup: f.backup || '—', notes: f.note || '' }),
+    load: (r) => ({ title: r.person, entity: r.dept, docType: r.type, start: r.start, due: r.end, fstatus: r.status, backup: r.backup, note: r.notes }),
+  },
+  auditReports: {
+    key: 'audit', get: (d) => d.audit, title: (r) => r.obs || r.area, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f, me) => ({ id: uid('au'), num: '', area: f.entity || '—', obs: f.title, action: f.action || '—', owner: f.respOwner || me, due: f.due || '—', updated: f.fdate || '—', imp: f.imp || 'متوسطة', status: f.fstatus || 'قيد التنفيذ', notes: f.note || '' }),
+    load: (r) => ({ title: r.obs, entity: r.area, action: r.action, respOwner: r.owner, due: r.due, fdate: r.updated, imp: r.imp, fstatus: r.status, note: r.notes }),
+  },
+  reportLog: {
+    key: 'regReports', get: (d) => d.regReports, title: (r) => r.title, status: (r) => r._mstatus || r.may || '—', setStatus: (r, s) => { r._mstatus = s; r.may = s; },
+    make: (f, me) => ({ id: uid('rg'), n: '', title: f.title, dept: f.entity || '—', resp: f.respOwner || me, freq: f.docType || 'شهري', type: 'الأداء المالي', due: '7 من كل شهر', jan: '—', feb: '—', mar: '—', apr: '—', may: f.fstatus || 'قيد المراجعة', lastDate: '', approval: '', notes: '', _mstatus: f.fstatus || 'قيد المراجعة' }),
+    load: (r) => ({ title: r.title, entity: r.dept, respOwner: r.resp, docType: r.freq, fstatus: r._mstatus || r.may }),
+  },
+  myTasks: {
+    key: 'otasks', get: (d) => d.otasks, title: (r) => r.title, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f, me) => ({ id: uid('ot'), title: f.title, owner: me, dept: f.entity || 'مكتب رئيس القطاع', start: f.start || '—', end: f.due || '—', label: f.label || 'مهمة', status: f.fstatus || 'قيد التنفيذ', desc: f.note || '', lastUpdate: '', due: '', notes: '', directives: [], attachments: [], reviewed: false }),
+    load: (r) => ({ title: r.title, entity: r.dept, start: r.start, due: r.end, fstatus: r.status, note: r.desc }),
+  },
+};
+
+const SEC2COLL: Record<string, string> = {
+  correspondence: 'correspondence', followups: 'followups', projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
+  minutes: 'minutes', minuteTasks: 'minutes', committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves',
+  auditReports: 'auditReports', reportLog: 'reportLog', myTasks: 'myTasks',
+};
+
+export function mColl(sec: string): MColl | null {
+  const key = SEC2COLL[sec];
+  return key ? COLLS[key] : null;
+}
+
+const SEC_KIND: Record<string, string> = {
+  correspondence: 'correspondence', followups: 'followup', projects: 'project', projPhases: 'project', projUpdates: 'project', projRisks: 'project',
+  finReports: 'finance', reportLog: 'finance', auditReports: 'audit', recommendations: 'recommendation', minutes: 'minutes', minuteTasks: 'minutes',
+  committees: 'committee', committeeDecisions: 'committee', leaves: 'leave', myTasks: 'task',
+};
+export const sectionFormKind = (sec: string) => SEC_KIND[sec] || 'generic';
+
+export function memberDefaultSection(userId: string): string {
+  const M: Record<string, string> = { fatma: 'projUpdates', saif: 'projUpdates', hagar: 'finReports', hasan: 'auditReports', samah: 'minutes', moza: 'correspondence' };
+  return M[userId] || 'projects';
+}
+
+/** Sections this member can add to or edit (excludes non-editable/system sections). */
+export function editableSections(cu: SeedUser): string[] {
+  const skip: Record<string, number> = { dashboard: 1, assistant: 1, chairApproval: 1, permissions: 1 };
+  return SECTIONS.filter((s) => {
+    if (skip[s.k]) return false;
+    const letters = cu.g?.[s.k] || (cu.type === 'chair' ? 'ae' : '');
+    return letters.includes('a') || letters.includes('e');
+  }).map((s) => s.k);
+}
+
+/** De-duplicate editable sections that share the same underlying collection. */
+export function editableCollections(cu: SeedUser): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  editableSections(cu).forEach((sec) => {
+    const c = mColl(sec); const ck = c ? c.key : ('m:' + sec);
+    if (seen.has(ck)) return; seen.add(ck); out.push(sec);
+  });
+  return out;
+}
