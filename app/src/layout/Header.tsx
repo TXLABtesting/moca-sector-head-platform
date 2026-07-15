@@ -4,6 +4,10 @@ import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { TYPES } from './headerHelpers';
+import { NAV_SECTION } from './navConfig';
+import { can } from '../domain/permissions';
+import { sectionFormKind } from '../screens/member/workflow';
+import { MemberForm } from '../screens/member/MemberForm';
 import { Icon } from '../components/Icon';
 import { asset } from '../shared/helpers';
 
@@ -17,6 +21,21 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   const users = useStore((s) => s.users);
   const setCurrentUser = useStore((s) => s.setCurrentUser);
   const [roleOpen, setRoleOpen] = useState(false);
+  const [mfOpen, setMfOpen] = useState(false);
+
+  // Member "add / update" button for the section being viewed (ported from the
+  // prototype's headerCanCreate): visible whenever the current user can add or
+  // edit in this section — the main in-section entry point for the office team.
+  const headerSection = NAV_SECTION[page];
+  const headerCanCreate = cu.type !== 'chair' && !!headerSection && page !== 'dashboard'
+    && headerSection !== 'permissions'
+    && (can(cu, headerSection, 'add') || can(cu, headerSection, 'edit'));
+  const headerKind = headerSection ? sectionFormKind(headerSection) : 'generic';
+  const headerCreateLabel = headerKind === 'finance' ? rl('تقرير جديد', 'New report')
+    : headerKind === 'audit' ? rl('ملاحظة جديدة', 'New note')
+    : headerKind === 'minutes' ? rl('بند جديد', 'New item')
+    : headerKind === 'correspondence' ? rl('صادر/وارد جديد', 'New correspondence')
+    : rl('إضافة / تحديث', 'Add / update');
 
   const titles: Record<string, string> = {
     dashboard: t('t_dashboard'), workspace: rl('لوحة فريق المكتب', 'Office Team Workspace'),
@@ -64,11 +83,17 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {headerCanCreate && (
+          <button onClick={() => setMfOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 42, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 12, padding: '0 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(30,70,52,.55)' }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            {headerCreateLabel}
+          </button>
+        )}
         <div className="hide-sm" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <svg style={{ position: 'absolute', pointerEvents: 'none', insetInlineStart: 12 }} width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('searchPh')} style={{ border: '1px solid #ebeee9', background: '#fff', borderRadius: 12, padding: '10px 14px', paddingInlineStart: 40, fontSize: 13, width: 240, outline: 'none', color: '#17211c', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }} />
         </div>
-        <div className="hide-sm" style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }}>
           <button onClick={() => setRoleOpen((v) => !v)} title={lang === 'en' ? ct.en : ct.ar} style={{ height: 42, borderRadius: 12, border: '1px solid #ebeee9', background: '#fff', display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '0 12px 0 10px', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }}>
             <span style={{ width: 26, height: 26, flex: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ct.bg, color: ct.fg }}><Icon name={ct.icon} size={15} /></span>
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
@@ -108,8 +133,9 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
           <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5a5 5 0 0 0-5 5c0 4-1.5 5.5-1.5 5.5h13S17 15.5 17 11.5a5 5 0 0 0-5-5Z" /><path d="M10 19.5a2 2 0 0 0 4 0M12 4v2.5" /></svg>
           <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: '50%', background: '#b0433b', border: '2px solid #fff' }} />
         </button>
-        <img src={asset('assets/logo.png')} alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} />
+        <img src={asset('assets/logo.png')} alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} className="hide-sm" />
       </div>
+      {mfOpen && headerSection && <MemberForm open onClose={() => setMfOpen(false)} section={headerSection} editId={null} />}
     </header>
   );
 }
