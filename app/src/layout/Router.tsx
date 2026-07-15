@@ -3,6 +3,7 @@ import { useCurrentUser } from '../store/useCurrentUser';
 import { ChairDashboard } from '../screens/ChairDashboard';
 import { MemberDashboard } from '../screens/MemberDashboard';
 import { AdminDashboard } from '../screens/AdminDashboard';
+import { SectorDashboard } from '../screens/SectorDashboard';
 import { TeamOverview } from '../screens/TeamOverview';
 import { Projects } from '../screens/Projects';
 import { Meetings } from '../screens/Meetings';
@@ -22,7 +23,10 @@ export function Router() {
 
   switch (page) {
     case 'dashboard':
-      return cu.type === 'chair' ? <ChairDashboard /> : cu.type === 'sysadmin' ? <AdminDashboard /> : <MemberDashboard />;
+      return cu.type === 'chair' ? <ChairDashboard />
+        : cu.type === 'sysadmin' ? <AdminDashboard />
+        : cu.type === 'sector' ? <SectorDashboard />
+        : <MemberDashboard />;
     case 'team':
       return <TeamOverview />;
     case 'projects':

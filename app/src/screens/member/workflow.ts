@@ -77,6 +77,31 @@ export function mColl(sec: string): MColl | null {
   return key ? COLLS[key] : null;
 }
 
+/** Who "owns" a record, per collection (for مهامي counts). Keyed by AppData key. */
+export const OWNER_OF: Record<string, (r: any) => string> = {
+  correspondence: (r) => r.followup || '',
+  actions: (r) => r.owner || '',
+  projects: (r) => r.owner || '',
+  meetings: (r) => r.owner || '',
+  committees: (r) => r.rapporteur || '',
+  leaves: (r) => r.person || '',
+  audit: (r) => r.owner || '',
+  regReports: (r) => r.resp || '',
+  otasks: (r) => r.owner || '',
+};
+
+/** Match a record's owner string against the current member (tolerant of spelling
+ *  variants in the real data, e.g. "أبو شرخ" vs "أبوشرخ"). */
+export function ownedBy(ownerStr: string, name: string): boolean {
+  if (!ownerStr) return false;
+  if (ownerStr === name || ownerStr.includes(name)) return true;
+  const first = name.split(/\s+/)[0];
+  return first.length >= 3 && ownerStr.includes(first);
+}
+
+/** Statuses considered "closed" for the member's open-items counters. */
+export const FINAL_STATUSES = ['معتمد', 'مكتمل', 'ملغي', 'مغلق', 'مرفوض', 'منتهية'];
+
 const SEC_KIND: Record<string, string> = {
   correspondence: 'correspondence', followups: 'followup', projects: 'project', projPhases: 'project', projUpdates: 'project', projRisks: 'project',
   finReports: 'finance', reportLog: 'finance', auditReports: 'audit', recommendations: 'recommendation', minutes: 'minutes', minuteTasks: 'minutes',
