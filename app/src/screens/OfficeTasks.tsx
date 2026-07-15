@@ -718,30 +718,22 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
         <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
-        <div>
-          <Label>{rl('المسؤول الرئيسي', 'Primary owner')}</Label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #e2e6df', background: '#f2f4f0', borderRadius: 10, padding: '7px 12px' }}>
-            <Avatar name={primaryOwner} size={22} />
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#17211c' }}>{tr(primaryOwner)}</span>
-            {!existing && <span style={{ fontSize: 10, color: '#9aa39b' }}>{rl('(أنت — تلقائياً)', '(you — automatic)')}</span>}
-          </div>
-        </div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
-        <div style={{ gridColumn: '1 / -1' }}>
+        <div>
           <Label>{rl('المشاركون في المهمة (اختياري)', 'Participants (optional)')}</Label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {partOptions.map((n) => {
-              const on = parts.includes(n);
-              return (
-                <button type="button" key={n} onClick={() => togglePart(n)} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid ' + (on ? '#1e4634' : '#e2e6df'), background: on ? '#eef5f0' : '#fff', color: on ? '#1e4634' : '#5b6b62', borderRadius: 20, padding: '5px 11px 5px 7px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                  <Avatar name={n} size={20} />
-                  {tr(n)}
-                  {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
-                </button>
-              );
-            })}
-          </div>
+          <Dropdown value="" options={partOptions.filter((n) => !parts.includes(n)).map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => { if (v) togglePart(v); }} opt={{ block: true, size: 'sm', placeholder: rl('اختر مشاركًا لإضافته…', 'Pick a participant to add…') }} />
         </div>
+        {parts.length > 0 && (
+          <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {parts.map((n) => (
+              <span key={n} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #1e4634', background: '#eef5f0', color: '#1e4634', borderRadius: 20, padding: '4px 8px 4px 7px', fontSize: 11.5, fontWeight: 700 }}>
+                <Avatar name={n} size={20} />
+                {tr(n)}
+                <button type="button" onClick={() => togglePart(n)} title={rl('إزالة', 'Remove')} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1, display: 'flex' }}>✕</button>
+              </span>
+            ))}
+          </div>
+        )}
         <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
         <div><Label>{rl('الموعد النهائي (فارغ = بدون موعد)', 'Deadline (empty = none)')}</Label><DateField value={f.end} onChange={set('end')} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المرفقات', 'Attachments')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
