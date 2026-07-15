@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../components/ui';
 import { Dropdown } from '../../components/Dropdown';
+import { DateField } from '../../components/DateField';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
@@ -114,9 +115,9 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
         <div><Label>{rl('الأولوية', 'Priority')}</Label><Dropdown value={f.priority} options={PRI_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('priority')} opt={{ block: true, size: 'sm' }} /></div>
         <Field label={rl('نسبة الإنجاز %', 'Progress %')} k="progress" />
         <Field label={rl('الميزانية (درهم)', 'Budget (AED)')} k="budget" />
-        <Field label={rl('تاريخ البدء', 'Start date')} k="startDate" ph={rl('مثال: 1 مارس 2026', 'e.g. 1 مارس 2026')} />
-        <Field label={rl('الانتهاء المتوقع', 'Expected finish')} k="dueDate" ph={rl('مثال: 30 سبتمبر 2026', 'e.g. 30 سبتمبر 2026')} />
-        <Field label={rl('الموعد النهائي', 'Deadline')} k="deadline" />
+        <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.startDate || ''} onChange={set('startDate')} /></div>
+        <div><Label>{rl('الانتهاء المتوقع', 'Expected finish')}</Label><DateField value={f.dueDate || ''} onChange={set('dueDate')} /></div>
+        <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><DateField value={f.deadline || ''} onChange={set('deadline')} /></div>
         <div><Label>{rl('الخطوة القادمة', 'Next step')}</Label><input value={f.nextStep || ''} onChange={setI('nextStep')} style={inputStyle} /></div>
         <Area label={rl('وصف المشروع', 'Description')} k="desc" />
         <Area label={rl('المخرج النهائي للمشروع', 'Final deliverable')} k="finalOutput" rows={2} />

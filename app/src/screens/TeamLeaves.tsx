@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Fade, Drawer, Avatar, Badge } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
+import { DateField } from '../components/DateField';
 import { useToast } from '../components/Toast';
 import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -566,10 +567,10 @@ function LeavePanel(p: PanelProps) {
             <>
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                 <label style={{ flex: 1, fontSize: 10, color: '#9aa39b' }}>{rl('من', 'From')}
-                  <input type="text" value={p.editStart} onChange={(e) => p.setEditStart(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', marginTop: 3, border: '1px solid #e2e6df', background: '#ffffff', borderRadius: 8, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', color: '#17211c' }} />
+                  <DateField value={p.editStart} onChange={p.setEditStart} style={{ marginTop: 3, background: '#ffffff', borderRadius: 8, padding: '7px 9px', fontSize: 12 }} />
                 </label>
                 <label style={{ flex: 1, fontSize: 10, color: '#9aa39b' }}>{rl('إلى', 'To')}
-                  <input type="text" value={p.editEnd} onChange={(e) => p.setEditEnd(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', marginTop: 3, border: '1px solid #e2e6df', background: '#ffffff', borderRadius: 8, padding: '7px 9px', fontSize: 12, fontFamily: 'inherit', color: '#17211c' }} />
+                  <DateField value={p.editEnd} onChange={p.setEditEnd} style={{ marginTop: 3, background: '#ffffff', borderRadius: 8, padding: '7px 9px', fontSize: 12 }} />
                 </label>
               </div>
               <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>

@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Fade, Avatar, Modal, Drawer } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
+import { DateField } from '../components/DateField';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -681,8 +682,8 @@ function TaskEditModal({ taskId, onClose }: { taskId: string | null; onClose: ()
         <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
         <div><Label>{rl('المسؤول', 'Owner')}</Label><Dropdown value={f.owner} options={ownerNames.map((n) => ({ v: n, label: tr(n) }))} onChange={set('owner')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
-        <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><input value={f.start} onChange={setI('start')} placeholder={rl('مثال: 1 يوليو 2026', 'e.g. 1 يوليو 2026')} style={inputStyle} /></div>
-        <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><input value={f.end} onChange={setI('end')} placeholder={rl('اتركه فارغاً = بدون موعد', 'Empty = no deadline')} style={inputStyle} /></div>
+        <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
+        <div><Label>{rl('الموعد النهائي (فارغ = بدون موعد)', 'Deadline (empty = none)')}</Label><DateField value={f.end} onChange={set('end')} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الوصف', 'Description')}</Label><textarea value={f.desc} onChange={setI('desc')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>

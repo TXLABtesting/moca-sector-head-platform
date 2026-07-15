@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Fade, Modal } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
+import { DateField } from '../components/DateField';
 import { useToast } from '../components/Toast';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
@@ -306,7 +307,7 @@ export function Correspondence() {
           <div><label style={labelStyle}>{t('fEntity')}</label>{txt('entity')}</div>
           <div><label style={labelStyle}>{t('fCat')}</label><Dropdown value={form.dir} onChange={setF('dir')} options={[{ v: '', label: t('allDir') }, ...opt(['صادر', 'وارد'])]} opt={ddOpt} /></div>
           <div><label style={labelStyle}>{t('fType')}</label><Dropdown value={form.type} onChange={setF('type')} options={opt(DOC_TYPES)} opt={ddOpt} /></div>
-          <div><label style={labelStyle}>{t('fDate')}</label><input value={String(form.date ?? '')} onChange={(e) => setF('date')(e.target.value)} placeholder={t('fDatePh')} style={inputStyle} /></div>
+          <div><label style={labelStyle}>{t('fDate')}</label><DateField value={String(form.date ?? '')} onChange={setF('date')} /></div>
           <div><label style={labelStyle}>{t('fSender')}</label>{txt('sender')}</div>
           <div><label style={labelStyle}>{t('fRecipient')}</label>{txt('recipient')}</div>
           <div><label style={labelStyle}>{t('fFollowup')}</label><Dropdown value={form.followup} onChange={setF('followup')} options={members.map((m) => ({ v: m.name, label: tr(m.name) }))} opt={ddOpt} /></div>

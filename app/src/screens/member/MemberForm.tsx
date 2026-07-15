@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../components/ui';
 import { Dropdown } from '../../components/Dropdown';
+import { DateField } from '../../components/DateField';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
@@ -88,7 +89,12 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
 
   const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
   const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
-  const Field = ({ label, k, ph }: { label: string; k: string; ph?: string }) => (<div><Label>{label}</Label><input value={f[k] || ''} onChange={setI(k)} placeholder={ph} style={inputStyle} /></div>);
+  const DATE_KEYS = new Set(['start', 'due', 'fdate', 'deadline']);
+  const Field = ({ label, k, ph }: { label: string; k: string; ph?: string }) => (
+    <div><Label>{label}</Label>{DATE_KEYS.has(k)
+      ? <DateField value={f[k] || ''} onChange={(v) => setF((p: any) => ({ ...p, [k]: v }))} />
+      : <input value={f[k] || ''} onChange={setI(k)} placeholder={ph} style={inputStyle} />}</div>
+  );
 
   return (
     <Modal open={open} onClose={onClose} width={560}>

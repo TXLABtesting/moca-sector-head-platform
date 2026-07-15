@@ -10,6 +10,7 @@ import { parseAr } from '../../shared/helpers';
 import type { Project } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
 import { ProjectEditModal } from './ProjectEditModal';
+import { DateField } from '../../components/DateField';
 
 const TODAY_STORE = '2 يوليو 2026';
 
@@ -556,7 +557,7 @@ export function ProjectDetail() {
       <Modal open={endOpen} onClose={() => setEndOpen(false)} width={420}>
         <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{rl('تعديل تاريخ النهاية', 'Edit end date')}</h3>
         <p style={{ margin: '0 0 15px', fontSize: 12.5, color: '#7d867f', lineHeight: 1.6 }}>{rl('اكتب تاريخ النهاية الجديد (مثال: 4 أغسطس 2026).', 'Enter the new end date (e.g. 4 أغسطس 2026).')}</p>
-        <input value={endDraft} onChange={(e) => setEndDraft(e.target.value)} placeholder="4 أغسطس 2026" style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '11px 13px', fontSize: 13, fontFamily: 'inherit', marginBottom: 16, direction: 'rtl', textAlign: 'start' }} />
+        <DateField value={endDraft} onChange={setEndDraft} style={{ marginBottom: 16 }} />
         <div style={{ display: 'flex', gap: 10 }}>
           <button type="button" onClick={saveEnd} style={{ flex: 1, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: 12, fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
           <button type="button" onClick={() => setEndOpen(false)} style={{ flex: 'none', background: '#f4f6f2', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 11, padding: '12px 20px', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{t('pd_cancel')}</button>
