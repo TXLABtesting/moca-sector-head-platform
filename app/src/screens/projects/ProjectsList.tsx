@@ -15,13 +15,20 @@ import { ProjectEditModal } from './ProjectEditModal';
 
 export function ProjectsList() {
   const projects = useStore((s) => s.data).projects;
+  const mutate = useStore((s) => s.mutate);
   const { lang, tr, dl, t } = useI18n();
   const { goto } = useNav();
   const { showToast } = useToast();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
-  const canAdd = cu.type !== 'chair' && (can(cu, 'projects', 'add') || can(cu, 'projects', 'edit'));
+  const isChair = cu.type === 'chair';
+  const canAdd = !isChair && (can(cu, 'projects', 'add') || can(cu, 'projects', 'edit'));
+  const canEditProj = !isChair && can(cu, 'projects', 'edit');
+  const canDrag = can(cu, 'projects', 'status'); // chair + members holding "تغيير الحالة"
+  const cardRole: 'chair' | 'editor' | 'viewer' = isChair ? 'chair' : canEditProj ? 'editor' : 'viewer';
   const [addOpen, setAddOpen] = useState(false);
+  const [editProj, setEditProj] = useState<Project | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<number | null>(null);
 
   const [fSearch, setSearch] = useState('');
   const [fUnit, setFUnit] = useState('');
@@ -74,6 +81,33 @@ export function ProjectsList() {
   const open = (id: string) => () => goto('projectDetail', { selProject: id });
   const reqUpdate = () => showToast(rl('تم إرسال طلب تحديث إلى المسؤول عن المشروع', 'Update request sent to the project owner'));
 
+  // ---- drag & drop between status columns -----------------------------------
+  const DROP_STATUS = ['بانتظار الاعتماد', 'قيد التنفيذ', 'يحتاج قرار', 'متأخر', 'مكتمل'];
+  const onDropTo = (ci: number) => (e: React.DragEvent) => {
+    e.preventDefault(); setDragOverCol(null);
+    const pid = e.dataTransfer.getData('text/plain'); if (!pid) return;
+    const proj = projects.find((x) => x.id === pid); if (!proj) return;
+    if (colDefs[ci].keys.includes(proj.status)) return; // dropped on its own column
+    const target = DROP_STATUS[ci];
+    const memberCompletion = target === 'مكتمل' && !isChair;
+    mutate((d) => {
+      const pr = d.projects.find((x) => x.id === pid) as any; if (!pr) return;
+      if (memberCompletion) {
+        // the team never completes a project directly — it goes to the chief for approval
+        pr.status = 'بانتظار الاعتماد'; pr.progress = 100;
+        pr._mrev = true; pr._mret = ''; pr._mowner = pr._mowner || cu.id;
+        (pr._mlog = pr._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: rl('طلب اعتماد الاكتمال', 'Completion approval requested'), sent: true, by: cu.name });
+      } else {
+        pr.status = target;
+        if (target === 'مكتمل') pr.progress = 100;
+        if (target === 'قيد التنفيذ' && (!pr.progress || pr.progress < 10)) pr.progress = 10;
+      }
+    });
+    showToast(memberCompletion
+      ? rl('أُرسل طلب اعتماد الاكتمال إلى رئيس القطاع — لا يكتمل المشروع إلا باعتمادها', 'Completion request sent — the project completes only with the Sector Head’s approval')
+      : rl('تم نقل المشروع إلى «' + tr(colDefs[ci].label) + '»', 'Project moved to “' + colDefs[ci].label + '”'));
+  };
+
   const inputStyle: React.CSSProperties = {
     width: '100%', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9,
     padding: '9px 12px', paddingInlineStart: 36, fontSize: 13, outline: 'none', fontFamily: 'inherit',
@@ -95,6 +129,7 @@ export function ProjectsList() {
         )}
       </div>
       {addOpen && <ProjectEditModal project={null} onClose={() => setAddOpen(false)} />}
+      {editProj && <ProjectEditModal project={editProj} onClose={() => setEditProj(null)} />}
 
       {/* STAT CARDS */}
       <div className="ov-stats rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 26 }}>
@@ -139,14 +174,21 @@ export function ProjectsList() {
       {/* KANBAN BOARD */}
       <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 12, alignItems: 'flex-start' }}>
         {columns.map((col, ci) => (
-          <div key={ci} style={{ flex: 'none', width: 288, background: '#f4f6f2', borderRadius: 16, padding: '12px 12px 6px' }}>
+          <div key={ci}
+            onDragOver={canDrag ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverCol(ci); } : undefined}
+            onDragLeave={canDrag ? () => setDragOverCol((v) => (v === ci ? null : v)) : undefined}
+            onDrop={canDrag ? onDropTo(ci) : undefined}
+            style={{ flex: 'none', width: 288, background: dragOverCol === ci ? '#e7efe6' : '#f4f6f2', outline: dragOverCol === ci ? '2px dashed #2b5c44' : 'none', outlineOffset: -2, borderRadius: 16, padding: '12px 12px 6px', transition: 'background .12s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px 12px' }}>
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: col.dot, flex: 'none' }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: '#2a332d' }}>{col.label}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color: '#7d867f', background: '#e7ebe3', borderRadius: 20, padding: '2px 9px', marginInlineStart: 'auto' }}>{col.items.length}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {col.items.map((p) => <KanbanCard key={p.id} p={p} tr={tr} dl={dl} t={t} open={open(p.id)} reqUpdate={reqUpdate} />)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minHeight: 60 }}>
+              {col.items.map((p) => (
+                <KanbanCard key={p.id} p={p} tr={tr} dl={dl} t={t} open={open(p.id)} reqUpdate={reqUpdate}
+                  role={cardRole} onEdit={() => setEditProj(p)} draggable={canDrag} editLabel={rl('تعديل', 'Edit')} />
+              ))}
               {col.items.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '20px 10px', color: '#aab2a9', fontSize: 11.5 }}>{t('pv_emptyCol')}</div>
               )}
@@ -158,18 +200,22 @@ export function ProjectsList() {
   );
 }
 
-function KanbanCard({ p, tr, dl, t, open, reqUpdate }: {
+function KanbanCard({ p, tr, dl, t, open, reqUpdate, role, onEdit, draggable, editLabel }: {
   p: Project;
   tr: (s: string) => string; dl: (s: string) => string;
   t: (k: string) => string;
   open: () => void; reqUpdate: () => void;
+  role: 'chair' | 'editor' | 'viewer'; onEdit: () => void; draggable: boolean; editLabel: string;
 }) {
   const [prBg, prFg] = prColors(p.priority);
   const accent = accentOf(p.status);
   const unit = unitOf(p.id);
   const due = dl(p.dueDate || '');
   return (
-    <div style={{ background: '#ffffff', border: '1px solid #edf0ea', borderRadius: 14, boxShadow: '0 1px 3px rgba(23,40,32,.05)', padding: '13px 14px', display: 'flex', flexDirection: 'column' }}>
+    <div
+      draggable={draggable}
+      onDragStart={draggable ? (e) => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; } : undefined}
+      style={{ background: '#ffffff', border: '1px solid #edf0ea', borderRadius: 14, boxShadow: '0 1px 3px rgba(23,40,32,.05)', padding: '13px 14px', display: 'flex', flexDirection: 'column', cursor: draggable ? 'grab' : 'default' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: prBg, color: prFg }}>{tr(p.priority)}</span>
         {unit && <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: '#eef3f0', color: '#2b5c44', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 150 }}>{tr(unit)}</span>}
@@ -200,12 +246,21 @@ function KanbanCard({ p, tr, dl, t, open, reqUpdate }: {
         <button type="button" onClick={open} title={t('pv_openBtn')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: 7, fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>{t('pv_openBtn')}
         </button>
-        <button type="button" onClick={reqUpdate} title={t('pv_reqUpdate')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f2', color: '#5b6b62', border: '1px solid #e6eae4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
-        </button>
-        <button type="button" onClick={open} title={t('pv_addDir')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fbf3df', color: '#a9791f', border: '1px solid #f0e4c4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-        </button>
+        {role === 'chair' && (
+          <>
+            <button type="button" onClick={reqUpdate} title={t('pv_reqUpdate')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f2', color: '#5b6b62', border: '1px solid #e6eae4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
+            </button>
+            <button type="button" onClick={open} title={t('pv_addDir')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fbf3df', color: '#a9791f', border: '1px solid #f0e4c4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+            </button>
+          </>
+        )}
+        {role === 'editor' && (
+          <button type="button" onClick={onEdit} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: 7, fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>{editLabel}
+          </button>
+        )}
       </div>
     </div>
   );
