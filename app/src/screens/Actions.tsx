@@ -62,6 +62,7 @@ export function Actions() {
 
   return (
     <Fade>
+      <SectionAddButton section="followups" title={rl('الإجراءات والمتابعات', 'Actions & follow-ups')} desc={rl('كل الإجراءات المفتوحة عبر أقسام المنصة', 'All open actions across the platform')} />
       <div style={{ background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22, boxShadow: '0 10px 36px -12px rgba(30,60,40,.18)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12.5, color: '#7d867f', fontWeight: 500 }}>{rl('تصفية:', 'Filter:')}</span>
         <Dropdown value={aPr} options={prOpts} onChange={setAPr} opt={{ size: 'sm' }} />
@@ -93,7 +94,6 @@ export function Actions() {
         })}
         {filtered.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>{rl('لا توجد إجراءات مطابقة', 'No matching actions')}</div>}
       </div>
-      <SectionAddButton section="followups" />
     </Fade>
   );
 }

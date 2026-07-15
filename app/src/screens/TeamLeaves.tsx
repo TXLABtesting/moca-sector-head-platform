@@ -324,12 +324,22 @@ export function TeamLeaves() {
 
   return (
     <Fade style={{ fontFamily: "'IBM Plex Sans Arabic',sans-serif" }}>
-      {/* header */}
-      <div style={{ marginBottom: 22 }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: 23, fontWeight: 700, color: '#17211c' }}>{rl('إجازات الفريق', 'Team Leaves')}</h1>
-        <p style={{ margin: 0, fontSize: 13, color: '#6d7973' }}>
-          {rl('عرض زمني لإجازات فريق المكتب ومدراء الوحدات التنظيمية — التداخلات تظهر بوضوح على المحور الزمني.', 'A timeline of office-team and sector-manager leaves — overlaps are highlighted on the date axis.')}
-        </p>
+      {/* header: title on the start side, add button opposite */}
+      <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+          <h1 style={{ margin: '0 0 6px', fontSize: 23, fontWeight: 700, color: '#17211c' }}>{rl('إجازات الفريق', 'Team Leaves')}</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#6d7973' }}>
+            {rl('عرض زمني لإجازات فريق المكتب ومدراء الوحدات التنظيمية — التداخلات تظهر بوضوح على المحور الزمني.', 'A timeline of office-team and sector-manager leaves — overlaps are highlighted on the date axis.')}
+          </p>
+        </div>
+        {canManage && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
+            <button onClick={() => setLvForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              {rl('إضافة إجازة', 'New leave')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI cards */}
@@ -510,15 +520,6 @@ export function TeamLeaves() {
           onReviewed={() => doReviewed(selLv.id)}
         />}
       </Drawer>
-
-      {canManage && (
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
-          <button onClick={() => setLvForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-            {rl('إضافة إجازة', 'New leave')}
-          </button>
-        </div>
-      )}
 
       {lvForm && (
         <Modal open onClose={() => setLvForm(false)} width={620}>

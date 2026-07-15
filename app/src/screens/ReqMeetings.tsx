@@ -332,6 +332,21 @@ export function ReqMeetings() {
 
   return (
     <Fade>
+      {/* PAGE HEADER: title on the start side, add button opposite */}
+      <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{rl('الاجتماعات', 'Meetings')}</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{rl('طلبات الاجتماعات وتقويمها — من الإنشاء حتى الاعتماد', 'Meeting requests and calendar — from creation to approval')}</p>
+        </div>
+        {canAddMeeting && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
+            <button onClick={() => setMtForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة اجتماع', 'New meeting')}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 4, background: '#eef1ec', borderRadius: 11, padding: 4 }}>
@@ -355,11 +370,6 @@ export function ReqMeetings() {
         <button onClick={() => setTableView(false)} style={toggleBtn(!tableView)}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>{t('cal_asCalendar')}
         </button>
-        {canAddMeeting && (
-          <button onClick={() => setMtForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة اجتماع', 'New meeting')}
-          </button>
-        )}
       </div>
 
       {/* CALENDAR */}

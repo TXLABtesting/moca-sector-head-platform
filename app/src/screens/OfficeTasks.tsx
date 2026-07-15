@@ -243,16 +243,18 @@ export function OfficeTasks() {
   return (
     <Fade>
       {/* PAGE HEADER with in-page add button */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-        <div style={{ minWidth: 0 }}>
+      <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
           <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{isChair ? rl('مهام فريق المكتب', 'Office team tasks') : rl('مهامي', 'My tasks')}</h1>
           <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{rl('متابعة مهام المكتب وتحديث حالاتها', 'Track office tasks and update their statuses')}</p>
         </div>
         {canAdd && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
           <button type="button" onClick={() => setTaskForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.55)', flex: 'none' }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             {rl('إضافة مهمة', 'Add task')}
           </button>
+          </div>
         )}
       </div>
 

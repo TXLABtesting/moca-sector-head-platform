@@ -159,3 +159,10 @@ select, input, textarea, button { font-family: inherit; }
 
 button { font-family: inherit; }
 a { text-decoration: none; }
+
+/* page header: title on the inline start, add button opposite; on small
+   screens the button drops below the title at full width */
+@media (max-width: 640px) {
+  .page-head .page-head-action { width: 100%; }
+  .page-head .page-head-action button { width: 100%; justify-content: center; }
+}

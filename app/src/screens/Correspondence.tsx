@@ -217,6 +217,21 @@ export function Correspondence() {
 
   return (
     <Fade>
+      {/* PAGE HEADER: title on the start side, add button opposite */}
+      <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{t('t_correspondence')}</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{tr('سجل المراسلات الصادرة والواردة ومتابعة إجراءاتها')}</p>
+        </div>
+        {canAdd && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
+            <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>إضافة وارد/صادر جديد
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* mobile filter toggle */}
       <div className="fbtn" onClick={() => setFiltersOpen((v) => !v)}>
         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="17" x2="14" y2="17" /></svg>
@@ -279,13 +294,6 @@ export function Correspondence() {
 
         {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 44, color: '#9aa39b', fontSize: 14 }}>{t('noCorr')}</div>}
       </div>
-      {canAdd && (
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
-          <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>إضافة وارد/صادر جديد
-          </button>
-        </div>
-      )}
       {renderModal()}
     </Fade>
   );

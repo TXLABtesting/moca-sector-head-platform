@@ -75,6 +75,7 @@ export function Committees() {
   return (
     <Fade>
       <div style={{ fontFamily: "'IBM Plex Sans Arabic',sans-serif", color: '#17211c' }}>
+        {!cur && <SectionAddButton section="committees" title={rl('اللجان وفرق العمل', 'Committees & work teams')} desc={rl('متابعة اللجان وقراراتها واجتماعاتها', 'Committees, their decisions and meetings')} />}
         {!cur && <ListView committees={committees} rl={rl} tr={tr} dl={dl} openC={openC} />}
         {cur && (
           <DetailView
@@ -115,7 +116,6 @@ export function Committees() {
           </>
         )}
       </Modal>
-      <SectionAddButton section="committees" />
     </Fade>
   );
 }

@@ -31,9 +31,9 @@ export function ReportCenter() {
   const canApprove = can(cu, 'reportCenter', 'approve') || can(cu, 'auditReports', 'approve')
     || can(cu, 'finReports', 'approve') || can(cu, 'reportLog', 'approve');
 
-  if (page === 'auditDetail') return <Fade><AuditReport canApprove={canApprove} /><SectionAddButton section="auditReports" /></Fade>;
-  if (page === 'finDetail') return <Fade><FinancialSummary /><SectionAddButton section="finReports" /></Fade>;
-  if (page === 'reglog') return <Fade><ReportsRegister /><SectionAddButton section="reportLog" /></Fade>;
+  if (page === 'auditDetail') return <Fade><SectionAddButton section="auditReports" header /><AuditReport canApprove={canApprove} /></Fade>;
+  if (page === 'finDetail') return <Fade><SectionAddButton section="finReports" header /><FinancialSummary /></Fade>;
+  if (page === 'reglog') return <Fade><SectionAddButton section="reportLog" header /><ReportsRegister /></Fade>;
   if (page === 'reportDetail') return <Fade><RetentionReport /></Fade>;
 
   // ---- HUB ----
@@ -72,9 +72,7 @@ export function ReportCenter() {
 
   return (
     <Fade>
-      <div style={{ maxWidth: 640, marginBottom: 22 }}>
-        <p style={{ margin: 0, fontSize: 13.5, color: '#6f7a72', lineHeight: 1.7 }}>{t('rc_intro')}</p>
-      </div>
+      <SectionAddButton section="reportCenter" title={rl('مركز التقارير', 'Report Center')} desc={t('rc_intro')} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(330px,1fr))', gap: 18 }}>
         {cards.map((r, i) => (
           <div key={i} style={{ background: '#fff', borderRadius: 22, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', padding: '22px 22px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -103,7 +101,6 @@ export function ReportCenter() {
           </div>
         ))}
       </div>
-      <SectionAddButton section="reportCenter" />
     </Fade>
   );
 }

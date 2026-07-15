@@ -49,6 +49,7 @@ function MinutesList() {
 
   return (
     <Fade>
+      <SectionAddButton section="minutes" title={rl('محاضر الاجتماعات', 'Meeting minutes')} desc={rl('سجل المحاضر وقراراتها ومهامها', 'Minutes, their decisions and tasks')} />
       <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
         {kpis.map((k, i) => (
           <div key={i} onClick={k.open} style={tile}>
@@ -101,7 +102,6 @@ function MinutesList() {
           );
         })}
       </div>
-      <SectionAddButton section="minutes" />
     </Fade>
   );
 }

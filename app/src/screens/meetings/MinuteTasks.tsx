@@ -191,6 +191,7 @@ export function MinuteTasks() {
 
   return (
     <Fade>
+      <SectionAddButton section="minuteTasks" title={rl('مهام محاضر الاجتماعات', 'Minutes tasks')} desc={rl('المهام المنبثقة عن المحاضر ومتابعة حالاتها', 'Tasks arising from minutes and their follow-up')} />
       {/* KPI summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,minmax(0,1fr))', gap: 12, marginBottom: 22 }} className="rg5">
         {kpis.map((k) => {
@@ -393,7 +394,6 @@ export function MinuteTasks() {
           <button onClick={() => setDirModalId(null)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#5b6b62', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{t('mt_cancel')}</button>
         </div>
       </Modal>
-      <SectionAddButton section="minuteTasks" />
     </Fade>
   );
 }
