@@ -61,29 +61,99 @@ function Bullets({ items, onChange, addLabel }: { items: string[]; onChange: (v:
 }
 
 /* ================= template download / parse ================= */
-function downloadTemplate() {
+/* The template is generated in the browser as a REAL .docx: a stored (no
+   compression) ZIP built byte-by-byte with a local CRC32 — no libraries.
+   Word opens it normally, and our upload parser reads it back. */
+function crc32(u8: Uint8Array): number {
+  let c: number;
+  const table: number[] = [];
+  for (let n = 0; n < 256; n++) {
+    c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[n] = c >>> 0;
+  }
+  let crc = 0 ^ -1;
+  for (let i = 0; i < u8.length; i++) crc = (crc >>> 8) ^ table[(crc ^ u8[i]) & 0xff];
+  return (crc ^ -1) >>> 0;
+}
+
+function storedZip(files: [string, string][]): Blob {
+  const enc = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+  const central: Uint8Array[] = [];
+  let offset = 0;
+  const u16 = (v: number) => new Uint8Array([v & 255, (v >> 8) & 255]);
+  const u32 = (v: number) => new Uint8Array([v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255]);
+  const cat = (...parts: Uint8Array[]) => {
+    const len = parts.reduce((a, b) => a + b.length, 0);
+    const out = new Uint8Array(len);
+    let o = 0; parts.forEach((pp) => { out.set(pp, o); o += pp.length; });
+    return out;
+  };
+  for (const [name, content] of files) {
+    const nameB = enc.encode(name);
+    const dataB = enc.encode(content);
+    const crc = crc32(dataB);
+    const local = cat(u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc), u32(dataB.length), u32(dataB.length), u16(nameB.length), u16(0), nameB, dataB);
+    chunks.push(local);
+    central.push(cat(u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc), u32(dataB.length), u32(dataB.length), u16(nameB.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), nameB));
+    offset += local.length;
+  }
+  const centralAll = cat(...central);
+  const eocd = cat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(centralAll.length), u32(offset), u16(0));
+  return new Blob([cat(...chunks, centralAll, eocd)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+
+const X = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const wP = (t: string, opts?: { bold?: boolean; size?: number }) => {
+  const rpr = `<w:rPr>${opts?.bold ? '<w:b/>' : ''}${opts?.size ? `<w:sz w:val="${opts.size}"/>` : ''}<w:rtl/></w:rPr>`;
+  return `<w:p><w:pPr><w:bidi/>${opts?.bold || opts?.size ? rpr : ''}</w:pPr><w:r>${rpr}<w:t xml:space="preserve">${X(t)}</w:t></w:r></w:p>`;
+};
+const wTbl = (head: string[], rows: string[][]) => {
+  const tc = (t: string, hdr: boolean) => `<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>${hdr ? '<w:shd w:val="clear" w:fill="EEF3F0"/>' : ''}</w:tcPr>${wP(t, hdr ? { bold: true } : undefined)}</w:tc>`;
+  const tr = (cells: string[], hdr: boolean) => `<w:tr>${cells.map((c) => tc(c, hdr)).join('')}</w:tr>`;
+  const borders = '<w:tblBorders><w:top w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:start w:val="single" w:sz="4"/><w:end w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders>';
+  return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="5000" w:type="pct"/>${borders}</w:tblPr>${tr(head, true)}${rows.map((r) => tr(r, false)).join('')}</w:tbl>${wP('')}`;
+};
+
+function buildTemplateDocx(): Blob {
   const ph = 'اكتب هنا';
-  const tbl = (head: string[], rows: number) =>
-    `<table dir="rtl" border="1" cellpadding="6" style="border-collapse:collapse;width:100%"><tr>${head.map((h) => `<th style="background:#eef3f0">${h}</th>`).join('')}</tr>${Array.from({ length: rows }, () => `<tr>${head.map(() => `<td>${ph}</td>`).join('')}</tr>`).join('')}</table>`;
-  const ul = (n: number) => `<ul>${Array.from({ length: n }, () => `<li>${ph}</li>`).join('')}</ul>`;
-  const html = `<html dir="rtl"><head><meta charset="utf-8"><title>قالب تقرير الدفعات المستبقاة</title></head><body style="font-family:Arial">
-<h1>تقرير الدفعات المستبقاة</h1>
-<p>السنة: 2026</p><p>الربع: الربع الثالث</p>
-<h2>الملخص التنفيذي</h2>${ul(3)}
-<h2>نقاط القوة</h2>${ul(3)}
-<h2>نقاط الضعف</h2>${ul(3)}
-<h2>مجالات التحسين</h2>${ul(3)}
-<h2>التوصيات</h2>${tbl(['الملاحظة', 'التوصية', 'الأهمية'], 3)}
-<h2>المؤشرات والاتجاهات حسب الجهة</h2>${tbl(['الجهة', 'العدد', 'القيمة (درهم)', 'النسبة', 'مستمر', 'غير مغلق', 'مغلق'], 4)}
-<h2>أعلى الحالات التي تستحق متابعة رئيس القطاع</h2>${tbl(['رقم العقد', 'القيمة (درهم)', 'أسباب التأخر', 'الحالة'], 2)}
-<h2>الخلاصة</h2><p>${ph}</p>
-</body></html>`;
-  const blob = new Blob(['﻿' + html], { type: 'application/msword' });
+  const bullets = (n: number) => Array.from({ length: n }, () => wP('- ' + ph)).join('');
+  const body =
+    wP('تقرير الدفعات المستبقاة', { bold: true, size: 36 }) +
+    wP('السنة: 2026') + wP('الربع: الربع الثالث') +
+    wP('الملخص التنفيذي', { bold: true, size: 28 }) + bullets(3) +
+    wP('نقاط القوة', { bold: true, size: 28 }) + bullets(3) +
+    wP('نقاط الضعف', { bold: true, size: 28 }) + bullets(3) +
+    wP('مجالات التحسين', { bold: true, size: 28 }) + bullets(3) +
+    wP('التوصيات', { bold: true, size: 28 }) +
+    wTbl(['الملاحظة', 'التوصية', 'الأهمية'], Array.from({ length: 3 }, () => [ph, ph, ph])) +
+    wP('المؤشرات والاتجاهات حسب الجهة', { bold: true, size: 28 }) +
+    wTbl(['الجهة', 'العدد', 'القيمة (درهم)', 'النسبة', 'مستمر', 'غير مغلق', 'مغلق'], Array.from({ length: 4 }, () => [ph, ph, ph, ph, ph, ph, ph])) +
+    wP('أعلى الحالات التي تستحق متابعة رئيس القطاع', { bold: true, size: 28 }) +
+    wTbl(['رقم العقد', 'القيمة (درهم)', 'أسباب التأخر', 'الحالة'], Array.from({ length: 2 }, () => [ph, ph, ph, ph])) +
+    wP('الخلاصة', { bold: true, size: 28 }) + wP(ph);
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:bidi/></w:sectPr></w:body></w:document>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  return storedZip([
+    ['[Content_Types].xml', contentTypes],
+    ['_rels/.rels', rels],
+    ['word/document.xml', documentXml],
+  ]);
+}
+
+function downloadTemplate() {
+  const blob = buildTemplateDocx();
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'قالب تقرير الدفعات المستبقاة.doc';
+  a.href = url;
+  a.download = 'Retained_Payments_Report_Template.docx';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
   a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 interface Parsed {
