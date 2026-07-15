@@ -143,17 +143,41 @@ function buildTemplateDocx(): Blob {
   ]);
 }
 
+const TEMPLATE_NAME = 'Retained_Payments_Report_Template.docx';
+
+function clickAnchor(doc: Document, url: string) {
+  const a = doc.createElement('a');
+  a.href = url;
+  a.download = TEMPLATE_NAME;
+  a.rel = 'noopener';
+  doc.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 function downloadTemplate() {
   const blob = buildTemplateDocx();
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'Retained_Payments_Report_Template.docx';
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  const inFrame = (() => { try { return window.self !== window.top; } catch { return true; } })();
+  if (inFrame) {
+    // Hosted demos run inside a sandboxed iframe that silently blocks
+    // downloads started in the frame. Open a popup (which escapes the
+    // sandbox) and fire the download from INSIDE it.
+    const w = window.open('', '_blank');
+    if (w) {
+      try {
+        w.document.write('<meta charset="utf-8"><title>' + TEMPLATE_NAME + '</title><p style="font-family:sans-serif;direction:rtl;padding:24px">جارٍ تنزيل قالب تقرير الدفعات المستبقاة… يمكن إغلاق هذا التبويب.</p>');
+        clickAnchor(w.document, url);
+        setTimeout(() => { try { w.close(); } catch { /* noop */ } }, 2500);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return;
+      } catch {
+        try { w.location.href = url; return; } catch { /* fall through */ }
+      }
+    }
+  }
+  clickAnchor(document, url);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 interface Parsed {
