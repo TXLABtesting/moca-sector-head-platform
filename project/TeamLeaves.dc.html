@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+<script src="./dc-shared.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+@keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+@keyframes ovBg{from{opacity:0}to{opacity:1}}
+@keyframes slideInX{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+@media(max-width:1024px){ .lv-kpis{grid-template-columns:repeat(2,1fr)!important} }
+@media(max-width:640px){ .lv-kpis{grid-template-columns:1fr!important} div:has(> .lvtrow){overflow-x:auto!important} .lvtrow{min-width:820px} }
+/*__mob__*/
+@media(max-width:640px){
+  .rg2,.rg3,.rg4,.rg5,.ov-stats,.lv-kpis,.lv-cat,.lv-cards{grid-template-columns:1fr!important}
+  table thead{display:none!important}
+  table tr{display:block!important;margin-bottom:10px;border:1px solid var(--ceef0ec,#eef0ec);border-radius:12px;padding:4px 10px;background:#fff}
+  table td{display:flex!important;justify-content:space-between;gap:12px;border:none!important;padding:7px 2px!important;white-space:normal!important;max-width:none!important;text-align:start}
+  .trow{grid-template-columns:1fr!important;min-width:0!important;gap:5px!important}
+  div:has(> table){overflow-x:visible!important}
+  .cal-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+}
+
+.fbtn{display:none}
+@media(max-width:640px){.fbtn{display:inline-flex!important;align-items:center;gap:8px;cursor:pointer;background:#fff;border:1px solid #eef1ec;border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.05);padding:11px 16px;font-size:13px;font-weight:600;color:#1e4634;margin-bottom:14px;user-select:none}.mfbar{display:none!important}.fcb:checked ~ .mfbar{display:flex!important;flex-direction:column!important;align-items:stretch!important}.fcb:checked ~ .fbtn .fchev{transform:rotate(180deg)}.mfbar>*{width:100%!important;min-width:0!important;flex:none!important}.mfbar [data-dd] button,.mfbar [data-dd]{width:100%!important}}
+</style>
+</helmet>
+<div style="animation:fadeUp .16s ease;font-family:'IBM Plex Sans Arabic',sans-serif">
+  <!-- header -->
+  <div style="margin-bottom:22px">
+    <h1 style="margin:0 0 6px;font-size:23px;font-weight:700;color:var(--c17211c,#17211c)">{{ ttl }}</h1>
+    <p style="margin:0;font-size:13px;color:var(--c6d7973,#6d7973)">{{ sub }}</p>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="lv-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
+    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+      <div onClick="{{ k.action }}" style="background:var(--cffffff,#ffffff);border:1px solid {{ k.border }};border-radius:14px;padding:16px 18px;cursor:pointer;transition:border-color .15s,box-shadow .15s" style-hover="box-shadow:0 4px 16px -8px rgba(0,0,0,.22)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:12px;color:var(--c6d7973,#6d7973);font-weight:500">{{ k.label }}</span>
+          <span style="width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:{{ k.bg }};color:{{ k.fg }};font-weight:700;font-size:13px">{{ k.icon }}</span>
+        </div>
+        <div style="font-size:27px;font-weight:700;color:var(--c17211c,#17211c);line-height:1">{{ k.value }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- toolbar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+    <div style="display:flex;gap:7px;background:var(--cf2f4f0,#f2f4f0);border-radius:11px;padding:4px">
+      <button onClick="{{ setTimelineView }}" style="{{ tabTlStyle }}">{{ viewTlLabel }}</button>
+      <button onClick="{{ setTableView }}" style="{{ tabTableStyle }}">{{ viewTableLabel }}</button>
+    </div>
+    <input type="checkbox" id="fcb-teamleaves-1" class="fcb" style="display:none"><label for="fcb-teamleaves-1" class="fbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="10" y1="17" x2="14" y2="17"></line></svg><span>الفلاتر</span><svg class="fchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-inline-start:auto;transition:transform .2s"><path d="m6 9 6 6 6-6"></path></svg></label><div class="mfbar" style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+      <div style="position:relative;display:flex;align-items:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c9aa39b,#9aa39b)" stroke-width="2" style="position:absolute;inset-inline-start:11px" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="{{ searchPh }}" style="border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);border-radius:9px;padding:8px 12px;padding-inline-start:34px;font-size:12.5px;font-family:inherit;width:180px;color:var(--c17211c,#17211c)">
+      </div>
+      {{ ddCat }}
+      {{ ddStatus }}
+      {{ ddType }}
+    </div>
+  </div>
+
+  <!-- ===================== TIMELINE ===================== -->
+  <sc-if value="{{ isTimelineView }}" hint-placeholder-val="{{ true }}">
+    <div style="background:var(--cffffff,#ffffff);border:1px solid var(--ce8ebe6,#e8ebe6);border-radius:14px;padding:18px 20px;margin-bottom:16px;overflow-x:auto">
+      <!-- legend -->
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px;font-size:11.5px;color:var(--c6d7973,#6d7973)">
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border-radius:4px;background:var(--c2e7d55,#2e7d55)"></span>{{ lgApproved }}</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border-radius:4px;background:var(--ca9791f,#a9791f)"></span>{{ lgPending }}</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border-radius:4px;background:var(--c8a8078,#8a8078)"></span>{{ lgPlanned }}</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border-radius:4px;background:var(--cf3d9d2,#f3d9d2);border:1px solid var(--cd98b7e,#d98b7e)"></span>{{ lgConflict }}</div>
+      </div>
+
+      <div style="min-width:760px">
+        <!-- axis header -->
+        <div style="display:flex;align-items:stretch">
+          <div style="width:190px;flex:none"></div>
+          <div style="flex:1;position:relative;height:22px;direction:ltr">
+            <sc-for list="{{ ticks }}" as="tk" hint-placeholder-count="6">
+              <div style="{{ tk.style }}">{{ tk.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- groups -->
+        <sc-for list="{{ tlGroups }}" as="g" hint-placeholder-count="2">
+          <div style="margin-top:14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="width:6px;height:16px;border-radius:4px;background:{{ g.accent }}"></span>
+              <h3 style="margin:0;font-size:13px;font-weight:700;color:var(--c17211c,#17211c)">{{ g.label }}</h3>
+              <span style="font-size:11px;font-weight:600;color:var(--c9aa39b,#9aa39b)">{{ g.count }}</span>
+            </div>
+            <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex;align-items:stretch;border-radius:9px;transition:background .12s" style-hover="background:var(--cf9faf7,#f9faf7)">
+                <!-- name -->
+                <div onClick="{{ r.open }}" style="width:190px;flex:none;display:flex;align-items:center;gap:8px;padding:5px 6px;cursor:pointer;min-width:0">
+                  <span style="width:28px;height:28px;flex:none;border-radius:8px;overflow:hidden;background:var(--c1e4634,#1e4634);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700"><sc-if value="{{ r.hasImg }}" hint-placeholder-val="{{ false }}"><img src="{{ r.img }}" style="width:100%;height:100%;object-fit:cover;object-position:top"></sc-if><sc-if value="{{ r.noImg }}" hint-placeholder-val="{{ true }}">{{ r.initials }}</sc-if></span>
+                  <div style="min-width:0">
+                    <div style="font-size:12px;font-weight:600;color:var(--c17211c,#17211c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.person }}</div>
+                    <sc-if value="{{ r.hasConflict }}" hint-placeholder-val="{{ false }}"><div style="font-size:10px;font-weight:700;color:var(--cb0433b,#b0433b)">{{ conflictTag }}</div></sc-if>
+                  </div>
+                </div>
+                <!-- track -->
+                <div style="flex:1;position:relative;height:38px;direction:ltr;border-inline-start:1px solid var(--cf1f3ef,#f1f3ef)">
+                  <!-- weekly gridlines -->
+                  <sc-for list="{{ gridlines }}" as="gl" hint-placeholder-count="6"><div style="{{ gl.style }}"></div></sc-for>
+                  <!-- conflict bands -->
+                  <sc-for list="{{ bands }}" as="bd" hint-placeholder-count="2"><div style="{{ bd.style }}"></div></sc-for>
+                  <!-- today line -->
+                  <sc-if value="{{ hasToday }}" hint-placeholder-val="{{ false }}"><div style="{{ todayStyle }}"></div></sc-if>
+                  <!-- the bar -->
+                  <div onClick="{{ r.open }}" title="{{ r.period }}" style="{{ r.barStyle }}">
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.barText }}</span>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </sc-if>
+
+  <!-- ===================== TABLE ===================== -->
+  <sc-if value="{{ isTableView }}" hint-placeholder-val="{{ false }}">
+    <div style="background:var(--cffffff,#ffffff);border:1px solid var(--ce8ebe6,#e8ebe6);border-radius:14px;overflow:hidden">
+      <div class="lvtrow" style="display:grid;grid-template-columns:1.5fr 1fr 1.1fr 0.7fr 0.9fr 1fr;padding:12px 18px;background:var(--cf7f8f6,#f7f8f6);border-bottom:1px solid var(--ce8ebe6,#e8ebe6);font-size:11.5px;font-weight:700;color:var(--c6d7973,#6d7973)">
+        <div>{{ colPerson }}</div><div>{{ colType }}</div><div>{{ colPeriod }}</div><div>{{ colDays }}</div><div>{{ colStatus }}</div><div>{{ colBackup }}</div>
+      </div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+        <div onClick="{{ r.open }}" class="lvtrow" style="display:grid;grid-template-columns:1.5fr 1fr 1.1fr 0.7fr 0.9fr 1fr;padding:12px 18px;border-bottom:1px solid var(--cf1f3ef,#f1f3ef);font-size:12.5px;align-items:center;cursor:pointer;transition:background .12s" style-hover="background:var(--cf9faf7,#f9faf7)">
+          <div style="display:flex;align-items:center;gap:9px;min-width:0">
+            <span style="width:30px;height:30px;flex:none;border-radius:8px;overflow:hidden;background:var(--c1e4634,#1e4634);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700"><sc-if value="{{ r.hasImg }}" hint-placeholder-val="{{ false }}"><img src="{{ r.img }}" style="width:100%;height:100%;object-fit:cover;object-position:top"></sc-if><sc-if value="{{ r.noImg }}" hint-placeholder-val="{{ true }}">{{ r.initials }}</sc-if></span>
+            <div style="min-width:0"><div style="font-weight:600;color:var(--c17211c,#17211c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.person }}</div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b)">{{ r.catLabel }}</div></div>
+          </div>
+          <div style="color:var(--c3c4a42,#3c4a42)">{{ r.type }}</div>
+          <div style="color:var(--c3c4a42,#3c4a42);font-size:12px">{{ r.period }}</div>
+          <div style="color:var(--c3c4a42,#3c4a42)">{{ r.days }}</div>
+          <div><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:3px 10px;background:{{ r.bg }};color:{{ r.fg }}">{{ r.statusLabel }}</span></div>
+          <div style="color:var(--c6d7973,#6d7973);font-size:12px">{{ r.backupDisp }}</div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:34px;text-align:center;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ emptyLabel }}</div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- SIDE PANEL -->
+  <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePanel }}" style="position:fixed;inset:0;background:rgba(23,33,28,0.4);z-index:96;display:flex;justify-content:flex-start;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="width:456px;max-width:94%;height:100%;background:#ffffff;box-shadow:-8px 0 40px rgba(23,33,28,.18);display:flex;flex-direction:column;animation:slideInX .28s ease;overflow-y:auto">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--ceef0ec,#eef0ec)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:11px">
+              <span style="width:44px;height:44px;flex:none;border-radius:12px;overflow:hidden;background:var(--c1e4634,#1e4634);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700"><sc-if value="{{ sel.hasImg }}" hint-placeholder-val="{{ false }}"><img src="{{ sel.img }}" style="width:100%;height:100%;object-fit:cover;object-position:top"></sc-if><sc-if value="{{ sel.noImg }}" hint-placeholder-val="{{ true }}">{{ sel.initials }}</sc-if></span>
+              <div>
+                <h2 style="margin:0 0 2px;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ sel.person }}</h2>
+                <div style="font-size:12px;color:var(--c8a8078,#8a8078)">{{ sel.role }}</div>
+              </div>
+            </div>
+            <button onClick="{{ closePanel }}" style="width:32px;height:32px;flex:none;border-radius:9px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);cursor:pointer;color:var(--c7d867f,#7d867f);font-size:15px">✕</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 12px;background:{{ sel.bg }};color:{{ sel.fg }}">{{ sel.statusLabel }}</span>
+            <span style="font-size:11px;font-weight:600;border-radius:20px;padding:4px 12px;background:var(--cf2f4f0,#f2f4f0);color:var(--c6d7973,#6d7973)">{{ sel.catLabel }}</span>
+            <sc-if value="{{ sel.hasConflict }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 12px;background:var(--cf6e5df,#f6e5df);color:var(--cb0433b,#b0433b)">{{ conflictTag }}</span></sc-if>
+            <sc-if value="{{ sel.reviewed }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 12px;background:var(--ce2f0e8,#e2f0e8);color:var(--c2e7d55,#2e7d55)">{{ reviewedTag }}</span></sc-if>
+          </div>
+        </div>
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;flex:1">
+          <sc-if value="{{ sel.hasConflict }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cfdf3ef,#fdf3ef);border:1px solid var(--cf0d8ce,#f0d8ce);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--cb0433b,#b0433b);margin-bottom:4px;font-weight:700">{{ conflictWithLabel }}</div><div style="font-size:12.5px;color:var(--c9a3a2b,#9a3a2b);line-height:1.7">{{ sel.conflictWith }}</div></div>
+          </sc-if>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:130px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:3px">{{ typeLabel }}</div><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c)">{{ sel.type }}</div></div>
+            <div style="flex:1;min-width:130px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:3px">{{ daysColLabel }}</div><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c)">{{ sel.days }} {{ daysLabel }}</div></div>
+          </div>
+          <div style="background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ periodLabel }}</div>
+              <sc-if value="{{ sel.canEditDates }}" hint-placeholder-val="{{ true }}"><button onClick="{{ sel.editDates }}" style="display:inline-flex;align-items:center;gap:5px;background:var(--cffffff,#ffffff);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c1f4a37,#1f4a37);border-radius:8px;padding:4px 9px;font-size:10.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>{{ editDatesLabel }}</button></sc-if>
+            </div>
+            <sc-if value="{{ sel.viewDates }}" hint-placeholder-val="{{ true }}"><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c)">{{ sel.period }}</div></sc-if>
+            <sc-if value="{{ sel.editingDates }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;margin-top:6px">
+                <label style="flex:1;font-size:10px;color:var(--c9aa39b,#9aa39b)">{{ startDateLabel }}<input type="text" defaultValue="{{ sel.startVal }}" onInput="{{ sel.onEditStart }}" style="width:100%;box-sizing:border-box;margin-top:3px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);border-radius:8px;padding:7px 9px;font-size:12px;font-family:inherit;color:var(--c17211c,#17211c)"></label>
+                <label style="flex:1;font-size:10px;color:var(--c9aa39b,#9aa39b)">{{ endDateLabel }}<input type="text" defaultValue="{{ sel.endVal }}" onInput="{{ sel.onEditEnd }}" style="width:100%;box-sizing:border-box;margin-top:3px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);border-radius:8px;padding:7px 9px;font-size:12px;font-family:inherit;color:var(--c17211c,#17211c)"></label>
+              </div>
+              <div style="display:flex;gap:7px;margin-top:9px">
+                <button onClick="{{ sel.saveDates }}" style="display:inline-flex;align-items:center;gap:5px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ saveDatesLabel }}</button>
+                <button onClick="{{ sel.cancelEditDates }}" style="background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c7d867f,#7d867f);border-radius:8px;padding:7px 14px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">{{ cancelDatesLabel }}</button>
+              </div>
+            </sc-if>
+          </div>
+          <div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ deptLabel }}</div><div style="font-size:12.5px;color:var(--c2a332d,#2a332d);line-height:1.6">{{ sel.dept }}</div></div>
+          <div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ backupLabel }}</div><div style="font-size:12.5px;color:var(--c2a332d,#2a332d);line-height:1.6">{{ sel.backupDisp }}</div></div>
+          <sc-if value="{{ sel.hasNotes }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cfbf7ee,#fbf7ee);border:1px solid var(--cefe3c9,#efe3c9);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--ca9791f,#a9791f);margin-bottom:4px">{{ notesLabel }}</div><div style="font-size:12.5px;color:var(--c6b5b1e,#6b5b1e);line-height:1.7">{{ sel.notes }}</div></div>
+          </sc-if>
+          <sc-if value="{{ canNote }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ noteInputLabel }}</div>
+            <textarea onInput="{{ onDraft }}" placeholder="{{ noteInputPh }}" style="width:100%;min-height:66px;resize:vertical;border:1px solid var(--ce2e6df,#e2e6df);border-radius:10px;padding:10px 12px;font-size:12.5px;font-family:inherit;color:var(--c17211c,#17211c);line-height:1.6"></textarea>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ backupInputLabel }}</div>
+            {{ ddBackup }}
+          </div>
+          </sc-if>
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid var(--ceef0ec,#eef0ec);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:var(--cfafbf9,#fafbf9)">
+          <sc-if value="{{ canApprove }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button onClick="{{ sel.approve }}" style="display:flex;align-items:center;gap:6px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ bApprove }}</button>
+          <button onClick="{{ sel.reject }}" style="display:flex;align-items:center;gap:6px;background:var(--cf7e6e4,#f7e6e4);border:1px solid var(--cf0d3cf,#f0d3cf);color:var(--cb0433b,#b0433b);border-radius:9px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>{{ bReject }}</button>
+          </div></sc-if>
+          <sc-if value="{{ canReview }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button onClick="{{ sel.reqEdit }}" style="display:flex;align-items:center;gap:6px;background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c3c4a42,#3c4a42);border-radius:9px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>{{ bReqEdit }}</button>
+          </div></sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:300;background:var(--c132b20,#132b20);color:#fff;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 12px 30px -8px rgba(0,0,0,.4)">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":"100%","height":780}}'>
+class Component extends DCLogic {
+  leaves=window.__DATA.leaves;
+  state={lvCat:'',lvStatus:'',lvType:'',lvSearch:'',lvViewMode:'timeline',selLv:null,bkSel:'',lvOnlyConflict:false,toast:'',openDD:null,ddRect:null,lang:(this.props&&this.props.lang)||'ar'};
+  find(id){return this.leaves.find(x=>x.id===id);}
+  initials(name){const p=String(name||'').trim().split(/\s+/);return((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
+  showToast(msg){this.setState({toast:msg});clearTimeout(this._tt);this._tt=setTimeout(()=>this.setState({toast:''}),3000);}
+  componentDidMount(){ DCDD.install(this); if(this.props.lang&&this.props.lang!==this.state.lang) this.setState({lang:this.props.lang}); }
+  componentDidUpdate(prev){ if(prev.lang!==this.props.lang) this.setState({lang:this.props.lang}); }
+  componentWillUnmount(){ DCDD.uninstall(this); }
+  openLv(id){this._lvDraft='';this._lvBackup='';this.setState({selLv:id,bkSel:'',lvEditDates:false});}
+  closeLv(){this.setState({selLv:null,lvEditDates:false});}
+  lvSaveDates(id){const lv=this.find(id);if(lv){lv.start=(this._lvES||lv.start).trim();lv.end=(this._lvEE||lv.end).trim();}this.showToast(this.state.lang==='en'?'Leave dates updated':'تم تعديل تاريخ الإجازة');this.setState({lvEditDates:false});this.forceUpdate();}
+  lvApprove(id){const lv=this.find(id);if(lv)lv.status='معتمدة';this.showToast(this.state.lang==='en'?'Leave approved':'تم اعتماد الإجازة');this.forceUpdate();}
+  lvReject(id){const lv=this.find(id);if(lv){lv.status='مرفوضة';const r=(this._lvDraft||'').trim();if(r)lv.notes=('سبب الرفض: '+r+(lv.notes?(' — '+lv.notes):''));}this._lvDraft='';this.showToast(this.state.lang==='en'?'Leave rejected':'تم رفض الإجازة');this.forceUpdate();}
+  lvAddNote(id){const lv=this.find(id);const v=(this._lvDraft||'').trim();if(lv&&v)lv.notes=(lv.notes&&lv.notes!=='')?(lv.notes+' — '+v):v;this._lvDraft='';this.showToast(this.state.lang==='en'?'Note added':'تمت إضافة ملاحظة');this.forceUpdate();}
+  lvSetBackup(id){const lv=this.find(id);const v=(this._lvBackup||'').trim();if(lv&&v)lv.backup=v;this._lvBackup='';this.showToast(this.state.lang==='en'?'Backup assigned':'تم تعيين البديل');this.forceUpdate();}
+  lvReqEdit(id){this.showToast(this.state.lang==='en'?'Edit request sent':'تم إرسال طلب تعديل فترة الإجازة');}
+  lvReviewed(id){const lv=this.find(id);if(lv)lv.reviewed=true;this.showToast(this.state.lang==='en'?'Marked reviewed':'تم وضع علامة تمت المراجعة');this.forceUpdate();}
+  renderVals(){
+    const S=this.state; const L=S.lang==='en'?1:0; const rl=(a,e)=>L?e:a;
+    const _PP=this.props||{};const canApprove=_PP.canApprove!==undefined?!!_PP.canApprove:true;const canReview=_PP.canReview!==undefined?!!_PP.canReview:true;const canNote=_PP.canNote!==undefined?!!_PP.canNote:true;
+    const DAY=86400000;
+    const ARM=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    const ARMS=L?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']:ARM;
+    const CATL={manager:rl('مدراء الوحدات التنظيمية','Unit managers'),office:rl('فريق المكتب','Office team')};
+    const STC={'معتمدة':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'بانتظار الاعتماد':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'مرفوضة':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)'],'مخططة':['var(--ceef3f6,#eef3f6)','var(--c2f6aa8,#2f6aa8)'],'منتهية':['var(--ceceae6,#eceae6)','var(--c8a8078,#8a8078)']};
+    const BARC={'معتمدة':'var(--c2e7d55,#2e7d55)','بانتظار الاعتماد':'var(--ca9791f,#a9791f)','مرفوضة':'var(--cb0433b,#b0433b)','مخططة':'var(--c8a8078,#8a8078)','منتهية':'var(--cb4b0a8,#b4b0a8)'};
+    const activeForConflict=lv=>lv.status==='معتمدة'||lv.status==='بانتظار الاعتماد';
+    const parsed=this.leaves.map(lv=>({lv,s:parseAr(lv.start),e:parseAr(lv.end)})).filter(x=>x.s&&x.e);
+    // conflict pairs (among active leaves, overlapping dates)
+    const act=parsed.filter(x=>activeForConflict(x.lv));
+    const conflictWith={}; const conflicts=[];
+    for(let i=0;i<act.length;i++)for(let j=i+1;j<act.length;j++){
+      const a=act[i],b=act[j];
+      if(a.lv.cat===b.lv.cat&&a.s<=b.e&&b.s<=a.e){
+        (conflictWith[a.lv.id]=conflictWith[a.lv.id]||[]).push(b.lv.person);
+        (conflictWith[b.lv.id]=conflictWith[b.lv.id]||[]).push(a.lv.person);
+        const os=new Date(Math.max(+a.s,+b.s)), oe=new Date(Math.min(+a.e,+b.e));
+        conflicts.push({text:rl(a.lv.person+' و '+b.lv.person+' — تداخل في فترة الإجازة',a.lv.person+' & '+b.lv.person+' — overlapping leave'),overlap:os.getDate()+' '+ARMS[os.getMonth()]+' ↔ '+oe.getDate()+' '+ARMS[oe.getMonth()]});
+      }
+    }
+    // window
+    let minS=Math.min.apply(null,parsed.map(x=>+x.s)), maxE=Math.max.apply(null,parsed.map(x=>+x.e));
+    const d0=minS-DAY, span=Math.round((maxE+DAY-d0)/DAY)+1;
+    const dayW=100/span;
+    const idxOf=t=>Math.round((t-d0)/DAY);
+    // ticks (weekly)
+    const ticks=[];
+    for(let i=0;i<span;i+=7){const dt=new Date(d0+i*DAY);ticks.push({label:dt.getDate()+' '+ARMS[dt.getMonth()],style:'position:absolute;top:0;left:'+(i*dayW)+'%;font-size:10px;color:var(--c9aa39b,#9aa39b);white-space:nowrap;transform:translateX(-2px)'});}
+    // gridlines (weekly)
+    const gridlines=[];
+    for(let i=0;i<span;i+=7){gridlines.push({style:'position:absolute;top:0;bottom:0;left:'+(i*dayW)+'%;width:1px;background:var(--cf1f3ef,#f1f3ef)'});}
+    // conflict bands (days with >=2 active overlaps)
+    const bands=[]; let runStart=-1;
+    for(let i=0;i<span;i++){
+      const day=d0+i*DAY;
+      let cm=0,co=0; for(const x of act){ if(+x.s<=day&&day<=+x.e){ if(x.lv.cat==='manager')cm++; else co++; } }
+      const isC=cm>=2||co>=2;
+      if(isC&&runStart<0)runStart=i;
+      if((!isC||i===span-1)&&runStart>=0){const endI=isC?i:i-1;bands.push({style:'position:absolute;top:0;bottom:0;left:'+(runStart*dayW)+'%;width:'+((endI-runStart+1)*dayW)+'%;background:var(--cf3d9d2,#f3d9d2);opacity:.55'});runStart=-1;}
+    }
+    // today
+    const today=new Date(2026,6,12); const tIdx=idxOf(+today);
+    const hasToday=tIdx>=0&&tIdx<span;
+    const todayStyle='position:absolute;top:0;bottom:0;left:'+((tIdx+0.5)*dayW)+'%;width:2px;background:var(--c1e4634,#1e4634);opacity:.5;z-index:3';
+    // filters
+    const q=(S.lvSearch||'').trim();
+    const match=lv=>{
+      if(S.lvCat&&lv.cat!==S.lvCat)return false;
+      if(S.lvStatus&&lv.status!==S.lvStatus)return false;
+      if(S.lvType&&lv.type!==S.lvType)return false;
+      if(q&&!(lv.person.includes(q)||lv.role.includes(q)||lv.dept.includes(q)))return false;
+      if(S.lvOnlyConflict&&!(conflictWith[lv.id]&&conflictWith[lv.id].length))return false;
+      return true;
+    };
+    const dec=lv=>{const c=STC[lv.status]||STC['مخططة'];const cw=conflictWith[lv.id]||[];return Object.assign({},lv,{initials:this.initials(lv.person),img:memberImg(lv.person),hasImg:!!memberImg(lv.person),noImg:!memberImg(lv.person),bg:c[0],fg:c[1],statusLabel:tr(lv.status),catLabel:CATL[lv.cat]||lv.cat,period:lv.start+' – '+lv.end,backupDisp:(lv.backup&&lv.backup!=='—')?lv.backup:rl('لا يوجد بديل معيّن','No backup assigned'),hasConflict:cw.length>0,conflictWith:cw.join('، '),hasNotes:!!(lv.notes&&lv.notes.trim()),open:()=>this.openLv(lv.id)});};
+    // timeline rows (grouped)
+    const decTL=x=>{const lv=x.lv;const li=idxOf(+x.s),ri=idxOf(+x.e);const w=Math.max((ri-li+1)*dayW,dayW*1.4);const os=new Date(+x.s);const oe=new Date(+x.e);const cw=conflictWith[lv.id]||[];const conflict=cw.length>0;const bar='position:absolute;top:50%;transform:translateY(-50%);left:'+(li*dayW)+'%;width:'+w+'%;height:24px;border-radius:7px;background:'+(BARC[lv.status]||BARC['مخططة'])+';color:#fff;display:flex;align-items:center;padding:0 9px;font-size:10.5px;font-weight:600;cursor:pointer;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.12)'+(conflict?';outline:2px solid var(--cb0433b,#b0433b);outline-offset:1px':'');return Object.assign(dec(lv),{barStyle:bar,barText:os.getDate()+'–'+oe.getDate()+' '+ARMS[oe.getMonth()]});};
+    const tlGroups=[{cat:'office',accent:'var(--ca9791f,#a9791f)'},{cat:'manager',accent:'var(--c1e4634,#1e4634)'}].map(g=>{
+      const rs=parsed.filter(x=>x.lv.cat===g.cat&&match(x.lv)).sort((a,b)=>+a.s-+b.s).map(decTL);
+      return {cat:g.cat,accent:g.accent,label:CATL[g.cat],count:rs.length,rows:rs};
+    }).filter(g=>g.count>0);
+    // table rows
+    const rows=this.leaves.filter(match).map(dec);
+    // kpis
+    const pend=this.leaves.filter(l=>l.status==='بانتظار الاعتماد').length;
+    const appr=this.leaves.filter(l=>l.status==='معتمدة').length;
+    const AC='var(--c1e4634,#1e4634)';const NB='var(--ce8ebe6,#e8ebe6)';
+    const setStatus=v=>()=>this.setState({lvStatus:S.lvStatus===v?'':v,lvOnlyConflict:false});
+    const kpis=[
+      {label:rl('إجمالي الطلبات','Total requests'),value:String(this.leaves.length),icon:'∑',bg:'var(--ceef1ec,#eef1ec)',fg:'var(--c1e4634,#1e4634)',border:(!S.lvStatus&&!S.lvOnlyConflict&&!S.lvCat&&!S.lvType)?AC:NB,action:()=>this.setState({lvStatus:'',lvCat:'',lvType:'',lvSearch:'',lvOnlyConflict:false})},
+      {label:rl('بانتظار الاعتماد','Pending'),value:String(pend),icon:'⏱',bg:'var(--cfbf0d6,#fbf0d6)',fg:'var(--ca9791f,#a9791f)',border:S.lvStatus==='بانتظار الاعتماد'?AC:NB,action:setStatus('بانتظار الاعتماد')},
+      {label:rl('معتمدة','Approved'),value:String(appr),icon:'✓',bg:'var(--ce2f0e8,#e2f0e8)',fg:'var(--c2e7d55,#2e7d55)',border:S.lvStatus==='معتمدة'?AC:NB,action:setStatus('معتمدة')},
+      {label:rl('تعارضات','Conflicts'),value:String(conflicts.length),icon:'!',bg:'var(--cf6e5df,#f6e5df)',fg:'var(--cb0433b,#b0433b)',border:S.lvOnlyConflict?AC:NB,action:()=>this.setState({lvOnlyConflict:!S.lvOnlyConflict,lvStatus:'',lvViewMode:'timeline'})}
+    ];
+    const opt=arr=>arr.map(v=>({v,label:tr(v)}));
+    const ddCat=DCDD.render(this,'lvCat',S.lvCat,[{v:'',label:rl('كل الفئات','All groups')},{v:'manager',label:CATL.manager},{v:'office',label:CATL.office}],e=>this.setState({lvCat:e.target.value}),{size:'sm',minWidth:'140px'});
+    const ddStatus=DCDD.render(this,'lvStatus',S.lvStatus,[{v:'',label:rl('كل الحالات','All statuses')}].concat(opt(['بانتظار الاعتماد','معتمدة','مرفوضة','مخططة','منتهية'])),e=>this.setState({lvStatus:e.target.value}),{size:'sm',minWidth:'150px'});
+    const ddType=DCDD.render(this,'lvType',S.lvType,[{v:'',label:rl('كل الأنواع','All types')}].concat(opt(['سنوية','طارئة','مرضية'])),e=>this.setState({lvType:e.target.value}),{size:'sm',minWidth:'130px'});
+    const selRaw=S.selLv?this.find(S.selLv):null;
+    let sel=null;
+    let ddBackup=null;
+    if(selRaw){const d=dec(selRaw);sel=Object.assign(d,{reviewed:!!selRaw.reviewed,approve:()=>this.lvApprove(selRaw.id),reject:()=>this.lvReject(selRaw.id),note:()=>this.lvAddNote(selRaw.id),backup:()=>this.lvSetBackup(selRaw.id),reqEdit:()=>this.lvReqEdit(selRaw.id),editingDates:!!S.lvEditDates,canEditDates:!S.lvEditDates,viewDates:!S.lvEditDates,startVal:selRaw.start,endVal:selRaw.end,editDates:()=>{this._lvES=selRaw.start;this._lvEE=selRaw.end;this.setState({lvEditDates:true});},onEditStart:e=>{this._lvES=e.target.value;},onEditEnd:e=>{this._lvEE=e.target.value;},cancelEditDates:()=>this.setState({lvEditDates:false}),saveDates:()=>this.lvSaveDates(selRaw.id)});
+      const ss=parseAr(selRaw.start),se=parseAr(selRaw.end);
+      const busy={};for(const x of parsed){if(x.lv.id!==selRaw.id&&activeForConflict(x.lv)&&ss&&se&&x.s<=se&&ss<=x.e)busy[x.lv.person]=1;}
+      const pool=[];const seen={};const add=n=>{if(n&&!seen[n]){seen[n]=1;pool.push(n);}};
+      if(selRaw.cat==='manager'){
+        this.leaves.filter(l=>l.cat==='manager').forEach(l=>add(l.person));
+        (window.__DATA.sectorManagers||[]).forEach(m=>add(m.name||m));
+      } else {
+        (window.__DATA.members||[]).forEach(m=>add(m.name));
+        this.leaves.filter(l=>l.cat==='office').forEach(l=>add(l.person));
+      }
+      const poolLabel=selRaw.cat==='manager'?rl('— اختر بديلاً من المدراء —','— Choose a manager —'):rl('— اختر بديلاً من فريق المكتب —','— Choose from office team —');
+      const bkOpts=[{v:'',label:poolLabel}].concat(pool.filter(n=>n!==selRaw.person&&!busy[n]).map(n=>({v:n,label:n})));
+      ddBackup=DCDD.render(this,'bkSel',S.bkSel||'',bkOpts,e=>{this._lvBackup=e.target.value;this.setState({bkSel:e.target.value});this.lvSetBackup(selRaw.id);},{size:'sm',minWidth:'100%'});
+    }
+    const vm=S.lvViewMode;
+    const tab=on=>on?'display:flex;align-items:center;gap:6px;border:none;border-radius:9px;padding:8px 15px;font-size:12.5px;font-weight:700;cursor:pointer;background:var(--c1e4634,#1e4634);color:#fff':'display:flex;align-items:center;gap:6px;border:none;border-radius:9px;padding:8px 15px;font-size:12.5px;font-weight:600;cursor:pointer;background:transparent;color:var(--c5b6b62,#5b6b62)';
+    return {
+      ttl:rl('إجازات الفريق','Team Leaves'),
+      sub:rl('عرض زمني لإجازات فريق المكتب ومدراء الوحدات التنظيمية — التداخلات تظهر بوضوح على المحور الزمني.','A timeline of office-team and sector-manager leaves — overlaps are highlighted on the date axis.'),
+      kpis, hasConflicts:conflicts.length>0, conflicts, conflictsTitle:rl('تعارضات تحتاج انتباه','Conflicts needing attention'),
+      search:S.lvSearch, onSearch:e=>this.setState({lvSearch:e.target.value}), searchPh:rl('بحث بالاسم أو الإدارة…','Search name or unit…'),
+      ddCat, ddStatus, ddType,
+      isTimelineView:vm==='timeline', isTableView:vm==='table',
+      setTimelineView:()=>this.setState({lvViewMode:'timeline'}), setTableView:()=>this.setState({lvViewMode:'table'}),
+      tabTlStyle:tab(vm==='timeline'), tabTableStyle:tab(vm==='table'), viewTlLabel:rl('الجدول الزمني','Timeline'), viewTableLabel:rl('جدول','Table'),
+      ticks, gridlines, bands, hasToday, todayStyle, tlGroups,
+      lgApproved:rl('معتمدة','Approved'),lgPending:rl('بانتظار الاعتماد','Pending'),lgPlanned:rl('مخططة / أخرى','Planned / other'),lgConflict:rl('يوم تعارض','Conflict day'),
+      rows, noRows:rows.length===0, emptyLabel:rl('لا توجد طلبات مطابقة للفلاتر','No requests match the filters'),
+      daysLabel:rl('أيام','days'), conflictTag:rl('تعارض','Conflict'), reviewedTag:rl('تمت المراجعة','Reviewed'), conflictWithLabel:rl('يتعارض مع','Conflicts with'),
+      colPerson:rl('الموظف','Employee'),colType:rl('النوع','Type'),colPeriod:rl('الفترة','Period'),colDays:rl('الأيام','Days'),colStatus:rl('الحالة','Status'),colBackup:rl('البديل','Backup'),
+      panelOpen:!!sel, sel, closePanel:()=>this.closeLv(), stop:e=>e.stopPropagation(),
+      typeLabel:rl('نوع الإجازة','Leave type'),daysColLabel:rl('المدة','Duration'),periodLabel:rl('الفترة','Period'),deptLabel:rl('الإدارة','Unit'),
+      editDatesLabel:rl('تعديل التاريخ','Edit dates'),saveDatesLabel:rl('حفظ','Save'),cancelDatesLabel:rl('إلغاء','Cancel'),startDateLabel:rl('من','From'),endDateLabel:rl('إلى','To'),backupLabel:rl('البديل المعيّن','Assigned backup'),notesLabel:rl('ملاحظات','Notes'),
+      noteInputLabel:rl('إضافة ملاحظة / سبب رفض','Add note / rejection reason'),noteInputPh:rl('اكتب ملاحظتك هنا…','Write your note…'),onDraft:e=>{this._lvDraft=e.target.value;},
+      backupInputLabel:rl('تعيين بديل','Assign backup'),ddBackup,
+      bApprove:rl('اعتماد','Approve'),bReject:rl('رفض','Reject'),bNote:rl('ملاحظة','Note'),bBackup:rl('تعيين بديل','Set backup'),bReqEdit:rl('طلب تعديل','Request edit'),
+      canApprove,canReview,canNote,bReviewed:rl('تمت المراجعة','Reviewed'),
+      hasToast:!!S.toast, toast:S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

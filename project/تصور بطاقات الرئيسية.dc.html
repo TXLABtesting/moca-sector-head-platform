@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  a{color:#1f4a37}a:hover{color:#2b5c44}
+  @keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#eef1ec;font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl;padding:30px 26px;color:#17211c">
+  <div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+
+    <!-- proposal banner -->
+    <div style="background:linear-gradient(120deg,#1e4634,#2b5c44);border-radius:18px;padding:16px 22px;color:#fff;display:flex;align-items:center;gap:14px">
+      <span style="width:42px;height:42px;flex:none;border-radius:12px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700">م</span>
+      <div>
+        <div style="font-size:16px;font-weight:700">تصور: بطاقات الصفحة الرئيسية كفلاتر داخلية</div>
+        <div style="font-size:12.5px;color:#bcd2c3;margin-top:3px">اضغط أي بطاقة ليتغيّر القسم أسفلها في نفس الصفحة — بدون انتقال. هذا نموذج للمراجعة قبل التنفيذ.</div>
+      </div>
+    </div>
+
+    <!-- the 5 cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px">
+      <sc-for list="{{ cards }}" as="c" hint-placeholder-count="5">
+        <div onClick="{{ c.select }}" style="{{ c.cardStyle }}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+            <span style="width:38px;height:38px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:{{ c.icBg }};color:{{ c.icFg }}" data-icon="{{ c.icon }}"></span>
+            <sc-if value="{{ c.hasCount }}" hint-placeholder-val="{{ true }}"><span style="font-size:20px;font-weight:800;color:{{ c.numColor }};letter-spacing:-.5px">{{ c.count }}</span></sc-if>
+          </div>
+          <div style="font-size:14px;font-weight:800;line-height:1.35;margin-bottom:4px;color:#17211c">{{ c.title }}</div>
+          <div style="font-size:11px;color:#6d7973;line-height:1.5">{{ c.sub }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- dynamic section -->
+    <div style="background:#fff;border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 16px 34px -24px rgba(23,40,32,.2);animation:fadeUp .16s ease">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:4px">
+        <span style="width:8px;height:26px;border-radius:6px;flex:none;background:{{ active.accent }}"></span>
+        <h3 style="margin:0;font-size:18px;font-weight:800">{{ active.title }}</h3>
+        <span style="font-size:11px;font-weight:700;color:#6d7973;background:#f2f4f0;border-radius:20px;padding:3px 11px">{{ active.countLabel }}</span>
+      </div>
+      <p style="margin:0 0 18px 19px;font-size:12px;color:#9aa39b">{{ active.hint }}</p>
+
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <sc-for list="{{ active.rows }}" as="r" hint-placeholder-count="4">
+          <div style="border:1px solid #eef1ec;border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:14px;background:#fbfcfb">
+            <span style="flex:none;font-size:10px;font-weight:700;border-radius:7px;padding:4px 9px;background:{{ r.tagBg }};color:{{ r.tagFg }};white-space:nowrap;margin-top:2px">{{ r.tag }}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13.5px;font-weight:700;color:#17211c;line-height:1.5;margin-bottom:4px">{{ r.title }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:x;gap:14px;font-size:11.5px;color:#7d867f">
+                <sc-for list="{{ r.meta }}" as="m" hint-placeholder-count="3">
+                  <span style="display:inline-flex;align-items:center;gap:5px"><b style="color:#9aa39b;font-weight:600">{{ m.k }}:</b> {{ m.v }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="flex:none;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              <sc-if value="{{ r.hasProgress }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><div style="width:78px;height:6px;background:#eef0ec;border-radius:20px;overflow:hidden"><div style="height:100%;width:{{ r.progW }};background:{{ r.progColor }};border-radius:20px"></div></div><span style="font-size:11px;font-weight:800;color:{{ r.progColor }}">{{ r.progLabel }}</span></div>
+              </sc-if>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+                <sc-for list="{{ r.actions }}" as="a" hint-placeholder-count="2">
+                  <button style="{{ a.style }}">{{ a.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- explainer -->
+    <div style="background:#f2f7f3;border-radius:14px;padding:15px 18px;font-size:12.5px;color:#3c4a42;line-height:1.8">
+      <b>ملاحظات التنفيذ:</b> البطاقة المختارة تظهر بحدٍّ ملوّن وخلفية فاتحة (حالة Active). زر «عرض التفاصيل» وحده ينقل إلى الصفحة الداخلية؛ باقي الأزرار (اعتماد، إضافة توجيه، طلب تحديث، متابعة، تحديد موعد) تعمل داخل الصفحة. الصفحات الداخلية والبيانات تبقى كما هي دون تغيير.
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state={ active:'approvals' };
+  componentDidMount(){ this._paintIcons(); }
+  componentDidUpdate(){ this._paintIcons(); }
+  _paintIcons(){
+    const I={
+      stamp:'<path d="M9 3h6a2 2 0 0 1 2 2v3a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4V5a2 2 0 0 1 2-2z"/><path d="M5 21h14M7 21v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3"/>',
+      chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+      minutes:'<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+      follow:'<path d="M9 11l3 3L20 6"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>',
+      mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/>'
+    };
+    (this._root||document).querySelectorAll('[data-icon]').forEach(el=>{
+      const k=el.getAttribute('data-icon'); if(!k||!I[k])return;
+      el.innerHTML='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+I[k]+'</svg>';
+    });
+  }
+  renderVals(){
+    const A=this.state.active;
+    const btn=(label,kind)=>{
+      const S={
+        primary:'background:#1e4634;color:#fff;border:none;',
+        gold:'background:#fbf3df;color:#8a6a1f;border:1px solid #ecdcae;',
+        ghost:'background:#f2f4f0;color:#3c4a42;border:1px solid #e2e6df;',
+        blue:'background:#e9f0f6;color:#3a6ea5;border:1px solid #d3e0ec;'
+      };
+      return {label,style:(S[kind]||S.ghost)+'border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap'};
+    };
+    const view=(details)=>btn('عرض التفاصيل','ghost');
+
+    const DATA={
+      approvals:{title:'اعتماد رئيس القطاع',accent:'#b0433b',icon:'stamp',icBg:'#f7e6e4',icFg:'#b0433b',numColor:'#b0433b',count:'12',sub:'بنود بانتظار المراجعة',
+        hint:'كل ما يحتاج اعتماداً أو مراجعة أو توجيهاً من رئيس القطاع، من مختلف الأقسام.',countLabel:'12 بنداً',
+        rows:[
+          {tag:'مشروع',tagBg:'#e9f0f6',tagFg:'#3a6ea5',title:'اعتماد اكتمال «التقرير التنفيذي الشهري الموحد»',meta:[{k:'المسؤول',v:'سيف بيضاني'},{k:'آخر تحديث',v:'30 يونيو 2026'},{k:'الإجراء',v:'اعتماد الاكتمال'}],actions:[btn('اعتماد','primary'),view()]},
+          {tag:'اجتماع',tagBg:'#f3ecf6',tagFg:'#7a4d94',title:'اعتماد طلب اجتماع: الهيكل التنظيمي والشواغر بين الجهات',meta:[{k:'مقدّم الطلب',v:'محمد الشرهان'},{k:'التاريخ',v:'6 يوليو 2026'},{k:'الإجراء',v:'اعتماد/تعديل الموعد'}],actions:[btn('اعتماد','primary'),view()]},
+          {tag:'مستند',tagBg:'#eef4f0',tagFg:'#2e7d55',title:'طلب إعفاء موظف سابق من رد المستحقات — المركز الاتحادي للتنافسية',meta:[{k:'الجهة',v:'FCSC'},{k:'التاريخ',v:'1 يوليو 2026'},{k:'الإجراء',v:'توجيه'}],actions:[btn('إضافة توجيه','gold'),view()]},
+          {tag:'إجازة',tagBg:'#fbf3df',tagFg:'#8a6a1f',title:'إجازة سنوية — شيماء خماس (المدير التنفيذي للخدمات)',meta:[{k:'الفترة',v:'19–26 يوليو'},{k:'الإجراء',v:'اعتماد'}],actions:[btn('اعتماد','primary'),view()]}
+        ]},
+      updates:{title:'تحديثات المشاريع',accent:'#3a6ea5',icon:'chart',icBg:'#e9f0f6',icFg:'#3a6ea5',numColor:'#3a6ea5',count:'18',sub:'آخر تحديثات المشاريع النشطة',
+        hint:'تحديثات كل المشاريع (وليس فقط ما يحتاج اعتماداً): الحالة، الإنجاز، الخطوة السابقة والقادمة.',countLabel:'18 مشروعاً',
+        rows:[
+          {tag:'قيد التنفيذ',tagBg:'#e9f0f6',tagFg:'#3a6ea5',title:'الخدمات المُدارة لتقنية المعلومات (EHDF)',meta:[{k:'المسؤول',v:'سيف بيضاني'},{k:'السابقة',v:'إلحاق موارد الواجهة الأمامية'},{k:'القادمة',v:'قياس رضا المستخدمين'}],hasProgress:true,progW:'78%',progLabel:'78%',progColor:'#3a6ea5',actions:[view()]},
+          {tag:'متأخر',tagBg:'#f7e6e4',tagFg:'#b0433b',title:'تدقيق خدمات الاتصالات',meta:[{k:'المسؤول',v:'سماح أبو شرخ'},{k:'القادمة',v:'اعتماد الموعد الجديد'},{k:'يحتاج',v:'قرار تمديد'}],hasProgress:true,progW:'43%',progLabel:'43%',progColor:'#b0433b',actions:[btn('متابعة','gold'),view()]},
+          {tag:'قيد التنفيذ',tagBg:'#e9f0f6',tagFg:'#3a6ea5',title:'الترحيل إلى مركز بيانات هيئة تنظيم الاتصالات',meta:[{k:'المسؤول',v:'سيف بيضاني'},{k:'القادمة',v:'إيقاف الخوادم المتبقية'}],hasProgress:true,progW:'97%',progLabel:'97%',progColor:'#1f8a5b',actions:[view()]}
+        ]},
+      minutes:{title:'محاضر الاجتماعات',accent:'#7a4d94',icon:'minutes',icBg:'#f3ecf6',icFg:'#7a4d94',numColor:'#7a4d94',count:'6',sub:'المهام والقرارات الناتجة عن الاجتماعات',
+        hint:'ملخص المحاضر والمهام الناتجة عنها، ومن يحتاج دعم رئيس القطاع.',countLabel:'6 محاضر',
+        rows:[
+          {tag:'محضر',tagBg:'#f3ecf6',tagFg:'#7a4d94',title:'Du Youth Account — 9 يونيو 2026',meta:[{k:'مهمة ناتجة',v:'إعداد عرض تقديمي شامل'},{k:'المسؤول',v:'إدارة الخدمات الذكية'},{k:'الحالة',v:'قيد التنفيذ'}],actions:[btn('متابعة','gold'),view()]},
+          {tag:'مهمة',tagBg:'#eef4f0',tagFg:'#2e7d55',title:'تضمين العرض توضيحاً دقيقاً للبيانات المالية',meta:[{k:'المسؤول',v:'محمد الياسي'},{k:'الإنجاز',v:'20 يوليو'},{k:'يحتاج',v:'دعم رئيس القطاع'}],actions:[btn('إضافة توجيه','gold'),view()]},
+          {tag:'محضر',tagBg:'#f3ecf6',tagFg:'#7a4d94',title:'ورشة تطوير تجربة المتعاملين — 19 مايو 2026',meta:[{k:'مهمة ناتجة',v:'مسودة سياسة إدارة التجربة'},{k:'المسؤول',v:'فريق السياسات'}],actions:[view()]}
+        ]},
+      follow:{title:'المتابعات',accent:'#a9791f',icon:'follow',icBg:'#fbf3df',icFg:'#a9791f',numColor:'#a9791f',count:'9',sub:'بنود مفتوحة تحتاج متابعة',
+        hint:'كل المتابعات المفتوحة من مختلف الأقسام: مهام المكتب والمحاضر والمشاريع والتقارير.',countLabel:'9 بنود',
+        rows:[
+          {tag:'مهمة مكتب',tagBg:'#fbf3df',tagFg:'#a9791f',title:'خطة استكمال أنشطة الإغلاق السنوي',meta:[{k:'المصدر',v:'مكتب رئيس القطاع'},{k:'المسؤول',v:'موزة المرزوقي'},{k:'الاستحقاق',v:'10 يوليو'}],actions:[btn('تحديد موعد الإنجاز','gold'),view()]},
+          {tag:'مشروع',tagBg:'#e9f0f6',tagFg:'#3a6ea5',title:'متابعة تدقيق المواقع الإلكترونية',meta:[{k:'المصدر',v:'مشاريع'},{k:'المسؤول',v:'حسن همام'},{k:'الحالة',v:'متأخر'}],actions:[btn('متابعة','gold'),view()]},
+          {tag:'تقرير',tagBg:'#eef4f0',tagFg:'#2e7d55',title:'متابعة إغلاق ملاحظات تدقيق إدارة المركبات',meta:[{k:'المصدر',v:'مركز التقارير'},{k:'المسؤول',v:'راشد الفلاسي'},{k:'الاستحقاق',v:'فبراير 2027'}],actions:[btn('طلب تحديث','blue'),view()]}
+        ]},
+      corr:{title:'الصادر والوارد',accent:'#2e7d55',icon:'mail',icBg:'#eef4f0',icFg:'#2e7d55',numColor:'#2e7d55',count:'5',sub:'مراسلات تحتاج إجراء',
+        hint:'قائمة مختصرة بالمستندات الصادرة والواردة التي تحتاج متابعة أو إجراء.',countLabel:'5 مستندات',
+        rows:[
+          {tag:'وارد',tagBg:'#e9f0f6',tagFg:'#3a6ea5',title:'طلب تمديد استثناء موظفين من لائحة الموارد البشرية',meta:[{k:'الجهة',v:'FCSC'},{k:'التاريخ',v:'30 يونيو'},{k:'الحالة',v:'بانتظار رد'}],actions:[btn('إضافة توجيه','gold'),view()]},
+          {tag:'صادر',tagBg:'#fbf3df',tagFg:'#a9791f',title:'خطاب ترشيح ممثلي الوزارة للجنة المشتركة',meta:[{k:'المستلم',v:'مجلس الوزراء'},{k:'التاريخ',v:'28 يونيو'},{k:'الحالة',v:'تم الإرسال'}],actions:[view()]},
+          {tag:'وارد',tagBg:'#e9f0f6',tagFg:'#3a6ea5',title:'طلب إعفاء موظف سابق من رد المستحقات',meta:[{k:'الجهة',v:'FCSC'},{k:'المسؤول',v:'محمد سامي'},{k:'الحالة',v:'جديد'}],actions:[btn('متابعة','gold'),view()]}
+        ]}
+    };
+    const order=['approvals','updates','minutes','follow','corr'];
+    const cards=order.map(k=>{
+      const d=DATA[k],on=A===k;
+      const cardStyle='cursor:pointer;border-radius:16px;padding:16px 17px;transition:all .15s;background:'+(on?'#fff':'#f7f9f7')+';border:1.5px solid '+(on?d.accent:'#e6ece7')+';box-shadow:'+(on?('0 10px 26px -16px '+d.accent):'0 1px 2px rgba(23,40,32,.03)');
+      return {key:k,title:d.title,sub:d.sub,count:d.count,hasCount:!!d.count,numColor:on?d.numColor:'#c3cec4',icon:d.icon,icBg:on?d.icBg:'#eef1 ec'.replace(' ',''),icFg:on?d.icFg:'#9aa39b',cardStyle,select:()=>this.setState({active:k})};
+    });
+    return { cards, active:DATA[A] };
+  }
+}
+</script>
+</body>
+</html>

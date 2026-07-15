@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+<script src="./dc-shared.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+@keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+@media(max-width:1024px){ .rg2{grid-template-columns:1fr!important} .rg3{grid-template-columns:repeat(2,1fr)!important} .rg4{grid-template-columns:repeat(2,1fr)!important} .rg5{grid-template-columns:repeat(2,1fr)!important} }
+@media(max-width:640px){ .rg3,.rg4,.rg5{grid-template-columns:1fr!important} .ov-stats{grid-template-columns:repeat(2,1fr)!important} }
+/*__mob__*/
+@media(max-width:640px){
+  .rg2,.rg3,.rg4,.rg5,.ov-stats,.lv-kpis,.lv-cat,.lv-cards{grid-template-columns:1fr!important}
+  table thead{display:none!important}
+  table tr{display:block!important;margin-bottom:10px;border:1px solid var(--ceef0ec,#eef0ec);border-radius:12px;padding:4px 10px;background:#fff}
+  table td{display:flex!important;justify-content:space-between;gap:12px;border:none!important;padding:7px 2px!important;white-space:normal!important;max-width:none!important;text-align:start}
+  .trow{grid-template-columns:1fr!important;min-width:0!important;gap:5px!important}
+  div:has(> table){overflow-x:visible!important}
+  .cal-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+}
+
+.fbtn{display:none}
+@media(max-width:640px){.fbtn{display:inline-flex!important;align-items:center;gap:8px;cursor:pointer;background:#fff;border:1px solid #eef1ec;border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.05);padding:11px 16px;font-size:13px;font-weight:600;color:#1e4634;margin-bottom:14px;user-select:none}.mfbar{display:none!important}.fcb:checked ~ .mfbar{display:flex!important;flex-direction:column!important;align-items:stretch!important}.fcb:checked ~ .fbtn .fchev{transform:rotate(180deg)}.mfbar>*{width:100%!important;min-width:0!important;flex:none!important}.mfbar [data-dd] button,.mfbar [data-dd]{width:100%!important}.pfacts{grid-template-columns:1fr!important}}
+</style>
+</helmet>
+<div style="min-height:1px">
+      <sc-if value="{{ isProjects }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:fadeUp .16s ease">
+          <!-- HEADER -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+            <div style="min-width:0">
+              <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.projectsTitle }}</h1>
+              <p style="margin:0;font-size:13px;color:var(--c7d867f,#7d867f)">{{ t.projectsSub }}</p>
+            </div>
+            
+          </div>
+
+          <!-- TABS -->
+          <div style="display:flex;align-items:center;border-bottom:1px solid var(--ce6eae4,#e6eae4);margin-bottom:18px;overflow-x:auto">
+            <sc-for list="{{ projTabs }}" as="tb" hint-placeholder-count="5"><button onClick="{{ tb.onClick }}" style="{{ tb.style }}">{{ tb.label }}</button></sc-for>
+          </div>
+
+          <!-- FILTERS (kanban / timeline) -->
+          <sc-if value="{{ projShowFilters }}" hint-placeholder-val="{{ false }}">
+            <input type="checkbox" id="fcb-projects-1" class="fcb" style="display:none"><label for="fcb-projects-1" class="fbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="10" y1="17" x2="14" y2="17"></line></svg><span>الفلاتر</span><svg class="fchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-inline-start:auto;transition:transform .2s"><path d="m6 9 6 6 6-6"></path></svg></label><div class="mfbar" style="background:var(--cffffff,#ffffff);border:1px solid var(--ceef1ec,#eef1ec);border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:12px 14px;margin-bottom:16px;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+              <div style="position:relative;display:flex;align-items:center;flex:1;min-width:180px">
+                <svg style="position:absolute;inset-inline-start:12px" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.9"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.2-3.2"></path></svg>
+                <input value="{{ fSearch }}" onInput="{{ setSearch }}" placeholder="{{ t.projSearchPh }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:9px;padding:9px 12px;padding-inline-start:36px;font-size:13px;outline:none">
+              </div>
+              <span>{{ ddPUnit }}</span>
+              <span>{{ ddPStatus }}</span>
+              <span>{{ ddPPriority }}</span>
+              <button onClick="{{ toggleLate }}" style="{{ chipLate }}">{{ t.chipLate }}</button>
+              <button onClick="{{ toggleDecision }}" style="{{ chipDecision }}">{{ t.chipDecision }}</button>
+              <button onClick="{{ resetFilters }}" style="display:flex;align-items:center;gap:6px;background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c5b6b62,#5b6b62);border-radius:9px;padding:8px 13px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>{{ resetFiltersLabel }}</button>
+            </div>
+          </sc-if>
+
+          <!-- ===== OVERVIEW ===== -->
+          <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+            <div class="ov-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:26px">
+              <sc-for list="{{ ovStats }}" as="s" hint-placeholder-count="6">
+                <div onClick="{{ s.open }}" style="background:var(--cffffff,#ffffff);border:1px solid var(--ceef1ec,#eef1ec);border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:15px 16px;cursor:pointer;transition:box-shadow .15s,transform .15s" style-hover="box-shadow:0 10px 26px -14px rgba(23,40,32,.28);transform:translateY(-2px)">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:{{s.bg}};color:{{s.accent}};margin-bottom:11px">{{ s.iconEl }}</span>
+                  <div style="font-size:26px;font-weight:800;color:var(--c17211c,#17211c);line-height:1;letter-spacing:-.5px">{{ s.value }}</div>
+                  <div style="font-size: 14px; color: var(--c7d867f,#7d867f); margin-top: 5px">{{ s.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <h3 style="margin:0 0 13px;font-size:15px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.ov_attention }}</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+              <sc-for list="{{ attentionProjects }}" as="p" hint-placeholder-count="0">
+                <div onClick="{{ p.open }}" style="background:var(--cffffff,#ffffff);border:1px solid var(--ce6eae4,#e6eae4);border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 16px 36px -20px rgba(23,40,32,.14);padding:16px 17px;cursor:pointer;display:flex;flex-direction:column">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:11px">
+                    <span style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:{{p._fg}}"><span style="width:9px;height:9px;border-radius:2px;flex:none;background:{{p.accent}}"></span>{{ p.status }}</span>
+                    <span style="font-size:9.5px;font-weight:700;letter-spacing:.04em;border-radius:5px;padding:3px 8px;background:{{p.prBg}};color:{{p.prFg}}">{{ p.priority }}</span>
+                  </div>
+                  <div style="font-size:14px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.45;margin-bottom:3px">{{ p.name }}</div>
+                  <sc-if value="{{ p.hasNameEn }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--cb6bdb6,#b6bdb6);margin-bottom:6px">{{ p.nameEn }}</div></sc-if>
+                  <div style="font-size: 14px; color: var(--c9aa39b,#9aa39b); margin-bottom: 13px">{{ p.unit }}</div>
+                  <div style="height:1px;background:var(--ceef0ec,#eef0ec);margin-bottom:13px"></div>
+                  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:auto">
+                    <div style="display:flex;gap:20px">
+                      <div><div style="font-size: 12px; letter-spacing: .05em; color: var(--ca8b0a7,#a8b0a7); margin-bottom: 4px">{{ t.progress }}</div><div style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:15px;font-weight:700;color:var(--c17211c,#17211c)">{{ p.progress }}%</div></div>
+                      <div><div style="font-size: 12px; letter-spacing: .05em; color: var(--ca8b0a7,#a8b0a7); margin-bottom: 4px">{{ t.dueLbl }}</div><div style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13.5px;font-weight:700;color:{{p.dueColor}};white-space:nowrap">{{ p.dueDate }}</div></div>
+                    </div>
+                    <span style="display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:var(--c8a938c,#8a938c)"><span style="width:20px;height:20px;flex:none;border-radius:50%;overflow:hidden"><sc-if value="{{ p.hasImg }}" hint-placeholder-val="{{ false }}"><img src="{{ p.img }}" style="width:100%;height:100%;object-fit:cover"></sc-if><sc-if value="{{ p.noImg }}" hint-placeholder-val="{{ true }}"><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:{{ p.avBg }};color:{{ p.avFg }};font-size:9px;font-weight:700">{{ p.initials }}</span></sc-if></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.owner }}</span></span>
+                  </div>
+                  <div style="height:5px;background:var(--ceef0ec,#eef0ec);margin-top:13px;overflow:hidden;border-radius:3px"><div style="height:100%;background:{{p.accent}};width:{{p.progress}}%"></div></div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noAttention }}" hint-placeholder-val="{{ false }}">
+                <div style="grid-column:1/-1;text-align:center;padding:44px;color:var(--c9aa39b,#9aa39b);font-size:14px;background:var(--cffffff,#ffffff);border:1px dashed var(--cd8ddd4,#d8ddd4);border-radius:16px">{{ t.ov_noAttention }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- ===== KANBAN ===== -->
+          <sc-if value="{{ isKanban }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;align-items:flex-start">
+              <sc-for list="{{ kanbanCols }}" as="col" hint-placeholder-count="6">
+                <div style="flex:none;width:288px;background:var(--cf4f6f2,#f4f6f2);border-radius:16px;padding:12px 12px 6px">
+                  <div style="display:flex;align-items:center;gap:8px;padding:2px 4px 12px">
+                    <span style="width:9px;height:9px;border-radius:50%;background:{{col.dot}};flex:none"></span>
+                    <span style="font-size:13px;font-weight:700;color:var(--c2a332d,#2a332d)">{{ col.label }}</span>
+                    <span style="font-size:11px;font-weight:700;color:var(--c7d867f,#7d867f);background:var(--ce7ebe3,#e7ebe3);border-radius:20px;padding:2px 9px;margin-inline-start:auto">{{ col.count }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <sc-for list="{{ col.items }}" as="p" hint-placeholder-count="0">
+                      <div style="background:var(--cffffff,#ffffff);border:1px solid var(--cedf0ea,#edf0ea);border-radius:14px;box-shadow:0 1px 3px rgba(23,40,32,.05);padding:13px 14px;display:flex;flex-direction:column">
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+                          <span style="font-size:9.5px;font-weight:600;border-radius:20px;padding:3px 9px;background:{{p.prBg}};color:{{p.prFg}}">{{ p.priority }}</span>
+                          <span style="font-size:9.5px;font-weight:600;border-radius:20px;padding:3px 9px;background:var(--ceef3f0,#eef3f0);color:var(--c2b5c44,#2b5c44);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">{{ p.unit }}</span>
+                        </div>
+                        <div onClick="{{ p.open }}" style="font-size:13.5px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.45;margin-bottom:10px;cursor:pointer">{{ p.name }}<sc-if value="{{ p.hasNameEn }}" hint-placeholder-val="{{ false }}"><span style="display:block;font-size:10.5px;font-weight:500;color:var(--cb6bdb6,#b6bdb6);margin-top:2px">{{ p.nameEn }}</span></sc-if></div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><span style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ t.progress }}</span><span style="font-size:12px;font-weight:700;color:var(--c17211c,#17211c)">{{ p.progress }}%</span></div>
+                        <div style="height:5px;border-radius:4px;background:var(--ceef0ec,#eef0ec);overflow:hidden;margin-bottom:11px"><div style="height:100%;border-radius:4px;background:{{p.accent}};width:{{p.progress}}%"></div></div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10.5px;color:var(--c8a938c,#8a938c);padding-bottom:10px">
+                          <span style="display:flex;align-items:center;gap:5px;min-width:0"><span style="width:20px;height:20px;flex:none;border-radius:50%;overflow:hidden"><sc-if value="{{ p.hasImg }}" hint-placeholder-val="{{ false }}"><img src="{{ p.img }}" style="width:100%;height:100%;object-fit:cover"></sc-if><sc-if value="{{ p.noImg }}" hint-placeholder-val="{{ true }}"><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:{{ p.avBg }};color:{{ p.avFg }};font-size:9px;font-weight:700">{{ p.initials }}</span></sc-if></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.owner }}</span></span>
+                          <span style="flex:none;display:flex;align-items:center;gap:4px;color:{{p.dueColor}};font-weight:600"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5l3 2"></path></svg>{{ p.dueDate }}</span>
+                        </div>
+                        <div style="display:flex;gap:6px;border-top:1px solid var(--cf2f4f0,#f2f4f0);padding-top:9px">
+                          <button onClick="{{ p.open }}" title="{{ t.pv_openBtn }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:8px;padding:7px;font-size:10.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>{{ t.pv_openBtn }}</button>
+                          <button onClick="{{ p.reqUpdate }}" title="{{ t.pv_reqUpdate }}" style="width:32px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--cf4f6f2,#f4f6f2);color:var(--c5b6b62,#5b6b62);border:1px solid var(--ce6eae4,#e6eae4);border-radius:8px;padding:7px;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg></button>
+                          <button onClick="{{ p.addDir }}" title="{{ t.pv_addDir }}" style="width:32px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--cfbf3df,#fbf3df);color:var(--ca9791f,#a9791f);border:1px solid var(--cf0e4c4,#f0e4c4);border-radius:8px;padding:7px;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
+                        </div>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ col.empty }}" hint-placeholder-val="{{ false }}">
+                      <div style="text-align:center;padding:20px 10px;color:var(--caab2a9,#aab2a9);font-size:11.5px">{{ t.pv_emptyCol }}</div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- ===== TIMELINE ===== -->
+          <sc-if value="{{ isTimeline }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border:1px solid var(--ceef1ec,#eef1ec);border-radius:18px;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:16px 18px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button onClick="{{ tlPrev }}" style="width:34px;height:34px;border-radius:9px;border:1px solid var(--ce6eae4,#e6eae4);background:var(--cf7f8f6,#f7f8f6);color:var(--c3c4a42,#3c4a42);cursor:pointer;display:flex;align-items:center;justify-content:center"><svg style="{{ chevronStyle }}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+                  <div style="font-size:14px;font-weight:700;color:var(--c17211c,#17211c);min-width:170px;text-align:center">{{ tlRangeLabel }}</div>
+                  <button onClick="{{ tlNext }}" style="width:34px;height:34px;border-radius:9px;border:1px solid var(--ce6eae4,#e6eae4);background:var(--cf7f8f6,#f7f8f6);color:var(--c3c4a42,#3c4a42);cursor:pointer;display:flex;align-items:center;justify-content:center"><svg style="{{ chevronStyle }}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"></path></svg></button>
+                  <button onClick="{{ tlToday }}" style="height:34px;border-radius:9px;border:1px solid var(--ce6eae4,#e6eae4);background:var(--cffffff,#ffffff);color:var(--c1e4634,#1e4634);font-weight:700;font-size:12px;font-family:inherit;padding:0 14px;cursor:pointer">{{ t.tl_today }}</button>
+                </div>
+                <div style="display:flex;background:var(--cf1f3ef,#f1f3ef);border-radius:11px;padding:3px">
+                  <button onClick="{{ setScaleMonth }}" style="{{ tlScaleMonthStyle }}">{{ t.tl_month }}</button>
+                  <button onClick="{{ setScaleQuarter }}" style="{{ tlScaleQuarterStyle }}">{{ t.tl_quarter }}</button>
+                </div>
+              </div>
+              <!-- column headers -->
+              <div style="display:grid;grid-template-columns:180px 1fr;border-bottom:1px solid var(--ceef1ec,#eef1ec)">
+                <div></div>
+                <div style="display:flex">
+                  <sc-for list="{{ colHeaders }}" as="ch" hint-placeholder-count="3"><div style="flex:1;text-align:center;font-size:11.5px;font-weight:700;color:var(--c7d867f,#7d867f);padding:6px 0;border-inline-start:1px solid var(--cf2f4f0,#f2f4f0)">{{ ch }}</div></sc-for>
+                </div>
+              </div>
+              <!-- rows -->
+              <div style="display:grid;grid-template-columns:180px 1fr">
+                <sc-for list="{{ tlBars }}" as="bar" hint-placeholder-count="0">
+                  <div style="padding:10px 8px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);min-width:0;display:flex;flex-direction:column;justify-content:center">
+                    <div style="font-size:12px;font-weight:700;color:var(--c17211c,#17211c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ bar.name }}</div>
+                    <div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ bar.owner }}</div>
+                  </div>
+                  <div style="position:relative;height:48px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2)">
+                    <sc-if value="{{ showToday }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:0;bottom:0;width:2px;background:var(--cb0433b,#b0433b);inset-inline-start:{{ todayPct }}%;z-index:1"></div></sc-if>
+                    <div onClick="{{ bar.open }}" title="{{ bar.name }}" style="position:absolute;top:9px;height:30px;inset-inline-start:{{ bar.left }}%;width:{{ bar.width }}%;background:{{ bar.accent }};border-radius:8px;display:flex;align-items:center;gap:6px;padding:0 8px;cursor:pointer;overflow:hidden;box-shadow:0 3px 8px -3px rgba(23,40,32,.35);z-index:2">
+                      <span style="width:19px;height:19px;flex:none;border-radius:50%;overflow:hidden;border:1.5px solid rgba(255,255,255,.6)">{{ bar.avatarEl }}</span>
+                      <span style="font-size:11px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ bar.progress }}%</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ tlNoBars }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:center;padding:40px;color:var(--c9aa39b,#9aa39b);font-size:13.5px">{{ t.tl_empty }}</div>
+              </sc-if>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--cf2f4f0,#f2f4f0);font-size:11px;color:var(--c7d867f,#7d867f)">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:2px;background:var(--cb0433b,#b0433b);display:inline-block"></span>{{ t.tl_todayMarker }}</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--cb0433b,#b0433b);display:inline-block"></span>{{ t.pv_late }}</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--cc9a24b,#c9a24b);display:inline-block"></span>{{ t.pv_decision }}</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--c3a6ea5,#3a6ea5);display:inline-block"></span>{{ t.pv_inprogress }}</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ===== UPDATES ===== -->
+          <sc-if value="{{ isUpdates }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border:1px solid var(--ceef1ec,#eef1ec);border-radius:18px;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:8px 6px">
+              <sc-for list="{{ projUpdates }}" as="u" hint-placeholder-count="0">
+                <div onClick="{{ u.open }}" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);cursor:pointer">
+                  <span style="width:36px;height:36px;flex:none;border-radius:50%;overflow:hidden;margin-top:2px">{{ u.avatarEl }}</span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;color:var(--c17211c,#17211c);line-height:1.5"><strong style="font-weight:700">{{ u.by }}</strong> — {{ u.text }}</div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap"><span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:3px 9px;background:{{u._bg}};color:{{u._fg}}">{{ u.statusLabel }}</span><span style="font-size:11.5px;color:var(--c8a938c,#8a938c)">{{ u.pname }}</span></div>
+                  </div>
+                  <span style="flex:none;font-size:11px;color:var(--c9aa39b,#9aa39b);font-weight:600;margin-top:2px">{{ u.date }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noUpdates }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:center;padding:40px;color:var(--c9aa39b,#9aa39b);font-size:13.5px">{{ t.up_empty }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- ===== FILES ===== -->
+          <sc-if value="{{ isFiles }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+              <sc-for list="{{ projFiles }}" as="f" hint-placeholder-count="0">
+                <div onClick="{{ f.open }}" style="background:var(--cffffff,#ffffff);border:1px solid var(--ceef1ec,#eef1ec);border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer">
+                  <span style="width:40px;height:40px;flex:none;border-radius:11px;background:{{f.icBg}};color:{{f.icFg}};display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3H14l5 5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V4.5A1.5 1.5 0 0 1 6.5 3Z"></path><path d="M14 3v4a1 1 0 0 0 1 1h4"></path></svg></span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:12.5px;font-weight:700;color:var(--c17211c,#17211c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</div>
+                    <div style="font-size:11px;color:var(--c8a938c,#8a938c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">{{ f.pname }}</div>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noFiles }}" hint-placeholder-val="{{ false }}">
+                <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--c9aa39b,#9aa39b);font-size:13.5px;background:var(--cffffff,#ffffff);border:1px dashed var(--cd8ddd4,#d8ddd4);border-radius:16px">{{ t.fl_empty }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isProjectDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease;max-width:1080px;margin:0 auto">
+
+          <!-- new-project pending (لم يبدأ) -->
+          <sc-if value="{{ project.showPending }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cfbf2df,#fbf2df);border:1px solid var(--cecdcb4,#ecdcb4);border-radius:18px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:220px"><span style="width:40px;height:40px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--cf5e6c4,#f5e6c4);color:var(--ca9791f,#a9791f)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l2.5 1.5"></path></svg></span><div><div style="font-size:14px;font-weight:700;color:var(--c7a5a12,#7a5a12);margin-bottom:2px">{{ t.pd_pendingTitle }}</div><div style="font-size:12px;color:var(--c9a7d2f,#9a7d2f);line-height:1.6">{{ t.pd_pendingMsg }}</div></div></div>
+              <div style="display:flex;gap:9px;flex:none"><button onClick="{{ project.approve }}" style="background:var(--c1f8a5b,#1f8a5b);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_approveBtn }}</button><button onClick="{{ project.reject }}" style="background:#fff;color:var(--cb0433b,#b0433b);border:1px solid var(--ce6b7b1,#e6b7b1);border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_rejectBtn }}</button></div>
+            </div>
+          </sc-if>
+
+          <!-- completion approval banner (بانتظار الاعتماد) -->
+          <sc-if value="{{ project.showApprovalBanner }}" hint-placeholder-val="{{ false }}">
+            <div style="background:linear-gradient(120deg,var(--c1e4634,#1e4634),var(--c2b5c44,#2b5c44));border-radius:18px;padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;color:#fff;box-shadow:0 14px 34px -20px rgba(30,70,52,.55)">
+              <span style="width:44px;height:44px;flex:none;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+              <div style="flex:1;min-width:220px"><div style="font-size:15px;font-weight:700">{{ t.pd_apprTitle }}</div><div style="font-size:12.5px;color:var(--cbcd2c3,#bcd2c3);margin-top:2px">{{ t.pd_apprMsg }}</div></div>
+              <div style="display:flex;gap:9px;flex-wrap:wrap"><button onClick="{{ project.openConfirm }}" style="background:#fff;color:var(--c1f4a37,#1f4a37);border:none;border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_approveDone }}</button><button onClick="{{ project.openReturn }}" style="background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer">{{ t.pd_returnProg }}</button><button onClick="{{ project.openReopen }}" style="background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer">{{ t.pd_setIncomplete }}</button></div>
+            </div>
+          </sc-if>
+
+          <!-- deadline extension request (بانتظار قرار رئيس القطاع) -->
+          <sc-if value="{{ project.showExtReq }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cfbf1ef,#fbf1ef);border:1px solid var(--cecd7d2,#ecd7d2);border-radius:14px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--cb0433b,#b0433b)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+              <div style="flex:1;min-width:220px;font-size:12.5px;color:var(--c7a4a44,#7a4a44);line-height:1.55"><b style="color:var(--cb0433b,#b0433b)">طلب تمديد الموعد النهائي:</b> من {{ project.extFrom }} إلى {{ project.extTo }} — بطلب من {{ project.extBy }}، بانتظار قرارك. لن يُحدَّث الموعد إلا بعد موافقتك.</div>
+              <div style="display:flex;gap:7px;flex:none">
+                <button onClick="{{ project.extApprove }}" style="background:var(--c8a3229,#8a3229);color:#fff;border:none;border-radius:9px;padding:8px 15px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">اعتماد التمديد</button>
+                <button onClick="{{ project.extReject }}" style="background:#fff;color:var(--c8a3229,#8a3229);border:1px solid var(--ce6b7b1,#e6b7b1);border-radius:9px;padding:8px 15px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">رفض</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- completed banner (مكتمل) -->
+          <sc-if value="{{ project.isCompleted }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--ce9f0ec,#e9f0ec);border:1px solid var(--ccfe0d5,#cfe0d5);border-radius:18px;padding:15px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <span style="width:40px;height:40px;flex:none;border-radius:12px;background:var(--cd6eadd,#d6eadd);color:var(--c1f8a5b,#1f8a5b);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+              <div style="flex:1;min-width:200px"><div style="font-size:14px;font-weight:700;color:var(--c1e4634,#1e4634)">{{ t.pd_completedTitle }}</div><div style="font-size:12px;color:var(--c2b5c44,#2b5c44);margin-top:2px">{{ t.pd_completedMsg }}</div></div>
+              <button onClick="{{ project.openReopen }}" style="background:#fff;color:var(--c1e4634,#1e4634);border:1px solid var(--ccfe0d5,#cfe0d5);border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_reopenBtn }}</button>
+            </div>
+          </sc-if>
+
+          <!-- HEADER -->
+          <div style="background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.65);border-bottom:none;border-radius:22px 22px 0 0;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:22px 26px 0">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;flex-wrap:wrap">
+              <span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:{{project._bg}};color:{{project._fg}}">{{ project.status }}</span>
+              <span style="font-size:11px;font-weight:600;border-radius:20px;padding:4px 11px;background:{{project.prBg}};color:{{project.prFg}}">{{ t.priority }} {{ project.priority }}</span>
+              <sc-if value="{{ project.isOverdue }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:var(--cf7e6e4,#f7e6e4);color:var(--cb0433b,#b0433b)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{ project.overdueLabel }}</span></sc-if>
+            </div>
+            <h1 style="margin:0 0 6px;font-size:23px;font-weight:700;line-height:1.35;color:var(--c17211c,#17211c)">{{ project.name }}</h1>
+            <sc-if value="{{ project.hasNameEn }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:var(--c9aa39b,#9aa39b);margin:-2px 0 6px;letter-spacing:.2px">{{ project.nameEn }}</div></sc-if>
+            <div style="font-size:12.5px;color:var(--c7d867f,#7d867f);display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>{{ project.unit }}</span><span style="color:var(--ccdd4cc,#cdd4cc)">•</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:22px;height:22px;border-radius:50%;background:var(--ce9f0ec,#e9f0ec);color:var(--c2b5c44,#2b5c44);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">{{ project.managerInitials }}</span>{{ project.manager }}</span></div>
+            <div style="margin-top:18px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:22px;font-weight:800;color:var(--c1f4a37,#1f4a37);letter-spacing:-.5px">{{ project.progress }}%</div><div style="font-size:12px;color:var(--c9aa39b,#9aa39b)">{{ t.progress }}</div></div><div style="height:12px;border-radius:20px;background:var(--ceef0ec,#eef0ec);overflow:hidden"><div style="height:100%;border-radius:20px;background:{{project.accent}};width:{{project.progress}}%"></div></div></div>
+            <div style="display:flex;gap:4px;margin-top:20px;overflow-x:auto"><sc-for list="{{ project.tabs }}" as="tb" hint-placeholder-count="7"><button onClick="{{ tb.select }}" style="{{ tb.style }}">{{ tb.label }}<sc-if value="{{ tb.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="{{ tb.badgeStyle }}">{{ tb.badge }}</span></sc-if></button></sc-for></div>
+          </div>
+
+          <!-- BODY -->
+          <div style="background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.65);border-top:none;border-radius:0 0 22px 22px;box-shadow:0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px;min-height:420px">
+
+            <sc-if value="{{ project.isOverview }}" hint-placeholder-val="{{ true }}">
+              <div style="animation:fadeUp .16s ease">
+                <div style="background:var(--cf9fbf8,#f9fbf8);border:1px solid var(--cedf1ec,#edf1ec);border-radius:16px;padding:18px 20px;margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--c1f4a37,#1f4a37);letter-spacing:.2px;margin-bottom:8px">وصف المشروع</div><p style="margin:0;font-size:14px;color:var(--c3c4a42,#3c4a42);line-height:1.75">{{ project.desc }}</p></div>
+                <sc-if value="{{ project.hasFinalOutput }}" hint-placeholder-val="{{ false }}"><div style="background:var(--cf3f8f4,#f3f8f4);border:1px solid var(--cd8e8dd,#d8e8dd);border-radius:16px;padding:18px 20px;margin-bottom:18px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c1f7a4e,#1f7a4e)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><path d="m9 11 3 3L22 4"></path></svg><span style="font-size:12px;font-weight:700;color:var(--c1f7a4e,#1f7a4e);letter-spacing:.2px">المخرج النهائي للمشروع</span></div><p style="margin:0;font-size:14px;color:var(--c3c4a42,#3c4a42);line-height:1.75">{{ project.finalOutput }}</p></div></sc-if>
+                <div class="pfacts" style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--ce6ebe6,#e6ebe6);border:1px solid var(--ce6ebe6,#e6ebe6);border-radius:16px;overflow:hidden;margin-bottom:16px"><sc-for list="{{ project.facts }}" as="f" hint-placeholder-count="6"><div style="background:var(--cfbfcfb,#fbfcfb);padding:14px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:var(--c8a938c,#8a938c)">{{ f.k }}</span><span style="display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:{{ f.color }}">{{ f.v }}<sc-if value="{{ f.overdue }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;border-radius:20px;padding:3px 8px;background:var(--cf7e6e4,#f7e6e4);color:var(--cb0433b,#b0433b)">{{ f.overdueLabel }}</span></sc-if></span></div></sc-for></div>
+                <!-- budget -->
+                <sc-if value="{{ project.hasBudget }}" hint-placeholder-val="{{ false }}">
+                <div style="background:var(--cfbfaf6,#fbfaf6);border:1px solid var(--cefe6cf,#efe6cf);border-radius:16px;padding:18px 20px;margin-bottom:20px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px"><div style="display:flex;align-items:center;gap:9px"><span style="width:30px;height:30px;flex:none;border-radius:9px;background:var(--cf4ead0,#f4ead0);color:var(--ca9791f,#a9791f);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2.5"></rect><circle cx="12" cy="12" r="2.5"></circle></svg></span><h3 style="margin:0;font-size:14px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.pd_budget }}</h3></div><div style="text-align:end"><div style="font-size:19px;font-weight:800;color:var(--c17211c,#17211c);letter-spacing:-.5px">{{ project.budgetTotalNum }} <span style="font-size:12px;font-weight:600;color:var(--c9aa39b,#9aa39b)">{{ project.budgetCur }}</span></div></div></div>
+                  <div style="height:10px;border-radius:20px;background:var(--ceef0ec,#eef0ec);overflow:hidden;margin-bottom:12px"><div style="{{ project.budgetBarStyle }}"></div></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div style="background:#fff;border:1px solid var(--cefe6cf,#efe6cf);border-radius:11px;padding:12px 14px"><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--ca9791f,#a9791f)"></span>{{ t.pd_budgetSpent }}</div><div style="font-size:16px;font-weight:800;color:var(--ca9791f,#a9791f)">{{ project.budgetSpentNum }}</div></div><div style="background:#fff;border:1px solid var(--ce2efe7,#e2efe7);border-radius:11px;padding:12px 14px"><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--c2e7d55,#2e7d55)"></span>{{ t.pd_budgetRemaining }}</div><div style="font-size:16px;font-weight:800;color:var(--c2e7d55,#2e7d55)">{{ project.budgetRemainingNum }} <span style="font-size:11px;font-weight:600;color:var(--c8fc0a5,#8fc0a5)">{{ project.budgetCur }}</span></div></div></div>
+                </div>
+                </sc-if>
+                <sc-if value="{{ project.hasScope }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px"><span style="width:6px;height:20px;border-radius:4px;background:var(--ca9791f,#a9791f)"></span><h3 style="margin:0;font-size:14px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.scopeOfWork }}</h3></div>
+                  <div style="display:flex;flex-direction:column;gap:9px"><sc-for list="{{ project.scope }}" as="s" hint-placeholder-count="4"><div style="display:flex;align-items:flex-start;gap:10px"><span style="width:7px;height:7px;flex:none;border-radius:50%;background:var(--ca9791f,#a9791f);margin-top:7px"></span><span style="font-size:13px;color:var(--c3c4a42,#3c4a42);line-height:1.6">{{ s }}</span></div></sc-for></div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ project.isTimeline }}" hint-placeholder-val="{{ false }}">
+              <div style="animation:fadeUp .16s ease">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap"><h3 style="margin:0;font-size:15px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.pd_milestones }}</h3><div style="display:flex;align-items:center;gap:16px;font-size:11px;color:var(--c8a938c,#8a938c);flex-wrap:wrap"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:9px;border-radius:3px;background:#3f8f4f"></span>{{ t.pd_onTrack }}</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:9px;border-radius:3px;background:#2f6aa8"></span>{{ t.pd_inProg }}</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:9px;border-radius:3px;background:#b0433b"></span>{{ t.pd_delayed }}</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:0;height:14px;border-inline-start:2px dashed #b0433b"></span>{{ t.pd_today }}</span></div></div>
+                <p style="margin:0 0 18px;font-size:12px;color:var(--c8a938c,#8a938c);line-height:1.7">{{ t.pd_ganttNote }}</p>
+                <div style="overflow-x:auto;padding-bottom:6px"><div style="min-width:680px">
+                  <div style="display:grid;grid-template-columns:190px 1fr;margin-bottom:10px"><div></div><div style="display:flex;direction:rtl;border-bottom:1px solid var(--ceef0ec,#eef0ec);padding-bottom:6px"><sc-for list="{{ project.ganttMonths }}" as="mo" hint-placeholder-count="6"><div style="flex:1;text-align:center;font-size:10.5px;color:var(--c9aa39b,#9aa39b);white-space:nowrap">{{ mo }}</div></sc-for></div></div>
+                  <sc-for list="{{ project.milestones }}" as="m" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:190px 1fr;align-items:center;padding:7px 0"><div style="padding-inline-start:14px;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--c17211c,#17211c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.name }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-top:2px">{{ m.start }} ← {{ m.end }} · {{ m.pct }}%</div></div><div style="position:relative;height:34px;direction:rtl"><sc-if value="{{ project.todayInRange }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-3px;bottom:-3px;right:{{ project.todayRight }};width:0;border-inline-start:2px dashed #b0433b;z-index:3"></div></sc-if><div style="position:absolute;top:6px;height:22px;right:{{m.barRight}};width:{{m.barWidth}};background:{{m.barBg}};border-radius:7px;overflow:hidden"><div style="position:absolute;top:0;bottom:0;right:0;width:{{m.pct}}%;background:{{m.barFill}}"></div></div></div></div></sc-for>
+                </div></div>
+                <div style="margin-top:20px;display:flex;flex-direction:column;gap:9px"><sc-for list="{{ project.ganttFlags }}" as="m" hint-placeholder-count="1"><div style="display:flex;align-items:flex-start;gap:10px;background:{{m.bg}};border:1px solid {{m.border}};border-radius:11px;padding:11px 14px"><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:3px 9px;flex:none;background:{{m.stBg}};color:{{m.stFg}}">{{ m.status }}</span><div style="font-size:12px;color:var(--c3c4a42,#3c4a42);line-height:1.6"><strong style="color:var(--c17211c,#17211c)">{{ m.name }}:</strong> {{ m.note }}</div></div></sc-for></div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ project.isTasks }}" hint-placeholder-val="{{ false }}">
+              <div style="animation:fadeUp .16s ease;display:flex;flex-direction:column;gap:11px"><sc-for list="{{ project.taskCards }}" as="tk" hint-placeholder-count="3"><div style="background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-radius:14px;padding:15px 17px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px"><div style="font-size:13.5px;font-weight:600;color:var(--c17211c,#17211c)">{{ tk.title }}</div><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{tk.stBg}};color:{{tk.stFg}}">{{ tk.status }}</span></div><div style="display:flex;align-items:center;gap:14px;font-size:11.5px;color:var(--c7d867f,#7d867f);flex-wrap:wrap;margin-bottom:11px"><span>{{ t.pd_owner }}: <strong style="color:var(--c3c4a42,#3c4a42);font-weight:600">{{ tk.owner }}</strong></span><span style="color:{{tk.prFg}};font-weight:700">{{ tk.priority }}</span></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button onClick="{{ project.openDir }}" style="background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37);border:none;border-radius:9px;padding:8px 13px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_addDir }}</button><button onClick="{{ project.taskReqUpdate }}" style="background:var(--cf4f6f2,#f4f6f2);color:var(--c3c4a42,#3c4a42);border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:8px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">{{ t.pd_reqUpdate }}</button></div></div></sc-for></div>
+            </sc-if>
+
+            <sc-if value="{{ project.isUpdates }}" hint-placeholder-val="{{ false }}">
+              <div style="animation:fadeUp .16s ease;position:relative;padding-inline-start:22px"><div style="position:absolute;inset-inline-start:5px;top:4px;bottom:4px;width:2px;background:var(--ceef0ec,#eef0ec)"></div><sc-for list="{{ project.updates }}" as="u" hint-placeholder-count="3"><div style="position:relative;padding-bottom:18px"><div style="position:absolute;inset-inline-start:-21px;top:3px;width:11px;height:11px;border-radius:50%;background:var(--ca9791f,#a9791f);border:2px solid #fff;box-shadow:0 0 0 2px var(--ceef0ec,#eef0ec)"></div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:3px">{{ u.date }} — {{ u.by }}</div><div style="font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.6">{{ u.text }}</div></div></sc-for></div>
+            </sc-if>
+
+            <sc-if value="{{ project.isRisks }}" hint-placeholder-val="{{ false }}">
+              <div style="animation:fadeUp .16s ease">
+                <sc-if value="{{ project.hasRisks }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px"><sc-for list="{{ project.riskCards }}" as="r" hint-placeholder-count="1"><div style="background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-inline-start:4px solid {{r.sevFg}};border-radius:12px;padding:15px 17px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px"><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{r.sevBg}};color:{{r.sevFg}}">{{ t.pd_severity }} {{ r.sev }}</span><span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:4px 10px;background:var(--cf0f3ee,#f0f3ee);color:var(--c3c4a42,#3c4a42)">{{ r.status }}</span></div><div style="font-size:13.5px;font-weight:600;color:var(--c17211c,#17211c);line-height:1.5;margin-bottom:9px">{{ r.desc }}</div><div style="font-size:11.5px;color:var(--c7d867f,#7d867f)">{{ t.pd_respons }}: {{ r.owner }}</div></div></sc-for></div></sc-if>
+                <sc-if value="{{ project.noRisks }}" hint-placeholder-val="{{ false }}"><div style="padding:40px;text-align:center;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ t.pd_noRisks }}</div></sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ project.isDirectives }}" hint-placeholder-val="{{ false }}">
+              <div style="animation:fadeUp .16s ease">
+                <sc-if value="{{ project.canApprove }}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button onClick="{{ project.openDir }}" style="display:inline-flex;align-items:center;gap:6px;background:var(--c1f4a37,#1f4a37);color:#fff;border:none;border-radius:10px;padding:10px 15px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>{{ t.pd_addDirNew }}</button></div></sc-if>
+                <sc-if value="{{ project.hasDirectives }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:11px"><sc-for list="{{ project.directives }}" as="d" hint-placeholder-count="2"><div style="background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-radius:14px;padding:15px 17px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px"><div style="font-size:11px;color:var(--c9aa39b,#9aa39b)">{{ d.date }} — {{ d.by }}</div><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{d.stBg}};color:{{d.stFg}}">{{ d.status }}</span></div><div style="font-size:13.5px;color:var(--c2a332d,#2a332d);line-height:1.65">{{ d.text }}</div></div></sc-for></div></sc-if>
+                <sc-if value="{{ project.noDirectives }}" hint-placeholder-val="{{ false }}"><div style="padding:40px;text-align:center;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ t.pd_noDir }}</div></sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ project.isFiles }}" hint-placeholder-val="{{ false }}">
+              <div style="animation:fadeUp .16s ease">
+                <sc-if value="{{ project.hasFiles }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px"><sc-for list="{{ project.fileCards }}" as="fl" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-radius:13px;padding:13px 15px"><span style="width:38px;height:38px;flex:none;border-radius:10px;background:{{fl.bg}};color:{{fl.fg}};display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3v5h5"></path><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg></span><div style="min-width:0"><div style="font-size:12.5px;font-weight:600;color:var(--c2a332d,#2a332d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ fl.name }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ fl.meta }}</div></div></div></sc-for></div></sc-if>
+                <sc-if value="{{ project.noFiles }}" hint-placeholder-val="{{ false }}"><div style="padding:40px;text-align:center;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ t.pd_noFiles }}</div></sc-if>
+              </div>
+            </sc-if>
+
+          </div>
+        </div>
+
+        <!-- CONFIRM MODAL -->
+        <sc-if value="{{ project.pdConfirm }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ project.closeAll }}" style="position:fixed;inset:0;background:rgba(20,32,26,.42);z-index:120;display:flex;align-items:center;justify-content:center;padding:20px"><div onClick="{{ project.stop }}" style="background:#fff;border-radius:20px;max-width:400px;width:100%;padding:26px;text-align:center;box-shadow:0 30px 60px -20px rgba(0,0,0,.4)"><span style="width:56px;height:56px;border-radius:16px;background:var(--ce2f0e8,#e2f0e8);color:var(--c2e7d55,#2e7d55);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span><h3 style="margin:0 0 8px;font-size:18px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.pd_confirmTitle }}</h3><p style="margin:0 0 20px;font-size:13px;color:var(--c7d867f,#7d867f);line-height:1.6">{{ t.pd_confirmMsg }}</p><div style="display:flex;gap:10px"><button onClick="{{ project.doApprove }}" style="flex:1;background:var(--c2e7d55,#2e7d55);color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_confirmYes }}</button><button onClick="{{ project.closeAll }}" style="flex:1;background:var(--cf4f6f2,#f4f6f2);color:var(--c3c4a42,#3c4a42);border:1px solid var(--ce2e6df,#e2e6df);border-radius:11px;padding:12px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">{{ t.pd_cancel }}</button></div></div></div>
+        </sc-if>
+
+        <!-- RETURN MODAL -->
+        <sc-if value="{{ project.pdReturn }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ project.closeAll }}" style="position:fixed;inset:0;background:rgba(20,32,26,.42);z-index:120;display:flex;align-items:center;justify-content:center;padding:20px"><div onClick="{{ project.stop }}" style="background:#fff;border-radius:20px;max-width:440px;width:100%;padding:24px;box-shadow:0 30px 60px -20px rgba(0,0,0,.4)"><h3 style="margin:0 0 6px;font-size:17px;font-weight:700;color:var(--c17211c,#17211c)">{{ project.reTitle }}</h3><p style="margin:0 0 15px;font-size:12.5px;color:var(--c7d867f,#7d867f);line-height:1.6">{{ t.pd_returnHint }}</p><div style="font-size:11.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:7px">{{ t.pd_newStatus }}</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px"><sc-for list="{{ project.reModes }}" as="rm" hint-placeholder-count="3"><button onClick="{{ rm.pick }}" style="border-radius:9px;padding:8px 13px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid {{rm.bd}};background:{{rm.bg}};color:{{rm.fg}}">{{ rm.label }}</button></sc-for></div><div style="font-size:11.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ t.pd_returnReason }}</div><input value="{{ project.pdReturnReason }}" onInput="{{ project.onReturnReason }}" placeholder="{{ t.pd_returnReasonPh }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:10px;padding:11px 13px;font-size:12.5px;font-family:inherit;margin-bottom:13px"><div style="font-size:11.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ t.pd_returnNote }}</div><textarea value="{{ project.pdReturnNote }}" onInput="{{ project.onReturnNote }}" placeholder="{{ t.pd_returnNotePh }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:10px;padding:11px 13px;font-size:12.5px;font-family:inherit;min-height:76px;resize:vertical;margin-bottom:16px"></textarea><div style="display:flex;gap:10px"><button onClick="{{ project.doReturn }}" style="flex:1;background:var(--cb0433b,#b0433b);color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_returnConfirm }}</button><button onClick="{{ project.closeAll }}" style="flex:none;background:var(--cf4f6f2,#f4f6f2);color:var(--c3c4a42,#3c4a42);border:1px solid var(--ce2e6df,#e2e6df);border-radius:11px;padding:12px 20px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">{{ t.pd_cancel }}</button></div></div></div>
+        </sc-if>
+
+        <!-- ADD DIRECTIVE MODAL -->
+        <sc-if value="{{ project.pdDir }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ project.closeAll }}" style="position:fixed;inset:0;background:rgba(20,32,26,.42);z-index:120;display:flex;align-items:center;justify-content:center;padding:20px"><div onClick="{{ project.stop }}" style="background:#fff;border-radius:20px;max-width:460px;width:100%;padding:24px;box-shadow:0 30px 60px -20px rgba(0,0,0,.4)"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="width:34px;height:34px;flex:none;border-radius:10px;background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span><h3 style="margin:0;font-size:17px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.pd_dirTitle }}</h3></div><p style="margin:0 0 15px;font-size:12.5px;color:var(--c7d867f,#7d867f);line-height:1.6">{{ t.pd_dirMsg }}</p><textarea onInput="{{ project.onDirInput }}" placeholder="{{ t.pd_dirPh }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:11px;padding:12px 14px;font-size:13px;font-family:inherit;min-height:110px;resize:vertical;line-height:1.7;margin-bottom:16px"></textarea><div style="display:flex;gap:10px"><button onClick="{{ project.saveDir }}" style="flex:1;background:var(--c1f4a37,#1f4a37);color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.pd_dirSave }}</button><button onClick="{{ project.closeAll }}" style="flex:none;background:var(--cf4f6f2,#f4f6f2);color:var(--c3c4a42,#3c4a42);border:1px solid var(--ce2e6df,#e2e6df);border-radius:11px;padding:12px 20px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">{{ t.pd_cancel }}</button></div></div></div>
+        </sc-if>
+      </sc-if>
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:300;background:var(--c132b20,#132b20);color:#fff;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 12px 30px -8px rgba(0,0,0,.4)">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":"100%","height":760}}'>
+class Component extends DCLogic {
+  projects=window.__DATA.projects; members=window.__DATA.members;
+  state={fOwner:'',fUnit:'',fStatus:'',fSearch:'',fLate:false,fDecision:false,fPriority:'',projTab:'overview',tlScale:'quarter',tlY:null,tlM:null,pdTab:'overview',pdConfirm:false,pdReturn:false,pdReopenMode:false,pdReturnReason:'',pdReturnNote:'',pdReturnStatus:'قيد التنفيذ',pdDir:false,pdDirDraft:'',noteDraft:'',toast:'',openDD:null,ddRect:null,lang:(this.props&&this.props.lang)||'ar'};
+  find(arr,id){return arr.find(x=>x.id===id);}
+  memIndex(name){return this.members.findIndex(m=>m.name===name);}
+  av(name){const i=this.memIndex(name);return AV[(i>=0?i:0)%AV.length];}
+  showToast(msg){this.setState({toast:msg});clearTimeout(this._tt);this._tt=setTimeout(()=>this.setState({toast:''}),3200);}
+  dueColor(due){return (String(due).includes('يونيو')||String(due).includes('مارس')||String(due).includes('1 يوليو')||String(due).includes('2 يوليو'))?'var(--cb0433b,#b0433b)':'var(--c3c4a42,#3c4a42)';}
+  componentDidMount(){ DCDD.install(this); if(this.props.lang&&this.props.lang!==this.state.lang) this.setState({lang:this.props.lang}); }
+  componentDidUpdate(prev){ if(prev.lang!==this.props.lang) this.setState({lang:this.props.lang}); }
+  componentWillUnmount(){ DCDD.uninstall(this); }
+    approveProject(id){const p=this.find(this.projects,id);if(p){p.status='قيد التنفيذ';if(!p.progress||p.progress<10)p.progress=10;}this.showToast(this.state.lang==='en'?'Project approved — moved to In progress':'تم اعتماد المشروع — انتقل إلى قيد التنفيذ');this.forceUpdate();}
+  rejectProject(id){const p=this.find(this.projects,id);if(p){p.status='مرفوض';}this.showToast(this.state.lang==='en'?'Project approval rejected':'تم رفض اعتماد المشروع');this.forceUpdate();}
+  _pdToday(){return this.state.lang==='en'?'2 Jul 2026':'2 يوليو 2026';}
+  pdApproveCompletion(id){const p=this.find(this.projects,id);if(p){p.status='مكتمل';p.progress=100;(p.timeline=p.timeline||[]).unshift({text:'اعتمد رئيس القطاع اكتمال المشروع',by:'رئيس القطاع',date:this._pdToday()});}this.setState({pdConfirm:false});this.showToast(this.state.lang==='en'?'Project completion approved':'تم اعتماد اكتمال المشروع');this.forceUpdate();}
+  pdDoReturn(id){const p=this.find(this.projects,id);const reason=(this.state.pdReturnReason||'').trim();const note=(this.state.pdReturnNote||'').trim();const st=this.state.pdReturnStatus||'قيد التنفيذ';if(p){p.status=st;(p.directives=p.directives||[]).unshift({date:this._pdToday(),by:'رئيس القطاع',text:(reason?('سبب الإرجاع: '+reason):'')+(note?((reason?' — ':'')+note):'')||'أُرجع المشروع لإعادة العمل',status:'جديد'});(p.timeline=p.timeline||[]).unshift({text:'أرجع رئيس القطاع المشروع إلى «'+st+'»'+(reason?(' — '+reason):''),by:'رئيس القطاع',date:this._pdToday()});}this.setState({pdReturn:false,pdReopenMode:false,pdReturnReason:'',pdReturnNote:''});this.showToast(this.state.lang==='en'?'Project returned':'تم إرجاع المشروع');this.forceUpdate();}
+  extDecide(id,ok){const p=this.find(this.projects,id);if(p&&p.extendReq){if(ok){p.dueDate=p.extendReq.to;(p.timeline=p.timeline||[]).unshift({text:'اعتمد رئيس القطاع تمديد الموعد النهائي إلى '+p.extendReq.to,by:'رئيس القطاع',date:this._pdToday()});if(p.status==='متأخر')p.status='قيد التنفيذ';}else{(p.timeline=p.timeline||[]).unshift({text:'رفض رئيس القطاع طلب تمديد الموعد النهائي',by:'رئيس القطاع',date:this._pdToday()});}p.extendReq.decided=true;}this.showToast(ok?(this.state.lang==='en'?'Deadline extension approved':'تم اعتماد تمديد الموعد'):(this.state.lang==='en'?'Deadline extension rejected':'تم رفض تمديد الموعد'));this.forceUpdate();}
+  pdSaveDirective(id){const t=(this.state.pdDirDraft||'').trim();if(!t){this.setState({pdDir:false});return;}const p=this.find(this.projects,id);if(p){(p.directives=p.directives||[]).unshift({date:this._pdToday(),by:'رئيس القطاع',text:t,status:'جديد'});}this.setState({pdDir:false,pdDirDraft:''});this.showToast(this.state.lang==='en'?'Directive added':'تمت إضافة التوجيه');this.forceUpdate();}
+    addNote(){const t=(this.state.noteDraft||'').trim();if(!t)return;const p=this.find(this.projects,this.state.selProject);if(p){p.chairmanNotes=t;p.timeline.unshift({text:'ملاحظة من رئيس القطاع: '+t,by:'رئيس القطاع',date:'اليوم'});}this.setState({noteDraft:''});this.forceUpdate();}
+  renderVals(){
+    const S=this.state; const P=this.props||{};
+    LANG=S.lang; const L=S.lang==='en'?1:0;
+    const rl=(a,e)=>L?e:a;
+    const t={}; for(const k in UITEXT) t[k]=UITEXT[k][L];
+    const opt=arr=>arr.map(v=>({v,label:tr(v)}));
+    const statusLabel=s=>s==='يحتاج قرار'?rl('بانتظار توجيه','Awaiting direction'):tr(s);
+        // projects filtered
+    let fp=this.projects.filter(p=>{
+      if(S.fOwner&&p.owner!==S.fOwner)return false;
+      if(S.fUnit&&PUNIT[p.id]!==S.fUnit)return false;
+      if(S.fStatus&&p.status!==S.fStatus)return false;
+      if(S.fSearch&&!(p.name.includes(S.fSearch)||p.desc.includes(S.fSearch)))return false;
+      if(S.fLate&&p.status!=='متأخر')return false;
+      if(S.fDecision&&p.status!=='يحتاج قرار')return false;
+      if(S.fPriority&&p.priority!==S.fPriority)return false;
+      return true;
+    });
+    const decP=p=>{const [b,f]=PS[p.status]||['#eee','#555'];const [avBg,avFg]=this.av(p.owner);const pr=PR[p.priority];return Object.assign({},p,{name:tr(p.name),desc:tr(p.desc),owner:tr(p.owner),status:(p.status==='لم يبدأ'?rl('قيد الاعتماد','Pending approval'):statusLabel(p.status)),priority:tr(p.priority),nextStep:tr(p.nextStep),dueDate:dateLoc(p.dueDate),lastDate:dateLoc(p.lastDate),risks:tr(p.risks),chairmanNotes:tr(p.chairmanNotes),_bg:b,_fg:f,accent:ACCENT[p.status]||'var(--c9aa39b,#9aa39b)',prBg:pr[0],prFg:pr[1],avBg,avFg,initials:initials(tr(p.owner)),img:memberImg(p.owner),hasImg:!!memberImg(p.owner),noImg:!memberImg(p.owner),avatarEl:(memberImg(p.owner)?avEl(memberImg(p.owner)):React.createElement('div',{style:{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:avBg,color:avFg,fontSize:'10px',fontWeight:700}},initials(tr(p.owner)))),unit:rl('قطاع الخدمات المركزية','Central Services Sector'),showStatus:p.status!=='يحتاج قرار',finalOutput:tr(p.finalOutput||''),currentUpdate:(p.timeline&&p.timeline[0]?tr(p.timeline[0].text):''),updatedBy:tr(p.owner),dueColor:this.dueColor(p.dueDate),nameEn:p.nameEn||'',hasNameEn:!!(p.nameEn&&p.nameEn.trim()),open:()=>P.nav('projectDetail',{selProject:p.id})});};
+    const filteredProjects=fp.map(decP);
+
+    // ===== Projects screen: tabs / overview / kanban / timeline / updates / files =====
+    const MONTHS_AR=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const mName=mi=>{const i=((mi%12)+12)%12;return L?MONTHS_EN[i]:MONTHS_AR[i];};
+    const projTab=S.projTab||'overview';
+    const TABS=[{k:'overview',label:rl('نظرة عامة','Overview')},{k:'kanban',label:rl('لوحة المشاريع','Board')},{k:'timeline',label:rl('الجدول الزمني','Timeline')},{k:'updates',label:rl('التحديثات','Updates')},{k:'files',label:rl('الملفات','Files')}];
+    const projTabs=TABS.map(x=>{const active=projTab===x.k;return {label:x.label,active,onClick:()=>this.setState({projTab:x.k}),style:'appearance:none;border:none;background:none;font-family:inherit;cursor:pointer;padding:10px 4px;margin-inline-end:18px;font-size:13.5px;font-weight:'+(active?'700':'500')+';color:'+(active?'var(--c1e4634,#1e4634)':'var(--c8a938c,#8a938c)')+';border-bottom:2.5px solid '+(active?'var(--c1e4634,#1e4634)':'transparent')+';transition:.15s'};});
+    const pStat=st=>this.projects.filter(p=>p.status===st).length;
+    const pvTotal=this.projects.length,pvInProgress=pStat('قيد التنفيذ'),pvLate=pStat('متأخر'),pvDecision=pStat('يحتاج قرار'),pvDone=pStat('مكتمل'),pvHigh=this.projects.filter(p=>p.priority==='عالية').length;
+    const ovBase={projTab:'kanban',fOwner:'',fUnit:'',fSearch:'',fStatus:'',fLate:false,fDecision:false,fPriority:''};
+    const ovGo=extra=>()=>this.setState(Object.assign({},ovBase,extra));
+    const ovStats=[
+      {label:rl('إجمالي المشاريع','Total projects'),value:pvTotal,accent:'var(--c2b5c44,#2b5c44)',bg:'var(--ceef3f0,#eef3f0)',ic:'folder',open:ovGo({})},
+      {label:rl('قيد التنفيذ','In progress'),value:pvInProgress,accent:'var(--c2f6aa8,#2f6aa8)',bg:'var(--ce6eef6,#e6eef6)',ic:'task',open:ovGo({fStatus:'قيد التنفيذ'})},
+      {label:rl('متأخرة','Delayed'),value:pvLate,accent:'var(--cb0433b,#b0433b)',bg:'var(--cf7e6e4,#f7e6e4)',ic:'timer',open:ovGo({fStatus:'متأخر'})},
+      {label:rl('متوسط الإنجاز','Average progress'),value:(this.projects.length?Math.round(this.projects.reduce((s,p)=>s+(p.progress||0),0)/this.projects.length):0)+'%',accent:'var(--ca9791f,#a9791f)',bg:'var(--cfbf0d6,#fbf0d6)',ic:'chart',open:ovGo({})},
+      {label:rl('مكتملة','Completed'),value:pvDone,accent:'var(--c2e7d55,#2e7d55)',bg:'var(--ce2f0e8,#e2f0e8)',ic:'tick',open:ovGo({fStatus:'مكتمل'})}
+    ].map(s=>Object.assign(s,{iconEl:svgIcon(s.ic,18)}));
+    const attnRank=p=>p.status==='متأخر'?0:(p.status==='يحتاج قرار'?1:(p.priority==='عالية'?2:3));
+    const reqUpd=id=>()=>{this.setState({toast:rl('تم إرسال طلب تحديث إلى المسؤول عن المشروع','Update request sent to the project owner')});setTimeout(()=>this.setState({toast:''}),2600);};
+    const decPK=pp=>{const d=decP(pp);d.reqUpdate=reqUpd(pp.id);d.addDir=()=>P.nav('projectDetail',{selProject:pp.id});d.attCount=(pp.attachments||[]).length;d.updCount=(pp.timeline||[]).length;return d;};
+    const attentionProjects=this.projects.filter(p=>p.status==='متأخر'||p.status==='يحتاج قرار'||p.priority==='عالية').sort((a,b)=>attnRank(a)-attnRank(b)).slice(0,5).map(decPK);
+    // kanban
+    const kanbanDefs=[{key:'لم يبدأ',keys:['لم يبدأ','بانتظار الاعتماد'],label:rl('قيد الاعتماد','Pending approval'),dot:'var(--c9aa39b,#9aa39b)'},{key:'قيد التنفيذ',label:rl('قيد التنفيذ','In progress'),dot:'var(--c3a6ea5,#3a6ea5)'},{key:'يحتاج قرار',label:rl('بانتظار توجيه','Awaiting direction'),dot:'var(--cc9a24b,#c9a24b)'},{key:'متأخر',label:rl('متأخر','Delayed'),dot:'var(--cb0433b,#b0433b)'},{key:'مكتمل',label:rl('مكتمل','Completed'),dot:'var(--c2e7d55,#2e7d55)'}];
+    const kanbanCols=kanbanDefs.map(c=>{const ks=c.keys||[c.key];const items=fp.filter(p=>ks.includes(p.status)).map(decPK);return {label:c.label,dot:c.dot,count:items.length,items,empty:items.length===0};});
+    // timeline
+    const fmtAr=dt=>dt?dt.getDate()+' '+MONTHS_AR[dt.getMonth()]+' '+dt.getFullYear():'';
+    const projRange=p=>{const dts=(p.timeline||[]).map(x=>parseAr(x.date)).filter(Boolean);const end=parseAr(p.dueDate);let start=dts.length?new Date(Math.min.apply(null,dts.map(d=>d.getTime()))):(end?new Date(end.getFullYear(),end.getMonth(),1):null);if(end&&start&&start>end)start=new Date(end.getFullYear(),end.getMonth(),1);return {start,end};};
+    const APP_TODAY=new Date(2026,6,2);
+    const allStarts=this.projects.map(p=>projRange(p).start).filter(Boolean);
+    const baseDate=allStarts.length?new Date(Math.min.apply(null,allStarts.map(d=>d.getTime()))):new Date(2026,5,1);
+    const scale=S.tlScale||'quarter';
+    const anchorY=S.tlY!=null?S.tlY:baseDate.getFullYear();
+    const anchorM=S.tlM!=null?S.tlM:baseDate.getMonth();
+    const rangeStart=new Date(anchorY,anchorM,1);
+    const rangeEnd=scale==='quarter'?new Date(anchorY,anchorM+3,0):new Date(anchorY,anchorM+1,0);
+    const rangeMs=rangeEnd-rangeStart||1;
+    const tpct=d=>Math.max(0,Math.min(100,((d-rangeStart)/rangeMs)*100));
+    const colHeaders=scale==='quarter'?[0,1,2].map(k=>{const dt=new Date(anchorY,anchorM+k,1);return mName(dt.getMonth())+' '+dt.getFullYear();}):(()=>{const dim=new Date(anchorY,anchorM+1,0).getDate();const wk=Math.ceil(dim/7);return Array.from({length:wk},(_,i)=>rl('الأسبوع ','Week ')+(i+1));})();
+    const tlBars=fp.map(p=>{const r=projRange(p);if(!r.start||!r.end)return null;if(r.end<rangeStart||r.start>rangeEnd)return null;const dp=decP(p);const left=tpct(r.start);const right=tpct(r.end);return {name:dp.name,owner:dp.owner,status:dp.status,statusLabel:dp.status,_bg:dp._bg,_fg:dp._fg,accent:ACCENT[p.status]||'var(--c2b5c44,#2b5c44)',left,width:Math.max(6,right-left),startLabel:dateLoc(fmtAr(r.start)),endLabel:dp.dueDate,stage:dp.currentUpdate,progress:p.progress,avatarEl:dp.avatarEl,open:dp.open,isLate:p.status==='متأخر',isDecision:p.status==='يحتاج قرار'};}).filter(Boolean);
+    const todayPct=(APP_TODAY>=rangeStart&&APP_TODAY<=rangeEnd)?tpct(APP_TODAY):-1;
+    const step=scale==='quarter'?3:1;
+    const tlRangeLabel=scale==='quarter'?(mName(anchorM)+' – '+mName((anchorM+2)%12)+' '+(anchorM+2>11?anchorY+1:anchorY)):(mName(anchorM)+' '+anchorY);
+    // updates
+    const projUpdatesRaw=[];this.projects.forEach(p=>{(p.timeline||[]).forEach(x=>{projUpdatesRaw.push({pid:p.id,pname:tr(p.name),text:tr(x.text),by:tr(x.by),date:x.date,d:parseAr(x.date),status:p.status});});});
+    projUpdatesRaw.sort((a,b)=>(b.d?b.d.getTime():0)-(a.d?a.d.getTime():0));
+    const projUpdates=projUpdatesRaw.slice(0,24).map(u=>{const[b,f]=PS[u.status]||['#eee','#555'];const[ob,of]=this.av(u.by);return {pname:u.pname,text:u.text,by:u.by,date:dateLoc(u.date),statusLabel:statusLabel(u.status),_bg:b,_fg:f,byBg:ob,byFg:of,byInitials:initials(u.by),byImg:memberImg(u.by),avatarEl:(memberImg(u.by)?avEl(memberImg(u.by)):React.createElement('div',{style:{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:ob,color:of,fontSize:'10px',fontWeight:700}},initials(u.by))),open:()=>P.nav('projectDetail',{selProject:u.pid})};});
+    // files
+    const fileIcon=n=>{const s=String(n).toLowerCase();return s.endsWith('.xlsx')||s.endsWith('.xls')?['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)']:s.endsWith('.pdf')?['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)']:['var(--ce6eef6,#e6eef6)','var(--c3a6ea5,#3a6ea5)'];};
+    const projFilesRaw=[];this.projects.forEach(p=>{(p.attachments||[]).forEach(fn=>{projFilesRaw.push({pid:p.id,name:tr(fn),pname:tr(p.name),owner:tr(p.owner),date:dateLoc(p.lastDate)});});});
+    const projFiles=projFilesRaw.map(fr=>{const[fb,ff]=fileIcon(fr.name);return Object.assign({},fr,{icBg:fb,icFg:ff,open:()=>P.nav('projectDetail',{selProject:fr.pid})});});
+
+    // project detail
+    let project=null;
+    if(P.selProject){const p=this.find(this.projects,P.selProject);if(p){project=decP(p);project.tasks=p.tasks.map(t2=>{const[b,f]=PS[t2.status]||['#eee','#555'];return Object.assign({},t2,{name:tr(t2.name),owner:tr(t2.owner),status:statusLabel(t2.status),_bg:b,_fg:f});});project.timeline=p.timeline.map(x=>({text:tr(x.text),by:tr(x.by),date:dateLoc(x.date)}));project.people=p.people.map(tr);project.attachments=p.attachments.map(tr);
+    const _pb=(p.budget!=null?p.budget:(PBUDGET[p.id]||0));const _ps=Math.round(_pb*(p.progress||0)/100);const _fmtN=n=>Number(n).toLocaleString('en-US');const _upct=_pb?Math.round(_ps/_pb*100):0;
+    project.manager=tr('موزة المرزوقي');
+    project.scope=(p.scope||[]).map(s=>tr(s));project.hasScope=(p.scope||[]).length>0;project.nameEn=p.nameEn||'';project.hasNameEn=!!(p.nameEn&&p.nameEn.trim());
+    project.managerAvatarEl=(memberImg('موزة المرزوقي')?avEl(memberImg('موزة المرزوقي')):React.createElement('div',{style:{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--ce9f0ec,#e9f0ec)',color:'var(--c2b5c44,#2b5c44)',fontSize:'10px',fontWeight:700}},'م'));
+    project.budgetCur=rl('د.إ','AED');project.budgetTotalNum=_fmtN(_pb);project.budgetSpentNum=_fmtN(_ps)+' '+rl('د.إ','AED');project.budgetRemainingNum=_fmtN(_pb-_ps);project.budgetUsedPct=_upct;project.budgetBarStyle='width:'+_upct+'%;height:100%;background:var(--ca9791f,#a9791f);border-radius:20px';
+    project.isPending=(p.status==='لم يبدأ');project.approve=()=>this.approveProject(p.id);project.reject=()=>this.rejectProject(p.id);
+    // ===== tabbed detail =====
+    const _pdTab=S.pdTab||'overview';project.pdTab=_pdTab;
+    project.isOverview=_pdTab==='overview';project.isTimeline=_pdTab==='timeline';project.isTasks=_pdTab==='tasks';project.isUpdates=_pdTab==='updates';project.isRisks=_pdTab==='risks';project.isDirectives=_pdTab==='directives';project.isFiles=_pdTab==='files';
+    project.ownerInitials=initials(tr(p.owner));project.managerInitials='م';project.unit=rl('قطاع الخدمات المركزية','Central Services Sector');
+    project.hasFinalOutput=!!(p.finalOutput&&p.finalOutput.trim()&&p.finalOutput.trim()!==(p.desc||'').trim());
+    project.hasBudget=_pb>0;
+    // directives store (seed once from chairmanNotes)
+    if(!p.directives){p.directives=[];if(p.chairmanNotes&&p.chairmanNotes.trim())p.directives.push({date:p.lastDate,by:'رئيس القطاع',text:p.chairmanNotes,status:'قيد التنفيذ'});}
+    const _riskN=(p.risks&&p.risks.trim()&&!/لا يوجد|لا توجد مخاطر/.test(p.risks))?1:0;
+    // tabs
+    const _tdef=[['overview','نظرة عامة','Overview',0],['updates','التحديثات','Updates',p.timeline.length],['timeline','الجدول الزمني','Timeline',0],['risks','المخاطر','Risks',_riskN],['directives','توجيهات رئيس القطاع','Directives',p.directives.length],['files','المرفقات','Files',p.attachments.length]];
+    project.tabs=_tdef.map(d=>{const active=_pdTab===d[0];return {label:rl(d[1],d[2]),hasBadge:d[3]>0,badge:String(d[3]||''),badgeStyle:'font-size:10px;font-weight:700;border-radius:20px;padding:1px 7px;background:'+(active?'var(--ce9f0ec,#e9f0ec)':'var(--cf0f3ee,#f0f3ee)')+';color:'+(active?'var(--c1f4a37,#1f4a37)':'var(--c8a938c,#8a938c)'),style:'display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border:none;background:transparent;border-bottom:3px solid '+(active?'var(--c1f4a37,#1f4a37)':'transparent')+';color:'+(active?'var(--c1f4a37,#1f4a37)':'var(--c7d867f,#7d867f)')+';font-weight:'+(active?'700':'600')+';font-size:13px;font-family:inherit;padding:11px 15px;cursor:pointer',select:(k=>()=>this.setState({pdTab:k}))(d[0])};});
+    // dates + overdue
+    const _st=p.startDate?parseAr(p.startDate):projRange(p).start;const _en=parseAr(p.dueDate);
+    project.startLabel=_st?fmtAr(_st):'—';project.dueLabel=_en?fmtAr(_en):tr(p.dueDate);project.deadlineLabel=(p.deadline&&p.deadline.trim())?dateLoc(p.deadline):rl('لم يُحدَّد','Not set');project.hasDeadline=!!(p.deadline&&p.deadline.trim());
+    const _overdue=!!(_en&&APP_TODAY>_en&&p.status!=='مكتمل'&&p.status!=='بانتظار الاعتماد');
+    const _odDays=_overdue?Math.round((APP_TODAY-_en)/86400000):0;
+    project.isOverdue=_overdue;project.overdueLabel=rl('تجاوز الموعد بـ '+_odDays+' يوماً','Overdue by '+_odDays+' days');
+    if(p.extendReq&&!p.extendReq.decided){project.hasExtReq=true;project.extFrom=dateLoc(p.extendReq.from);project.extTo=dateLoc(p.extendReq.to);project.extBy=tr(p.extendReq.by||'فريق المشروع');project.extApprove=()=>this.extDecide(p.id,true);project.extReject=()=>this.extDecide(p.id,false);}else{project.hasExtReq=false;}
+    const _stage=(p.tasks.find(tk=>tk.status!=='مكتمل')||{}).name;
+    project.stage=_stage?tr(_stage):rl('المشروع مكتمل','Completed');
+    project.facts=[
+      {k:rl('المرحلة الحالية','Current stage'),v:project.stage,color:'var(--c2a332d,#2a332d)',overdue:false,overdueLabel:''},
+      {k:rl('الخطوة القادمة','Next step'),v:tr(p.nextStep),color:'var(--c2a332d,#2a332d)',overdue:false,overdueLabel:''},
+      {k:rl('تاريخ بداية المشروع','Project start date'),v:project.startLabel,color:'var(--c2a332d,#2a332d)',overdue:false,overdueLabel:''},
+      {k:rl('تاريخ نهاية المشروع','Project end date'),v:project.dueLabel,color:_overdue?'var(--cb0433b,#b0433b)':'var(--c2a332d,#2a332d)',overdue:_overdue,overdueLabel:project.overdueLabel},
+      {k:rl('الموعد النهائي','Deadline'),v:project.deadlineLabel,color:project.hasDeadline?'var(--c2a332d,#2a332d)':'var(--cb0433b,#b0433b)',overdue:false,overdueLabel:''},
+      {k:rl('آخر مناقشة مع رئيس القطاع','Last chair discussion'),v:dateLoc(p.lastDate),color:'var(--c2a332d,#2a332d)',overdue:false,overdueLabel:''}
+    ];
+    // milestones from tasks across project span (gantt)
+    let _me=_en||new Date((_st||APP_TODAY).getTime()+120*86400000);let _ms=_st||new Date(_me.getTime()-120*86400000);
+    // ensure a readable span of at least ~4 months so the timeline never collapses to one column
+    if(_me-_ms<110*86400000){_ms=new Date(_me.getTime()-120*86400000);}
+    const _rs=new Date(_ms.getFullYear(),_ms.getMonth(),1);const _re=new Date(_me.getFullYear(),_me.getMonth()+1,0);
+    const _rms=Math.max(1,_re-_rs);const _frac=d=>Math.max(0,Math.min(1,(d-_rs)/_rms));
+    project.ganttMonths=[];{let _c=new Date(_rs);let _g=0;while(_c<=_re&&_g<36){project.ganttMonths.push(mName(_c.getMonth())+' \''+String(_c.getFullYear()).slice(2));_c=new Date(_c.getFullYear(),_c.getMonth()+1,1);_g++;}}
+    const _span=Math.max(1,_me-_ms);const _NT=p.tasks.length||1;
+    const _mpal={ok:['#e8f2ea','#3f8f4f',rl('مكتملة','Done'),'var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)','var(--cf6faf7,#f6faf7)','var(--ce2efe7,#e2efe7)'],prog:['#e2ecf5','#2f6aa8',rl('قيد التنفيذ','In progress'),'var(--ce3edf6,#e3edf6)','var(--c2f6aa8,#2f6aa8)','var(--cf5f8fc,#f5f8fc)','var(--cdbe6f2,#dbe6f2)'],late:['#f6dedb','#b0433b',rl('متأخرة','Delayed'),'var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)','var(--cfdf6f5,#fdf6f5)','var(--cf2ddda,#f2ddda)'],wait:['#eceeeb','#8a938c',rl('لم تبدأ','Not started'),'var(--ceceeeb,#eceeeb)','var(--c6d7973,#6d7973)','var(--cf8f9f7,#f8f9f7)','var(--ce8ebe6,#e8ebe6)']};
+    project.milestones=p.tasks.map((tk,i)=>{const s=new Date(_ms.getTime()+_span*i/_NT);const e=new Date(_ms.getTime()+_span*(i+1)/_NT);
+      const kind=tk.status==='مكتمل'?'ok':tk.status==='متأخر'?'late':tk.status==='قيد التنفيذ'?'prog':'wait';const pct=tk.status==='مكتمل'?100:tk.status==='قيد التنفيذ'?55:tk.status==='متأخر'?35:0;const pal=_mpal[kind];
+      return {name:tr(tk.name),start:mName(s.getMonth()),end:mName(e.getMonth())+' '+e.getFullYear(),pct,status:pal[2],barBg:pal[0],barFill:pal[1],stBg:pal[3],stFg:pal[4],bg:pal[5],border:pal[6],barRight:(_frac(s)*100).toFixed(2)+'%',barWidth:((_frac(e)-_frac(s))*100).toFixed(2)+'%',flag:(kind==='late'),note:kind==='late'?rl('هذه المرحلة متأخرة عن جدولها.','This milestone is behind schedule.'):''};});
+    project.ganttFlags=project.milestones.filter(m=>m.flag);
+    project.todayInRange=APP_TODAY>=_rs&&APP_TODAY<=_re;project.todayRight=(_frac(APP_TODAY)*100).toFixed(2)+'%';
+    // tasks (tab)
+    const _prOf=st=>st==='متأخر'?rl('أولوية عالية','High'):rl('أولوية متوسطة','Medium');
+    project.taskCards=p.tasks.map(tk=>{const[b,f]=PS[tk.status]||['#eee','#555'];return {title:tr(tk.name),owner:tr(tk.owner),status:statusLabel(tk.status),stBg:b,stFg:f,priority:_prOf(tk.status),prFg:tk.status==='متأخر'?'var(--cb0433b,#b0433b)':'var(--ca9791f,#a9791f)'};});
+    // updates
+    project.updates=project.timeline;
+    // risks (from real risk string)
+    const _high=(p.status==='متأخر'||p.status==='يحتاج قرار');
+    project.riskCards=_riskN?[{sev:_high?rl('عالية','High'):rl('متوسطة','Medium'),sevBg:_high?'var(--cf7e6e4,#f7e6e4)':'var(--cfbf0d6,#fbf0d6)',sevFg:_high?'var(--cb0433b,#b0433b)':'var(--ca9791f,#a9791f)',status:_high?rl('مفتوح','Open'):rl('قيد المعالجة','Mitigating'),desc:tr(p.risks),owner:tr(p.manager)}]:[];
+    project.hasRisks=_riskN>0;project.noRisks=_riskN===0;
+    // directives (tab)
+    const _dst={'جديد':['var(--ce3edf6,#e3edf6)','var(--c2f6aa8,#2f6aa8)'],'قيد التنفيذ':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'منفَّذ':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)']};
+    project.directives=p.directives.map(d=>{const s=_dst[d.status]||_dst['جديد'];return {date:dateLoc(d.date),by:tr(d.by),text:tr(d.text),status:tr(d.status||'جديد'),stBg:s[0],stFg:s[1]};});
+    project.hasDirectives=p.directives.length>0;project.noDirectives=p.directives.length===0;
+    // files
+    project.fileCards=p.attachments.map(fn=>{const s=String(fn).toLowerCase();const xl=s.endsWith('.xlsx')||s.endsWith('.xls');return {name:tr(fn),meta:xl?'Excel':'PDF',bg:xl?'var(--ce2f0e8,#e2f0e8)':'var(--cf7e6e4,#f7e6e4)',fg:xl?'var(--c2e7d55,#2e7d55)':'var(--cb0433b,#b0433b)'};});
+    project.hasFiles=p.attachments.length>0;project.noFiles=p.attachments.length===0;
+    // approval banners
+    project.isPendingApproval=(p.status==='بانتظار الاعتماد')||(p.progress>=100&&p.status!=='مكتمل'&&p.status!=='مرفوض'&&p.status!=='لم يبدأ');project.isCompleted=(p.status==='مكتمل');
+    if(project.isPendingApproval){project.status=rl('بانتظار اعتماد رئيس القطاع','Pending chair approval');project._bg='var(--cfbf0d6,#fbf0d6)';project._fg='var(--ca9791f,#a9791f)';}
+    project.pdConfirm=S.pdConfirm;project.pdReturn=S.pdReturn;project.pdDir=S.pdDir;project.pdDirDraft=S.pdDirDraft;project.pdReturnReason=S.pdReturnReason;project.pdReturnNote=S.pdReturnNote;
+    project.reTitle=S.pdReopenMode?rl('إعادة عرض التفاصيل','Reopen project'):rl('إرجاع المشروع إلى قيد التنفيذ','Return project to in-progress');
+    project.reModes=['قيد التنفيذ','غير مكتمل','يحتاج متابعة'].map(m=>{const on=S.pdReturnStatus===m;return {label:tr(m),bd:on?'var(--c1e4634,#1e4634)':'var(--ce2e6df,#e2e6df)',bg:on?'var(--ce9f0ec,#e9f0ec)':'var(--cffffff,#ffffff)',fg:on?'var(--c1e4634,#1e4634)':'var(--c7d867f,#7d867f)',pick:(mm=>()=>this.setState({pdReturnStatus:mm}))(m)};});
+    const _cApprove=P.canApprove!==undefined?!!P.canApprove:true;const _cEdit=P.canEdit!==undefined?!!P.canEdit:true;
+    project.canApprove=_cApprove;project.canEdit=_cEdit;project.showApprovalBanner=project.isPendingApproval&&_cApprove;project.showExtReq=project.hasExtReq&&_cApprove;project.showPending=project.isPending&&_cApprove;
+    project.openConfirm=()=>this.setState({pdConfirm:true});    project.openReturn=()=>this.setState({pdReturn:true,pdReopenMode:false,pdReturnStatus:'قيد التنفيذ',pdReturnReason:'',pdReturnNote:''});
+    project.openReopen=()=>this.setState({pdReturn:true,pdReopenMode:true,pdReturnStatus:'قيد التنفيذ',pdReturnReason:'',pdReturnNote:''});
+    project.openDir=()=>this.setState({pdDir:true,pdDirDraft:''});
+    project.closeAll=()=>this.setState({pdConfirm:false,pdReturn:false,pdDir:false});
+    project.stop=e=>{if(e&&e.stopPropagation)e.stopPropagation();};
+    project.doApprove=()=>this.pdApproveCompletion(p.id);
+    project.doReturn=()=>this.pdDoReturn(p.id);
+    project.saveDir=()=>this.pdSaveDirective(p.id);
+    project.onDirInput=e=>this.setState({pdDirDraft:e.target.value});
+    project.onReturnReason=e=>this.setState({pdReturnReason:e.target.value});
+    project.onReturnNote=e=>this.setState({pdReturnNote:e.target.value});
+    project.taskReqUpdate=()=>this.showToast(rl('تم إرسال طلب تحديث إلى المسؤول عن المهمة','Update request sent'));
+
+    }}
+    return { isProjects:P.page==='projects', isProjectDetail:P.page==='projectDetail', hasToast:!!S.toast, toast:S.toast, t,
+          fOwner:S.fOwner,fStatus:S.fStatus,fSearch:S.fSearch,fUnit:S.fUnit,
+      ddPOwner:DCDD.render(this,'fOwner',S.fOwner,[{v:'',label:rl('كل المسؤولين','All owners')}].concat([...new Set(this.projects.map(p=>p.owner))].map(o=>({v:o,label:tr(o)}))),e=>this.setState({fOwner:e.target.value}),{size:'sm',minWidth:'130px'}),
+      ddPUnit:DCDD.render(this,'fUnit',S.fUnit,[{v:'',label:rl('كل الوحدات التنظيمية','All units')}].concat(UNITS.map(u=>({v:u,label:tr(u)}))),e=>this.setState({fUnit:e.target.value}),{size:'sm',minWidth:'150px'}),
+      ddPStatus:DCDD.render(this,'fStatus',S.fStatus,[{v:'',label:t.allStatuses}].concat(['قيد التنفيذ','متأخر','يحتاج قرار','بانتظار الاعتماد','مكتمل','لم يبدأ'].map(x=>({v:x,label:statusLabel(x)}))),e=>this.setState({fStatus:e.target.value}),{size:'sm',minWidth:'130px'}),
+      ddPPriority:DCDD.render(this,'fPriority',S.fPriority,[{v:'',label:t.allPriorities}].concat(['عالية','متوسطة','منخفضة'].map(x=>({v:x,label:tr(x)}))),e=>this.setState({fPriority:e.target.value}),{size:'sm',minWidth:'120px'}),
+      unitOpts:[{v:'',label:t.allUnits}].concat(UNITS.map(u=>({v:u,label:tr(u)}))),
+      setUnit:e=>this.setState({fUnit:e.target.value}),
+      setOwner:e=>this.setState({fOwner:e.target.value}),setStatus:e=>this.setState({fStatus:e.target.value}),setSearch:e=>this.setState({fSearch:e.target.value}),
+      toggleLate:()=>this.setState({fLate:!S.fLate}),toggleDecision:()=>this.setState({fDecision:!S.fDecision}),
+      resetFilters:()=>this.setState({fOwner:'',fUnit:'',fStatus:'',fPriority:'',fSearch:'',fLate:false,fDecision:false}),resetFiltersLabel:rl('إعادة تعيين الفلاتر','Reset filters'),
+      chipLate:'border:1px solid '+(S.fLate?'var(--cb0433b,#b0433b)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.fLate?'var(--cf7e6e4,#f7e6e4)':'var(--cf7f8f6,#f7f8f6)')+';color:'+(S.fLate?'var(--cb0433b,#b0433b)':'var(--c5b6b62,#5b6b62)')+';border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:500;cursor:pointer',
+      chipDecision:'border:1px solid '+(S.fDecision?'var(--ca9791f,#a9791f)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.fDecision?'var(--cfbf0d6,#fbf0d6)':'var(--cf7f8f6,#f7f8f6)')+';color:'+(S.fDecision?'var(--ca9791f,#a9791f)':'var(--c5b6b62,#5b6b62)')+';border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:500;cursor:pointer',
+      filteredProjects,projCount:filteredProjects.length,noProjects:filteredProjects.length===0,
+      projTabs,projTab,isOverview:projTab==='overview',isKanban:projTab==='kanban',isTimeline:projTab==='timeline',isUpdates:projTab==='updates',isFiles:projTab==='files',
+      projShowFilters:(projTab==='kanban'||projTab==='timeline'),
+      pvTotal,pvInProgress,pvLate,pvDecision,pvDone,pvHigh,
+      ovStats,attentionProjects,noAttention:attentionProjects.length===0,
+      kanbanCols,
+      tlBars,tlNoBars:tlBars.length===0,colHeaders,todayPct,showToday:todayPct>=0,tlRangeLabel,tlScale:scale,
+      tlIsQuarter:scale==='quarter',tlIsMonth:scale==='month',
+      tlPrev:()=>{const dt=new Date(anchorY,anchorM-step,1);this.setState({tlY:dt.getFullYear(),tlM:dt.getMonth()});},
+      tlNext:()=>{const dt=new Date(anchorY,anchorM+step,1);this.setState({tlY:dt.getFullYear(),tlM:dt.getMonth()});},
+      tlToday:()=>{this.setState({tlY:APP_TODAY.getFullYear(),tlM:scale==='quarter'?(APP_TODAY.getMonth()-(APP_TODAY.getMonth()%3)):APP_TODAY.getMonth()});},
+      setScaleMonth:()=>this.setState({tlScale:'month'}),setScaleQuarter:()=>this.setState({tlScale:'quarter'}),
+      tlScaleMonthStyle:'appearance:none;border:none;font-family:inherit;cursor:pointer;padding:7px 14px;border-radius:9px;font-size:12px;font-weight:700;background:'+(scale==='month'?'var(--c1e4634,#1e4634)':'transparent')+';color:'+(scale==='month'?'#fff':'var(--c5b6b62,#5b6b62)'),
+      tlScaleQuarterStyle:'appearance:none;border:none;font-family:inherit;cursor:pointer;padding:7px 14px;border-radius:9px;font-size:12px;font-weight:700;background:'+(scale==='quarter'?'var(--c1e4634,#1e4634)':'transparent')+';color:'+(scale==='quarter'?'#fff':'var(--c5b6b62,#5b6b62)'),
+      projUpdates,noUpdates:projUpdates.length===0,projFiles,noFiles:projFiles.length===0,
+      fPriority:S.fPriority,setPriority:e=>this.setState({fPriority:e.target.value}),
+      projPriorityOpts:[{v:'',label:t.allPriorities}].concat(['عالية','متوسطة','منخفضة'].map(x=>({v:x,label:tr(x)}))),
+      project,
+      noteDraft:S.noteDraft,onNoteInput:e=>this.setState({noteDraft:e.target.value}),addNote:()=>this.addNote(),
+    };
+  }
+}
+</script>
+</body>
+</html>

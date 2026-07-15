@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+<script src="./dc-shared.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+@keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+@keyframes ovBg{from{opacity:0}to{opacity:1}}
+@keyframes ovCard{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes slideInX{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+.trow{}
+/*__mob__*/
+@media(max-width:640px){
+  .rg2,.rg3,.rg4,.rg5,.ov-stats,.lv-kpis,.lv-cat,.lv-cards{grid-template-columns:1fr!important}
+  table thead{display:none!important}
+  table tr{display:block!important;margin-bottom:10px;border:1px solid var(--ceef0ec,#eef0ec);border-radius:12px;padding:4px 10px;background:#fff}
+  table td{display:flex!important;justify-content:space-between;gap:12px;border:none!important;padding:7px 2px!important;white-space:normal!important;max-width:none!important;text-align:start}
+  .trow{grid-template-columns:1fr!important;min-width:0!important;gap:5px!important}
+  div:has(> table){overflow-x:visible!important}
+  .cal-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+}
+</style>
+</helmet>
+<div style="min-height:1px">
+<div style="animation:fadeUp .16s ease">
+          <!-- toolbar -->
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+            <div style="display:flex;gap:4px;background:var(--ceef1ec,#eef1ec);border-radius:11px;padding:4px">
+              <button onClick="{{ calPrev }}" style="width:34px;height:34px;border:none;background:transparent;border-radius:8px;cursor:pointer;color:var(--c3c4a42,#3c4a42);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+              <button onClick="{{ calGoToday }}" style="border:none;background:var(--cffffff,#ffffff);border-radius:8px;padding:0 15px;font-size:12.5px;font-weight:600;color:var(--c1f4a37,#1f4a37);cursor:pointer">{{ t.cal_today }}</button>
+              <button onClick="{{ calNext }}" style="width:34px;height:34px;border:none;background:transparent;border-radius:8px;cursor:pointer;color:var(--c3c4a42,#3c4a42);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"></path></svg></button>
+            </div>
+            <div style="font-size:17px;font-weight:700;color:var(--c17211c,#17211c);flex:1;min-width:160px">{{ calTitle }}</div>
+            <div style="display:flex;gap:4px;background:var(--ceef1ec,#eef1ec);border-radius:11px;padding:4px">
+              <button onClick="{{ setCalDay }}" style="border:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{calDayBtnBg}};color:{{calDayBtnFg}}">{{ t.cal_day }}</button>
+              <button onClick="{{ setCalWeek }}" style="border:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{calWeekBtnBg}};color:{{calWeekBtnFg}}">{{ t.cal_workweek }}</button>
+              <button onClick="{{ setCalMonth }}" style="border:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;background:{{calMonthBtnBg}};color:{{calMonthBtnFg}}">{{ t.cal_month }}</button>
+            </div>
+            <button onClick="{{ showTable }}" style="border:1px solid var(--ce2e6df,#e2e6df);background:{{tableBtnBg}};color:{{tableBtnFg}};border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>{{ t.cal_asTable }}</button>
+            <button onClick="{{ showCalendar }}" style="border:1px solid var(--ce2e6df,#e2e6df);background:{{calBtnBg}};color:{{calBtnFg}};border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ t.cal_asCalendar }}</button>
+          </div>
+
+          <!-- CALENDAR + side list -->
+          <sc-if value="{{ calIsCal }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:1;min-width:300px;background:var(--cffffff,#ffffff);border:1px solid var(--ceef1ec,#eef1ec);border-radius:18px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 16px 40px -18px rgba(23,40,32,.14);overflow:hidden">
+                <!-- WEEK / DAY grid -->
+                <sc-if value="{{ calIsTimeGrid }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:grid;grid-template-columns:{{ calGridCols }};background:var(--cf7f9f6,#f7f9f6);border-bottom:1px solid var(--ceef1ec,#eef1ec)">
+                    <div style="padding:12px 0"></div>
+                    <sc-for list="{{ calDays }}" as="d" hint-placeholder-count="5">
+                      <div style="padding:12px 8px;text-align:center;border-inline-start:1px solid var(--ceef1ec,#eef1ec);background:{{d.headBg}}"><div style="font-size:11px;color:var(--c8a938c,#8a938c);font-weight:600">{{ d.dayName }}</div><div style="font-size:19px;font-weight:700;color:{{d.numColor}};margin-top:2px">{{ d.dayNum }}</div></div>
+                    </sc-for>
+                  </div>
+                  <sc-for list="{{ calRows }}" as="r" hint-placeholder-count="8">
+                    <div style="display:grid;grid-template-columns:{{ calGridCols }};border-bottom:1px solid var(--cf4f6f2,#f4f6f2);min-height:64px">
+                      <div style="padding:6px 8px;font-size:10.5px;color:var(--c9aa39b,#9aa39b);text-align:center">{{ r.timeLabel }}</div>
+                      <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
+                        <div style="border-inline-start:1px solid var(--cf4f6f2,#f4f6f2);padding:4px;display:flex;flex-direction:column;gap:4px">
+                          <sc-for list="{{ c.meetings }}" as="m" hint-placeholder-count="0">
+                            <div onClick="{{ m.open }}" style="cursor:pointer;background:{{m.cardBg}};border-inline-start:3px solid {{m.bar}};border-radius:7px;padding:6px 8px"><div style="font-size:10px;color:{{m.timeColor}};font-weight:700;margin-bottom:2px">{{ m.time }}</div><div style="font-size:11px;font-weight:600;color:{{m.titleColor}};text-decoration:{{m.titleDec}};line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">{{ m.subject }}</div></div>
+                          </sc-for>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </sc-if>
+                <!-- MONTH grid -->
+                <sc-if value="{{ calIsMonth }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:repeat(5,1fr);background:var(--cf7f9f6,#f7f9f6);border-bottom:1px solid var(--ceef1ec,#eef1ec)">
+                    <sc-for list="{{ calMonthHeaders }}" as="h" hint-placeholder-count="5"><div style="padding:11px 8px;text-align:center;font-size:11.5px;color:var(--c8a938c,#8a938c);font-weight:600;border-inline-start:1px solid var(--ceef1ec,#eef1ec)">{{ h }}</div></sc-for>
+                  </div>
+                  <sc-for list="{{ calWeeks }}" as="w" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:repeat(5,1fr)">
+                      <sc-for list="{{ w.days }}" as="d" hint-placeholder-count="5">
+                        <div style="min-height:96px;border-inline-start:1px solid var(--cf4f6f2,#f4f6f2);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);padding:6px;background:{{d.cellBg}}">
+                          <div style="font-size:12px;font-weight:700;color:{{d.numColor}};margin-bottom:4px;text-align:center">{{ d.dayNum }}</div>
+                          <div style="display:flex;flex-direction:column;gap:3px">
+                            <sc-for list="{{ d.meetings }}" as="m" hint-placeholder-count="0">
+                              <div onClick="{{ m.open }}" style="cursor:pointer;background:{{m.cardBg}};border-inline-start:3px solid {{m.bar}};border-radius:5px;padding:3px 6px"><div style="font-size:9.5px;font-weight:700;color:{{m.timeColor}}">{{ m.time }}</div><div style="font-size:10px;font-weight:600;color:{{m.titleColor}};text-decoration:{{m.titleDec}};line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical">{{ m.subject }}</div></div>
+                            </sc-for>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TABLE (secondary) -->
+          <sc-if value="{{ calIsTable }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border:1px solid var(--ceef1ec,#eef1ec);border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 16px 40px -18px rgba(23,40,32,.14);overflow:hidden">
+              <div class="trow" style="display:grid;grid-template-columns:2.4fr 1.4fr 1.6fr 1.3fr 1.1fr 1.1fr 1.4fr;gap:12px;padding:13px 20px;background:var(--cf7f9f6,#f7f9f6);border-bottom:1px solid var(--ceef1ec,#eef1ec);font-size:11.5px;font-weight:600;color:var(--c7d867f,#7d867f)">
+                <div>{{ t.rm_subject }}</div><div>{{ t.rm_attendees }}</div><div>{{ t.rm_basis }}</div><div>{{ t.rm_proposed }}</div><div>{{ t.rm_status }}</div><div>{{ t.rm_decision }}</div><div>{{ t.rm_notes }}</div>
+              </div>
+              <sc-for list="{{ allReqMeetings }}" as="m" hint-placeholder-count="8">
+                <div onClick="{{ m.openPopup }}" class="trow" style="display:grid;grid-template-columns:2.4fr 1.4fr 1.6fr 1.3fr 1.1fr 1.1fr 1.4fr;gap:12px;padding:13px 20px;border-bottom:1px solid var(--cf2f4f0,#f2f4f0);align-items:center;cursor:pointer">
+                  <div style="font-size:12.5px;font-weight:500;color:var(--c2a332d,#2a332d);line-height:1.4">{{ m.subject }}</div>
+                  <div style="font-size:11.5px;color:var(--c5b6b62,#5b6b62);line-height:1.4">{{ m.attendees }}</div>
+                  <div style="font-size:11.5px;color:var(--c5b6b62,#5b6b62);line-height:1.4">{{ m.basis }}</div>
+                  <div style="font-size:11.5px;color:var(--c3c4a42,#3c4a42)">{{ m.proposed }}</div>
+                  <div><span style="font-size:10px;font-weight:600;border-radius:20px;padding:4px 9px;background:{{m._bg}};color:{{m._fg}}">{{ m.statusLabel }}</span></div>
+                  <div style="font-size:11.5px;color:var(--c3c4a42,#3c4a42)">{{ m.decisionLabel }}</div>
+                  <div style="font-size:11px;color:var(--c8a938c,#8a938c);line-height:1.4">{{ m.notes }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+<sc-if value="{{ rmModalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeRmModal }}" style="position:fixed;inset:0;background:rgba(23,33,28,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="background:var(--cffffff,#ffffff);border-radius:18px;width:440px;max-width:100%;animation:ovCard .25s ease">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--ceef0ec,#eef0ec);display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0;font-size:16px;font-weight:600">{{ rmModalTitle }}</h2>
+          <button onClick="{{ closeRmModal }}" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);cursor:pointer;color:var(--c7d867f,#7d867f);font-size:15px">✕</button>
+        </div>
+        <div style="padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+          <sc-if value="{{ rmIsPropose }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:14px;flex-wrap:wrap">
+              <div style="flex:1;min-width:240px"><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.rm_newDate }}</label>{{ rmDatePicker }}</div>
+            </div>
+            <div>
+              <label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.rm_newTime }}</label>
+              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                <div style="flex:1;min-width:150px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);font-weight:600;margin-bottom:4px">{{ t.rm_from }}</div>{{ rmTimePicker }}</div>
+                <span style="color:var(--c9aa39b,#9aa39b);font-weight:700;margin-top:16px">–</span>
+                <div style="flex:1;min-width:150px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);font-weight:600;margin-bottom:4px">{{ t.rm_to }}</div>{{ rmTimeEndPicker }}</div>
+              </div>
+            </div>
+            <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.rm_optNote }}</label><textarea value="{{ rmForm.note }}" onInput="{{ rmFormNote }}" rows="2" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea></div>
+          </sc-if>
+          <sc-if value="{{ rmIsCancel }}" hint-placeholder-val="{{ false }}">
+            <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.rm_cancelReason }}</label><textarea value="{{ rmForm.note }}" onInput="{{ rmFormNote }}" rows="3" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea></div>
+          </sc-if>
+        </div>
+        <div style="padding:14px 24px;border-top:1px solid var(--ceef0ec,#eef0ec);display:flex;gap:10px">
+          <button onClick="{{ saveRm }}" style="background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer">{{ t.rm_save }}</button>
+          <button onClick="{{ closeRmModal }}" style="background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c5b6b62,#5b6b62);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer">{{ t.cancel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+<sc-if value="{{ rmPopupOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeRmPopup }}" style="position:fixed;inset:0;background:rgba(23,33,28,.4);z-index:96;display:flex;justify-content:flex-start;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="width:452px;max-width:94%;height:100%;background:#ffffff;box-shadow:-8px 0 40px rgba(23,33,28,.18);display:flex;flex-direction:column;animation:slideInX .28s ease;overflow-y:auto">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--ceef0ec,#eef0ec)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+            <span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 11px;background:{{rmPopup._bg}};color:{{rmPopup._fg}}">{{ rmPopup.statusLabel }}</span>
+            <button onClick="{{ closeRmPopup }}" style="width:32px;height:32px;flex:none;border-radius:9px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);cursor:pointer;color:var(--c7d867f,#7d867f);font-size:15px">✕</button>
+          </div>
+          <h2 style="margin:0;font-size:17px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.5">{{ rmPopup.subject }}</h2>
+          <sc-if value="{{ rmPopup.isPending }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ canMeetApprove }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+              <button onClick="{{ rmPopup.approve }}" style="display:flex;align-items:center;gap:6px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:9px;padding:8px 13px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ rmApproveLabel }}</button>
+              <button onClick="{{ rmPopup.propose }}" style="display:flex;align-items:center;gap:6px;background:var(--ceef3f6,#eef3f6);border:1px solid var(--cd8e4ee,#d8e4ee);color:var(--c2f6aa8,#2f6aa8);border-radius:9px;padding:8px 13px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{ rmProposeLabel }}</button>
+              <button onClick="{{ rmPopup.cancel }}" style="display:flex;align-items:center;gap:6px;background:var(--cf7e6e4,#f7e6e4);border:1px solid var(--cf0d3cf,#f0d3cf);color:var(--cb0433b,#b0433b);border-radius:9px;padding:8px 13px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>{{ rmCancelLabel }}</button>
+            </div>
+            </sc-if>
+          </sc-if>
+        </div>
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;flex:1">
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:3px">{{ rmProposedLabel }}</div><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c);line-height:1.5">{{ rmPopup.proposed }}</div></div>
+            <div style="flex:1;min-width:150px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:3px">{{ rmDecisionLabel }}</div><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c);line-height:1.5">{{ rmPopup.decisionLabel }}</div></div>
+          </div>
+          <sc-if value="{{ rmPopup.hasNew }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--ceef3f6,#eef3f6);border:1px solid var(--cd8e4ee,#d8e4ee);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--c2f6aa8,#2f6aa8);margin-bottom:3px">{{ rmNewDateLabel }}</div><div style="font-size:13px;font-weight:700;color:var(--c2f6aa8,#2f6aa8)">{{ rmPopup.newDate }}</div></div>
+          </sc-if>
+          <div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ rmAttendeesLabel }}</div><div style="font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.6">{{ rmPopup.attendees }}</div></div>
+          <div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ rmBasisLabel }}</div><div style="font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.6">{{ rmPopup.basis }}</div></div>
+          <div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ rmNotesLabel }}</div><div style="font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.6">{{ rmPopup.notes }}</div></div>
+          <sc-if value="{{ rmPopup.isApproved }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ rmPopup.outlook }}" style="display:flex;align-items:center;justify-content:center;gap:7px;background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c3c4a42,#3c4a42);border-radius:10px;padding:11px;font-size:12.5px;font-weight:600;cursor:pointer;margin-top:auto"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ rmOutlookLabel }}</button>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:300;background:var(--c1f8a5b,#1f8a5b);color:#fff;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 12px 30px -8px rgba(0,0,0,.4)">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":"100%","height":720}}'>
+class Component extends DCLogic {
+  reqMeetings=window.__DATA.reqMeetings; members=window.__DATA.members;
+  state={rmView:'pending',calMode:'week',calAnchor:'2026-07-06',rmModal:null,rmSel:null,rmForm:{},rmPopup:null,rmCalYM:'2026-6',rmDateOpen:false,rmTimeOpen:false,rmTimeEndOpen:false,toast:'',openDD:null,ddRect:null,lang:(this.props&&this.props.lang)||'ar'};
+  find(arr,id){return arr.find(x=>x.id===id);}
+  showToast(msg){this.setState({toast:msg});clearTimeout(this._tt);this._tt=setTimeout(()=>this.setState({toast:''}),3000);}
+  renderDD(id,value,options,onChange,opt){return DCDD.render(this,id,value,options,onChange,opt);}
+  componentDidMount(){ DCDD.install(this); if(this.props.lang&&this.props.lang!==this.state.lang) this.setState({lang:this.props.lang}); }
+  componentDidUpdate(prev){ if(prev.lang!==this.props.lang) this.setState({lang:this.props.lang}); }
+  componentWillUnmount(){ DCDD.uninstall(this); }
+  approveMeeting(id){const m=this.find(this.reqMeetings,id);if(m){m.status='معتمد';m.decision='تم الاعتماد';try{window.open(outlookUrl(m),'_blank');}catch(e){}}this.showToast(UITEXT.rm_approvedToast[this.state.lang==='en'?1:0]);this.forceUpdate();}
+  cancelMeeting(id){const m=this.find(this.reqMeetings,id);if(m){m.status='ملغي';m.decision='إلغاء';m.notes='';}this.showToast(UITEXT.rm_cancelledToast[this.state.lang==='en'?1:0]);this.forceUpdate();}
+  openRmModal(kind,id){this.setState({rmModal:kind,rmSel:id,rmForm:{date:'',time:'',timeEnd:'',note:''},rmCalYM:'2026-6',rmDateOpen:false,rmTimeOpen:false,rmTimeEndOpen:false});}
+  closeRmModal(){this.setState({rmModal:null});}
+  saveRm(){const f=this.state.rmForm||{};const m=this.find(this.reqMeetings,this.state.rmSel);if(m){if(this.state.rmModal==='propose'){m.status='تم اقتراح موعد آخر';m.decision='اقتراح موعد آخر';m.newDate=f.date||'';m.newTime=(f.time||'')+((f.time&&f.timeEnd)?(' - '+f.timeEnd):'');m.notes=f.note||'';}else{m.status='ملغي';m.decision='إلغاء';m.notes=f.note||'';}}this.setState({rmModal:null});this.forceUpdate();}
+  setRmView(v){this.setState({rmView:v});}
+  setCalMode(m){this.setState({calMode:m});}
+  calShift(dir){const [y,mo,d]=(this.state.calAnchor||'2026-07-06').split('-').map(Number);const dt=new Date(y,mo-1,d);const mode=this.state.calMode||'week';if(mode==='day')dt.setDate(dt.getDate()+dir);else if(mode==='month')dt.setMonth(dt.getMonth()+dir);else dt.setDate(dt.getDate()+dir*7);this.setState({calAnchor:ymdKey(dt)});}
+  calToday(){this.setState({calAnchor:'2026-07-06'});}
+  openRmPopup(id){this.setState({rmPopup:id});}
+  closeRmPopup(){this.setState({rmPopup:null});}
+  renderVals(){
+    const S=this.state; const P=this.props||{};
+    const canMeetApprove=P.canApprove!==undefined?!!P.canApprove:true;
+    LANG=S.lang; const L=S.lang==='en'?1:0;
+    const rl=(a,e)=>L?e:a;
+    const t={}; for(const k in UITEXT) t[k]=UITEXT[k][L];
+    const RM={'بانتظار الاعتماد':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'معتمد':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'تم اقتراح موعد آخر':['var(--ce6eef6,#e6eef6)','var(--c3a6ea5,#3a6ea5)'],'ملغي':['var(--cf0eeeb,#f0eeeb)','var(--c8a8078,#8a8078)']};
+    const decRM=m=>{const[b,f]=RM[m.status]||['#eee','#555'];const _pp=parseProposed(m.proposed);const _propDisp=_pp&&!_pp.hasEnd?dateLoc(m.proposed)+' – '+timeLabel(_pp.endH,_pp.endMin):dateLoc(m.proposed);return Object.assign({},m,{proposed:_propDisp,statusLabel:tr(m.status),decisionLabel:m.decision?tr(m.decision):'—',notes:m.notes||'—',newDate:m.newDate?dateLoc(m.newDate):'',_bg:b,_fg:f,isPending:m.status==='بانتظار الاعتماد',isApproved:m.status==='معتمد',isCancelled:m.status==='ملغي',notCancelled:m.status!=='ملغي',hasNew:!!m.newDate,approve:()=>this.approveMeeting(m.id),propose:()=>this.openRmModal('propose',m.id),cancel:()=>this.cancelMeeting(m.id),openPopup:()=>this.openRmPopup(m.id),outlook:()=>{try{window.open(outlookUrl(m),'_blank');}catch(e){}}});};
+    const pendingMeetings=this.reqMeetings.filter(m=>m.status==='بانتظار الاعتماد').map(decRM);
+    const allReqMeetings=(S.rmPending?this.reqMeetings.filter(m=>m.status==='بانتظار الاعتماد'):this.reqMeetings).map(decRM);
+    let calendarMeetings=[];
+    calendarMeetings=this.reqMeetings.filter(m=>m.status==='معتمد').map(decRM);
+
+    // ---- Outlook-style calendar ----
+    const calMode=S.calMode||'week';
+    const [cay,cam,cad]=(S.calAnchor||'2026-07-06').split('-').map(Number);
+    const anchor=new Date(cay,cam-1,cad);
+    const todayKey='2026-07-06';
+    const calStatusColor={'بانتظار الاعتماد':['var(--cfbf3df,#fbf3df)','var(--ca9791f,#a9791f)','var(--ce9c877,#e9c877)'],'معتمد':['var(--ce2f0e8,#e2f0e8)','var(--c1f7a4d,#1f7a4d)','var(--c2e7d55,#2e7d55)'],'تم اقتراح موعد آخر':['var(--ce6eef6,#e6eef6)','var(--c2f6aa8,#2f6aa8)','var(--c3a6ea5,#3a6ea5)'],'ملغي':['var(--cf0eeeb,#f0eeeb)','var(--c8a8078,#8a8078)','var(--cb7afb0,#b7afb0)']};
+    const parsed=this.reqMeetings.map(m=>({m,p:parseProposed(m.proposed)})).filter(x=>x.p);
+    const HATCH=(a,b)=>'repeating-linear-gradient(45deg,'+a+','+a+' 5px,'+b+' 5px,'+b+' 10px)';
+    const calCardStyle={
+      'معتمد':{bg:'var(--c1f8a5b,#1f8a5b)',title:'#ffffff',time:'var(--cd7f0e2,#d7f0e2)',bar:'var(--c0f6b42,#0f6b42)',dec:'none'},
+      'بانتظار الاعتماد':{bg:HATCH('var(--cfdf6e6,#fdf6e6)','var(--cf6ead0,#f6ead0)'),title:'var(--c7a5a12,#7a5a12)',time:'var(--ca9791f,#a9791f)',bar:'var(--ce9c877,#e9c877)',dec:'none'},
+      'تم اقتراح موعد آخر':{bg:HATCH('var(--ceef3f9,#eef3f9)','var(--cdde8f4,#dde8f4)'),title:'var(--c2f5f8f,#2f5f8f)',time:'var(--c2f6aa8,#2f6aa8)',bar:'var(--c3a6ea5,#3a6ea5)',dec:'none'},
+      'ملغي':{bg:HATCH('var(--cf3f2f0,#f3f2f0)','var(--ce8e6e2,#e8e6e2)'),title:'var(--c8a8078,#8a8078)',time:'var(--c8a8078,#8a8078)',bar:'var(--cb7afb0,#b7afb0)',dec:'line-through'}
+    };
+    const calChip=m=>{const c=calCardStyle[m.status]||{bg:'var(--ceef1ec,#eef1ec)',title:'var(--c17211c,#17211c)',time:'var(--c5b6b62,#5b6b62)',bar:'var(--c9aa39b,#9aa39b)',dec:'none'};const p=parseProposed(m.proposed);return {id:m.id,subject:tr(m.subject),attendees:tr(m.attendees),basis:tr(m.basis),time:p?timeRange(p):'',statusLabel:tr(m.status),cardBg:c.bg,titleColor:c.title,timeColor:c.time,bar:c.bar,titleDec:c.dec,open:()=>this.openRmPopup(m.id)};};
+    const monthName=mi=>L?['January','February','March','April','May','June','July','August','September','October','November','December'][mi]:AR_MONTHS[mi];
+    const dName=wd=>L?EN_DAYS[wd]:AR_DAYS[wd];
+    let calTitle='',calDays=[],calWeeks=[],calRows=[],calGridCols='64px 1fr';
+    {
+    const slotHours=[8,9,10,11,12,13,14,15];
+    if(calMode==='month'){
+      const first=new Date(cay,anchor.getMonth(),1);
+      const startWd=(first.getDay()+6)%7; // Mon=0
+      const gridStart=new Date(first);gridStart.setDate(1-startWd);
+      calTitle=monthName(anchor.getMonth())+' '+cay;
+      for(let w=0;w<6;w++){const days=[];for(let d=0;d<5;d++){const cur=new Date(gridStart);cur.setDate(gridStart.getDate()+w*7+d);const key=ymdKey(cur);const inM=cur.getMonth()===anchor.getMonth();const isT=key===todayKey;const dayMs=parsed.filter(x=>x.p.key===key).map(x=>calChip(x.m));days.push({dayNum:cur.getDate(),dayName:dName(cur.getDay()),inMonth:inM,isToday:isT,meetings:dayMs,cellBg:inM?(isT?'var(--ceef4f0,#eef4f0)':'#fff'):'var(--cfafafa,#fafafa)',numColor:inM?(isT?'var(--c1f8a5b,#1f8a5b)':'var(--c17211c,#17211c)'):'var(--cc7c2ba,#c7c2ba)'});}calWeeks.push({days});}
+    } else {
+      let startDt,nDays;
+      if(calMode==='day'){startDt=new Date(anchor);nDays=1;}
+      else {const wd=(anchor.getDay()+6)%7;startDt=new Date(anchor);startDt.setDate(anchor.getDate()-wd);nDays=5;}
+      const dayList=[];for(let i=0;i<nDays;i++){const cur=new Date(startDt);cur.setDate(startDt.getDate()+i);dayList.push(cur);}
+      const endDt=dayList[dayList.length-1];
+      if(calMode==='day')calTitle=dName(startDt.getDay())+' '+startDt.getDate()+' '+monthName(startDt.getMonth())+' '+startDt.getFullYear();
+      else calTitle=startDt.getDate()+' '+monthName(startDt.getMonth())+' – '+endDt.getDate()+' '+monthName(endDt.getMonth())+' '+endDt.getFullYear();
+      calDays=dayList.map(cur=>{const isT=ymdKey(cur)===todayKey;return {dayName:dName(cur.getDay()),dayNum:cur.getDate(),monthName:monthName(cur.getMonth()),isToday:isT,headBg:isT?'var(--ceef4f0,#eef4f0)':'transparent',numColor:isT?'var(--c1f8a5b,#1f8a5b)':'var(--c17211c,#17211c)'};});
+      calRows=slotHours.map(h=>({timeLabel:timeLabel(h,0),cells:dayList.map(cur=>{const key=ymdKey(cur);const ms=parsed.filter(x=>x.p.key===key&&x.p.h===h).map(x=>calChip(x.m));return {meetings:ms};})}));
+    }
+    const calDayColWidth=calMode==='day'?'1fr':'repeat('+calDays.length+',1fr)';
+    calGridCols='64px '+calDayColWidth;
+    }
+    const rmPopupData=(()=>{if(!S.rmPopup)return null;const m=this.find(this.reqMeetings,S.rmPopup);if(!m)return null;return decRM(m);})();
+    // date/time pickers for "propose another time"
+    const rmDateOpts=(()=>{const out=[];const d=new Date(2026,6,6);let n=0;while(out.length<22){const wd=d.getDay();if(wd>=1&&wd<=5){const lbl=(L?EN_DAYS[wd]:AR_DAYS[wd])+' '+d.getDate()+' '+(L?['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()]:AR_MONTHS[d.getMonth()])+' '+d.getFullYear();out.push({v:d.getDate()+' '+AR_MONTHS[d.getMonth()]+' '+d.getFullYear(),label:lbl});}d.setDate(d.getDate()+1);if(++n>60)break;}return out;})();
+    const rmTimeOpts=(()=>{const out=[];for(let h=8;h<=16;h++){for(const mm of [0,30]){if(h===16&&mm>0)break;out.push({v:timeLabel(h,mm),label:timeLabel(h,mm)});}}return out;})();
+    // --- Outlook-style date field + calendar popover, and time dropdown ---
+    const _R=React.createElement;
+    const _EN_MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const _calYM=String(S.rmCalYM||'2026-6').split('-');const _cY=+_calYM[0],_cM=+_calYM[1];
+    const _monthLabel=(L?_EN_MON[_cM]:AR_MONTHS[_cM])+' '+_cY;
+    const _selDate=(S.rmForm||{}).date||'';
+    let _selLabel='';
+    if(_selDate){const _pp=_selDate.split(' ');const _mi=AR_MONTHS.indexOf(_pp[1]);if(_mi>=0){const _dt=new Date(+_pp[2],_mi,+_pp[0]);_selLabel=(L?EN_DAYS[_dt.getDay()]:AR_DAYS[_dt.getDay()])+'، '+_selDate;}else _selLabel=_selDate;}
+    const _dateOpen=!!S.rmDateOpen,_timeOpen=!!S.rmTimeOpen;
+    const _navPrev=()=>{let m=_cM-1,y=_cY;if(m<0){m=11;y--;}this.setState({rmCalYM:y+'-'+m});};
+    const _navNext=()=>{let m=_cM+1,y=_cY;if(m>11){m=0;y++;}this.setState({rmCalYM:y+'-'+m});};
+    const _pickDay=(y,m,d)=>{const str=d+' '+AR_MONTHS[m]+' '+y;this.setState({rmForm:Object.assign({},this.state.rmForm,{date:str}),rmCalYM:y+'-'+m,rmDateOpen:false});};
+    const _first=new Date(_cY,_cM,1);const _startMon=(_first.getDay()+6)%7;const _gridStart=new Date(_cY,_cM,1-_startMon);
+    const _wkHdr=(L?['MO','TU','WE','TH','FR','SA','SU']:['إثن','ثلا','أرب','خمي','جمع','سبت','أحد']);
+    const _cells=[];
+    for(let i=0;i<42;i++){const cur=new Date(_gridStart);cur.setDate(_gridStart.getDate()+i);const cy=cur.getFullYear(),cm=cur.getMonth(),cd=cur.getDate();const inM=cm===_cM&&cy===_cY;const isSel=_selDate===(cd+' '+AR_MONTHS[cm]+' '+cy);const isToday=cy===2026&&cm===6&&cd===6;_cells.push(_R('button',{key:'d'+i,onClick:()=>_pickDay(cy,cm,cd),style:{height:'32px',border:'none',borderRadius:'8px',cursor:'pointer',fontSize:'12.5px',fontWeight:isSel?800:600,fontFamily:"ui-monospace,'SF Mono',Menlo,monospace",background:isSel?'var(--c1f4a37,#1f4a37)':(isToday?'var(--ce7ece8,#e7ece8)':'transparent'),color:isSel?'#fff':(inM?'var(--c2a332d,#2a332d)':'var(--cc3cabf,#c3cabf)')}},String(cd)));}
+    const _navBtnStyle={width:'26px',height:'26px',border:'none',borderRadius:'7px',background:'transparent',cursor:'pointer',fontSize:'17px',lineHeight:'1',color:'var(--c3c4a42,#3c4a42)'};
+    const _calIcon=_R('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','strokeWidth':2,'strokeLinecap':'round'},_R('rect',{x:3,y:4,width:18,height:18,rx:2}),_R('line',{x1:16,y1:2,x2:16,y2:6}),_R('line',{x1:8,y1:2,x2:8,y2:6}),_R('line',{x1:3,y1:10,x2:21,y2:10}));
+    const _calPop=_dateOpen?_R('div',{style:{position:'absolute',top:'calc(100% + 6px)',right:0,left:0,zIndex:60,background:'#fff',border:'1px solid var(--ce2e6df,#e2e6df)',borderRadius:'12px',boxShadow:'0 14px 36px -10px rgba(23,40,32,.3)',padding:'12px 13px'}},
+      _R('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'8px'}},
+        _R('button',{onClick:_navPrev,style:_navBtnStyle},'‹'),
+        _R('span',{style:{fontSize:'13px',fontWeight:700,color:'var(--c17211c,#17211c)'}},_monthLabel),
+        _R('button',{onClick:_navNext,style:_navBtnStyle},'›')),
+      _R('div',{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'2px',marginBottom:'2px'}},_wkHdr.map((w,i)=>_R('div',{key:'h'+i,style:{textAlign:'center',fontSize:'10px',fontWeight:700,color:'var(--c9aa39b,#9aa39b)',padding:'4px 0'}},w))),
+      _R('div',{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'2px'}},_cells),
+      _R('button',{onClick:()=>_pickDay(2026,6,6),style:{marginTop:'9px',width:'100%',padding:'8px',border:'1px solid var(--ce2e6df,#e2e6df)',borderRadius:'9px',background:'var(--cf7f8f6,#f7f8f6)',cursor:'pointer',fontSize:'12.5px',fontWeight:600,color:'var(--c1f4a37,#1f4a37)'}},L?'Today':'اليوم')):null;
+    const rmDatePicker=_R('div',{style:{position:'relative'}},
+      _R('button',{onClick:()=>this.setState({rmDateOpen:!_dateOpen,rmTimeOpen:false}),style:{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',padding:'10px 12px',border:'1px solid '+(_dateOpen?'var(--c1f4a37,#1f4a37)':'var(--cd8ddd5,#d8ddd5)'),borderRadius:'10px',background:'#fff',cursor:'pointer',fontSize:'13px',fontWeight:600,color:_selLabel?'var(--c17211c,#17211c)':'var(--c9aa39b,#9aa39b)'}},
+        _R('span',null,_selLabel||(L?'Select date':'اختر التاريخ')),
+        _R('span',{style:{color:'var(--c1f4a37,#1f4a37)',display:'flex'}},_calIcon)),
+      _calPop);
+    const _timeSlots=[];for(let h=8;h<=18;h++){for(const mm of [0,30]){if(h===18&&mm>0)break;_timeSlots.push(timeLabel(h,mm));}}
+    const _chev=_R('svg',{width:15,height:15,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','strokeWidth':2,'strokeLinecap':'round','strokeLinejoin':'round'},_R('polyline',{points:'6 9 12 15 18 9'}));
+    const _clockIcon=_R('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','strokeWidth':2,'strokeLinecap':'round','strokeLinejoin':'round'},_R('circle',{cx:12,cy:12,r:9}),_R('polyline',{points:'12 7 12 12 15 14'}));
+    const _makeTime=(field,openKey,opts)=>{
+      opts=opts||{};
+      const open=!!S[openKey];
+      const sel=(S.rmForm||{})[field]||'';
+      const minIdx=opts.after?_timeSlots.indexOf((S.rmForm||{})[opts.after]||''):-1;
+      const slots=minIdx>=0?_timeSlots.filter((t,i)=>i>minIdx):_timeSlots;
+      const pick=(t)=>{const upd={};upd[field]=t;
+        if(opts.autoEnd){const idx=_timeSlots.indexOf(t);const cur=(this.state.rmForm||{}).timeEnd;const curIdx=_timeSlots.indexOf(cur||'');if(idx>=0&&(!cur||curIdx<=idx))upd.timeEnd=_timeSlots[Math.min(idx+2,_timeSlots.length-1)];}
+        this.setState({rmForm:Object.assign({},this.state.rmForm,upd),[openKey]:false});};
+      const pop=open?_R('div',{style:{position:'absolute',top:'calc(100% + 6px)',right:0,left:0,zIndex:60,background:'#fff',border:'1px solid var(--ce2e6df,#e2e6df)',borderRadius:'12px',boxShadow:'0 14px 36px -10px rgba(23,40,32,.3)',maxHeight:'216px',overflowY:'auto',padding:'5px'}},
+        slots.length?slots.map((t,i)=>{const isSel=sel===t;return _R('button',{key:'t'+i,onClick:()=>pick(t),style:{width:'100%',textAlign:'right',padding:'9px 12px',border:'none',borderRadius:'8px',cursor:'pointer',fontSize:'13px',fontWeight:isSel?700:500,fontFamily:"ui-monospace,'SF Mono',Menlo,monospace",background:isSel?'var(--c1f4a37,#1f4a37)':'transparent',color:isSel?'#fff':'var(--c2a332d,#2a332d)'}},t);}):_R('div',{style:{padding:'12px',fontSize:'12px',color:'var(--c9aa39b,#9aa39b)',textAlign:'center'}},L?'Pick a start time first':'اختر وقت البداية أولاً')):null;
+      return _R('div',{style:{position:'relative'}},
+        _R('button',{onClick:()=>{const ns={rmDateOpen:false,rmTimeOpen:false,rmTimeEndOpen:false};ns[openKey]=!open;this.setState(ns);},style:{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',padding:'10px 12px',border:'1px solid '+(open?'var(--c1f4a37,#1f4a37)':'var(--cd8ddd5,#d8ddd5)'),borderRadius:'10px',background:'#fff',cursor:'pointer',fontSize:'13px',fontWeight:600,color:sel?'var(--c17211c,#17211c)':'var(--c9aa39b,#9aa39b)'}},
+          _R('span',{style:{fontFamily:sel?"ui-monospace,'SF Mono',Menlo,monospace":'inherit'}},sel||(L?'Select time':'اختر الوقت')),
+          _R('span',{style:{color:sel?'var(--c1f4a37,#1f4a37)':'var(--c7d867f,#7d867f)',display:'flex',transform:open?'rotate(180deg)':'none',transition:'transform .15s'}},open?_chev:_clockIcon)),
+        pop);
+    };
+    const rmTimePicker=_makeTime('time','rmTimeOpen',{autoEnd:true});
+    const rmTimeEndPicker=_makeTime('timeEnd','rmTimeEndOpen',{after:'time'});
+    return {
+      t, stop:e=>e.stopPropagation(), hasToast:!!S.toast, toast:S.toast,
+      pendingMeetings,allReqMeetings,calendarMeetings,pendingCount:pendingMeetings.length,dashPending:pendingMeetings.slice(0,4),
+      calMode,calTitle,calDays,calRows,calWeeks,calGridCols,calIsMonth:calMode==='month',calIsTimeGrid:calMode!=='month',calIsTable:S.rmView==='all',calIsCal:S.rmView!=='all',
+      calMonthHeaders:[0,1,2,3,4].map(i=>L?['Mon','Tue','Wed','Thu','Fri'][i]:['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'][i]),
+      calDayBtnBg:calMode==='day'?'#fff':'transparent',calDayBtnFg:calMode==='day'?'var(--c1f4a37,#1f4a37)':'var(--c7d867f,#7d867f)',
+      calWeekBtnBg:calMode==='week'?'#fff':'transparent',calWeekBtnFg:calMode==='week'?'var(--c1f4a37,#1f4a37)':'var(--c7d867f,#7d867f)',
+      calMonthBtnBg:calMode==='month'?'#fff':'transparent',calMonthBtnFg:calMode==='month'?'var(--c1f4a37,#1f4a37)':'var(--c7d867f,#7d867f)',
+      tableBtnBg:S.rmView==='all'?'var(--c1f4a37,#1f4a37)':'#fff',tableBtnFg:S.rmView==='all'?'#fff':'var(--c3c4a42,#3c4a42)',
+      calBtnBg:S.rmView!=='all'?'var(--c1f4a37,#1f4a37)':'#fff',calBtnFg:S.rmView!=='all'?'#fff':'var(--c3c4a42,#3c4a42)',
+      calPrev:()=>this.calShift(-1),calNext:()=>this.calShift(1),calGoToday:()=>this.calToday(),
+      setCalDay:()=>this.setCalMode('day'),setCalWeek:()=>this.setCalMode('week'),setCalMonth:()=>this.setCalMode('month'),
+      showCalendar:()=>this.setRmView('calendar'),showTable:()=>this.setRmView('all'),
+      calModeDayOn:calMode==='day',calModeWeekOn:calMode==='week',calModeMonthOn:calMode==='month',
+      rmPopupOpen:!!rmPopupData,rmPopup:rmPopupData,closeRmPopup:()=>this.closeRmPopup(),
+      rmApproveLabel:rl('اعتماد','Approve'),canMeetApprove,rmProposeLabel:rl('اقتراح موعد آخر','Propose another time'),rmCancelLabel:rl('إلغاء الاجتماع','Cancel meeting'),
+      rmProposedLabel:rl('الموعد المقترح','Proposed time'),rmDecisionLabel:rl('الاعتماد','Decision'),rmNewDateLabel:rl('الموعد الجديد المقترح','New proposed time'),
+      rmAttendeesLabel:rl('الحضور','Attendees'),rmBasisLabel:rl('الطلب بناءً على','Requested based on'),rmNotesLabel:rl('ملاحظات','Notes'),rmOutlookLabel:rl('فتح في التقويم','Open in calendar'),
+      rmView:S.rmView,setRmPending:()=>this.setRmView('pending'),setRmAll:()=>this.setRmView('all'),setRmCalendar:()=>this.setRmView('calendar'),
+      rmTabPending:S.rmView==='pending',rmTabAll:S.rmView==='all',rmTabCalendar:S.rmView==='calendar',
+      rmTabPStyle:S.rmView==='pending'?'flex:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--c1f4a37,#1f4a37);background:var(--c1f4a37,#1f4a37);color:#fff':'flex:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c5b6b62,#5b6b62)',
+      rmTabAStyle:S.rmView==='all'?'flex:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--c1f4a37,#1f4a37);background:var(--c1f4a37,#1f4a37);color:#fff':'flex:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c5b6b62,#5b6b62)',
+      rmTabCStyle:S.rmView==='calendar'?'flex:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--c1f4a37,#1f4a37);background:var(--c1f4a37,#1f4a37);color:#fff':'flex:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c5b6b62,#5b6b62)',
+      rmNoPending:pendingMeetings.length===0,rmNoCalendar:calendarMeetings.length===0,
+      rmModalOpen:!!S.rmModal,rmModalTitle:S.rmModal==='propose'?t.rm_proposeTitle:t.rm_cancelTitle,rmIsPropose:S.rmModal==='propose',rmIsCancel:S.rmModal==='cancel',rmDateOpts,rmTimeOpts,rmDatePicker,rmTimePicker,rmTimeEndPicker,
+      ddRmDate:this.renderDD('rmDate',(S.rmForm||{}).date||'',[{v:'',label:'—'}].concat(rmDateOpts),e=>this.setState({rmForm:Object.assign({},this.state.rmForm,{date:e.target.value})}),{block:true,bg:'var(--cf7f8f6,#f7f8f6)',popMaxWidth:'340px'}),
+      ddRmTime:this.renderDD('rmTime',(S.rmForm||{}).time||'',[{v:'',label:'—'}].concat(rmTimeOpts),e=>this.setState({rmForm:Object.assign({},this.state.rmForm,{time:e.target.value})}),{block:true,bg:'var(--cf7f8f6,#f7f8f6)'}),
+      closeRmModal:()=>this.closeRmModal(),saveRm:()=>this.saveRm(),rmForm:S.rmForm||{},
+      rmFormDate:e=>this.setState({rmForm:Object.assign({},this.state.rmForm,{date:e.target.value})}),
+      rmFormTime:e=>this.setState({rmForm:Object.assign({},this.state.rmForm,{time:e.target.value})}),
+    };
+  }
+}
+</script>
+</body>
+</html>

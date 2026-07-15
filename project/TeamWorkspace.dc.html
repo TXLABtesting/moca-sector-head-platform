@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  a{color:#2f6aa8}a:hover{color:#255b93}
+  @keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+  @keyframes ovBg{from{opacity:0}to{opacity:1}}
+  @keyframes ovCard{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .ws-matrix{overflow-x:auto}
+  @media(max-width:640px){.ws-cards{grid-template-columns:1fr 1fr!important}.ws-hidesm{display:none!important}}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl;color:#17211c">
+
+  <!-- header strip: distinct from chair view (blue/steel, "إدخال وتحديث") -->
+  <div style="background:linear-gradient(120deg,#22384a,#2f6aa8);border-radius:20px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 12px 30px -16px rgba(34,56,74,.5)">
+    <span style="width:48px;height:48px;flex:none;border-radius:14px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;color:#fff"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M3 20h4.5L18 9.5a2.1 2.1 0 0 0-3-3L4.5 17 3 20z"></path></svg></span>
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:18px;font-weight:800;color:#fff">لوحة فريق المكتب</div>
+      <div style="font-size:12.5px;color:#bcd2e6;margin-top:2px">مساحة عمل الإدخال والتحديث وتجهيز البنود لرئيس القطاع</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border-radius:12px;padding:7px 10px 7px 14px">
+      <span style="width:34px;height:34px;flex:none;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700"><sc-if value="{{ user.hasImg }}" hint-placeholder-val="{{ false }}"><img src="{{ user.img }}" style="width:100%;height:100%;object-fit:cover;object-position:top"></sc-if><sc-if value="{{ user.noImg }}" hint-placeholder-val="{{ true }}">{{ user.initials }}</sc-if></span>
+      <div style="min-width:0">
+        <div style="font-size:9.5px;color:#bcd2e6;font-weight:600">أعمل باسم</div>
+        <div style="font-size:9px">{{ userSelect }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- sub-tabs: board / permissions(admin only) -->
+  <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+    <button onClick="{{ goBoard }}" style="{{ tabBoardStyle }}">لوحتي</button>
+    <sc-if value="{{ canManagePerms }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goPerms }}" style="{{ tabPermsStyle }}">إدارة الصلاحيات</button></sc-if>
+  </div>
+
+  <!-- ============ BOARD ============ -->
+  <sc-if value="{{ isBoard }}" hint-placeholder-val="{{ true }}">
+    <div style="animation:fadeUp .16s ease">
+
+      <!-- alerts -->
+      <sc-if value="{{ hasAlerts }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+          <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:11px;background:{{ a.bg }};border:1px solid {{ a.bd }};border-radius:12px;padding:11px 15px">
+              <span style="width:8px;height:8px;flex:none;border-radius:50%;background:{{ a.dot }}"></span>
+              <div style="font-size:12.5px;color:{{ a.fg }};font-weight:600;line-height:1.5">{{ a.text }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- add buttons -->
+      <sc-if value="{{ hasAddBtns }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px">
+          <sc-for list="{{ addBtns }}" as="b" hint-placeholder-count="2">
+            <button onClick="{{ b.onClick }}" style="background:#eef3f9;color:#2f6aa8;border:1px solid #d8e4ee;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ b.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- filter cards -->
+      <div class="ws-cards" style="display:grid;grid-template-columns:repeat(6,1fr);gap:13px;margin-bottom:22px">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+          <div onClick="{{ c.select }}" style="{{ c.cardStyle }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="width:32px;height:32px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;background:{{ c.icBg }};color:{{ c.icFg }}" data-wicon="{{ c.icon }}"></span>
+              <span style="font-size:22px;font-weight:800;letter-spacing:-.5px;color:{{ c.numColor }}">{{ c.count }}</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#3c4a42;line-height:1.4">{{ c.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- dynamic section under cards -->
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:14px">
+        <span style="width:8px;height:24px;border-radius:6px;background:#2f6aa8;flex:none"></span>
+        <h3 style="margin:0;font-size:16px;font-weight:800;color:#17211c">{{ activeTitle }}</h3>
+        <span style="font-size:11px;font-weight:700;color:#6d7973;background:#f2f4f0;border-radius:20px;padding:3px 11px">{{ activeCount }}</span>
+      </div>
+
+      <sc-if value="{{ noItems }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px dashed #d8dedb;border-radius:16px;padding:34px;text-align:center;color:#9aa39b;font-size:13px">لا توجد بنود في هذه القائمة</div>
+      </sc-if>
+
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #eef1ec;border-radius:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 10px 24px -18px rgba(23,40,32,.2)">
+            <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                  <span style="font-size:10px;font-weight:700;border-radius:20px;padding:3px 10px;background:{{ it.typeBg }};color:{{ it.typeFg }}">{{ it.type }}</span>
+                  <span style="font-size:10px;font-weight:700;border-radius:20px;padding:3px 10px;background:{{ it.stBg }};color:{{ it.stFg }}">{{ it.statusLabel }}</span>
+                </div>
+                <div style="font-size:14px;font-weight:700;color:#17211c;line-height:1.5">{{ it.title }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:11.5px;color:#7d867f">
+                  <sc-for list="{{ it.meta }}" as="m" hint-placeholder-count="2"><span style="display:flex;align-items:center;gap:5px"><span style="color:#9aa39b">{{ m.k }}:</span><span style="font-weight:600;color:#3c4a42">{{ m.v }}</span></span></sc-for>
+                </div>
+                <sc-if value="{{ it.hasNote }}" hint-placeholder-val="{{ false }}"><div style="margin-top:9px;background:#fbf1ef;border:1px solid #f0dcd4;border-radius:9px;padding:8px 11px;font-size:11.5px;color:#8a4a41;line-height:1.55"><b style="color:#b0433b">ملاحظة رئيس القطاع:</b> {{ it.note }}</div></sc-if>
+              </div>
+              <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:flex-start">
+                <sc-for list="{{ it.actions }}" as="ac" hint-placeholder-count="2"><button onClick="{{ ac.onClick }}" style="{{ ac.style }}">{{ ac.label }}</button></sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ PERMISSIONS MATRIX ============ -->
+  <sc-if value="{{ isPerms }}" hint-placeholder-val="{{ false }}">
+    <div style="animation:fadeUp .16s ease">
+      <div style="background:#fff;border:1px solid #eef1ec;border-radius:16px;padding:18px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:15px;font-weight:800;color:#17211c">مصفوفة صلاحيات العضو</div>
+          <div style="font-size:12px;color:#7d867f;margin-top:3px">فعّل أو أوقف كل صلاحية داخل كل قسم. الاعتماد النهائي لا يُمنح إلا صراحةً.</div>
+        </div>
+        <div style="font-size:12px">{{ permMemberSelect }}</div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #eef1ec;border-radius:16px;padding:6px;box-shadow:0 1px 2px rgba(23,40,32,.04)">
+        <div class="ws-matrix">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:760px">
+            <thead>
+              <tr>
+                <th style="text-align:start;padding:12px 14px;color:#5b6b62;font-weight:700;border-bottom:2px solid #eef1ec;position:sticky;inset-inline-start:0;background:#fff">القسم</th>
+                <sc-for list="{{ actionCols }}" as="a" hint-placeholder-count="9"><th style="padding:12px 8px;color:#5b6b62;font-weight:700;border-bottom:2px solid #eef1ec;white-space:nowrap">{{ a }}</th></sc-for>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ permRows }}" as="r" hint-placeholder-count="7">
+                <tr>
+                  <td style="padding:11px 14px;font-weight:700;color:#17211c;border-bottom:1px solid #f4f6f2;white-space:nowrap;position:sticky;inset-inline-start:0;background:#fff">{{ r.section }}</td>
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="9">
+                    <td style="padding:8px;text-align:center;border-bottom:1px solid #f4f6f2"><button onClick="{{ c.toggle }}" style="{{ c.style }}">{{ c.mark }}</button></td>
+                  </sc-for>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:11.5px;color:#7d867f;background:#f2f7f3;border-radius:12px;padding:11px 15px;line-height:1.7">التغييرات تُحفظ فوراً وتنعكس على واجهة العضو مباشرة. أوقف «تعديل» على قسم لتحويله إلى «عرض فقط».</div>
+    </div>
+  </sc-if>
+
+  <!-- ============ EDIT / ADD FORM ============ -->
+  <sc-if value="{{ formOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeForm }}" style="position:fixed;inset:0;background:rgba(23,33,28,.5);z-index:120;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:18px;width:540px;max-width:100%;margin:auto;animation:ovCard .25s ease">
+        <div style="padding:17px 22px;border-bottom:1px solid #eef0ec;display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <h2 style="margin:0;font-size:15.5px;font-weight:700;color:#17211c">{{ formTitle }}</h2>
+          <button onClick="{{ closeForm }}" style="width:30px;height:30px;border-radius:8px;border:1px solid #e2e6df;background:#f7f8f6;cursor:pointer;color:#7d867f;font-size:15px;flex:none">✕</button>
+        </div>
+        <div style="padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:13px">
+          <sc-for list="{{ formFields }}" as="f" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label style="font-size:11px;font-weight:700;color:#5b6b62">{{ f.label }}</label>
+              <sc-if value="{{ f.isSel }}" hint-placeholder-val="{{ false }}">
+                <select defaultValue="{{ f.val }}" onChange="{{ f.onInput }}" style="{{ f.inputStyle }}">
+                  <sc-for list="{{ f.opts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                </select>
+              </sc-if>
+              <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ true }}">
+                <input defaultValue="{{ f.val }}" onInput="{{ f.onInput }}" style="{{ f.inputStyle }}">
+              </sc-if>
+              <sc-if value="{{ f.isNum }}" hint-placeholder-val="{{ false }}">
+                <input type="number" defaultValue="{{ f.val }}" onInput="{{ f.onInput }}" style="{{ f.inputStyle }}">
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:14px 22px;border-top:1px solid #eef0ec;display:flex;gap:10px;flex-wrap:wrap">
+          <button onClick="{{ onFormSend }}" style="background:#22384a;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">حفظ وإرسال لرئيس القطاع</button>
+          <button onClick="{{ onFormSaveDraft }}" style="background:#eef3f9;color:#2f6aa8;border:1px solid #d8e4ee;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">حفظ كمسودة</button>
+          <button onClick="{{ closeForm }}" style="background:#f2f4f0;border:1px solid #e2e6df;color:#5b6b62;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ SHARED ACTION POPUP (uncontrolled) ============ -->
+  <sc-if value="{{ popOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePop }}" style="position:fixed;inset:0;background:rgba(23,33,28,.5);z-index:120;display:flex;align-items:center;justify-content:center;padding:24px;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:18px;width:460px;max-width:100%;animation:ovCard .25s ease">
+        <div style="padding:17px 22px;border-bottom:1px solid #eef0ec;display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <h2 style="margin:0;font-size:15.5px;font-weight:700;color:#17211c">{{ popTitle }}</h2>
+          <button onClick="{{ closePop }}" style="width:30px;height:30px;border-radius:8px;border:1px solid #e2e6df;background:#f7f8f6;cursor:pointer;color:#7d867f;font-size:15px;flex:none">✕</button>
+        </div>
+        <div style="padding:19px 22px">
+          <div style="font-size:12px;color:#7d867f;margin-bottom:9px">بخصوص: <b style="color:#17211c">{{ popSubject }}</b></div>
+          <textarea onInput="{{ onPopInput }}" placeholder="{{ popPlaceholder }}" style="width:100%;box-sizing:border-box;min-height:110px;border:1px solid #e2e6df;background:#f7f8f6;border-radius:12px;padding:12px 14px;font-size:13px;font-family:inherit;line-height:1.7;resize:vertical;color:#17211c"></textarea>
+        </div>
+        <div style="padding:13px 22px;border-top:1px solid #eef0ec;display:flex;gap:10px">
+          <button onClick="{{ popConfirm }}" style="background:#22384a;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">{{ popConfirmLabel }}</button>
+          <button onClick="{{ closePop }}" style="background:#f2f4f0;border:1px solid #e2e6df;color:#5b6b62;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- toast -->
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:26px;inset-inline-start:50%;transform:translateX(50%);background:#17211c;color:#fff;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:600;z-index:130;box-shadow:0 12px 30px -10px rgba(0,0,0,.4)">{{ toastMsg }}</div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:820}}">
+class Component extends DCLogic {
+  members=window.__DATA.members;
+  projects=window.__DATA.projects;
+  otasks=window.__DATA.otasks;
+  mtasks=window.__DATA.mtasks;
+  correspondence=window.__DATA.correspondence;
+  reports=window.__DATA.reports||[];
+
+  state={wsUser:'m1',wsView:'board',card:'open',permMember:'m1',perms:null,pop:null,toast:''};
+
+  componentDidMount(){ if(window.DCDD)DCDD.install(this); this._loadPerms(); this._icons(); }
+  componentDidUpdate(){ this._icons(); }
+  componentWillUnmount(){ if(window.DCDD)DCDD.uninstall(this); }
+
+  // ---- icons ----
+  _icons(){const I={list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',send:'<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',back:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',alert:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',check:'<path d="M20 6 9 17l-5-5"/>'};document.querySelectorAll('[data-wicon]').forEach(el=>{const k=el.getAttribute('data-wicon');if(I[k]&&el.getAttribute('data-done')!==k){el.setAttribute('data-done',k);el.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+I[k]+'</svg>';}});}
+
+  // ---- permissions model ----
+  _sections(){return [
+    {key:'projects',label:'المشاريع'},
+    {key:'correspondence',label:'الصادر والوارد'},
+    {key:'meetings',label:'محاضر الاجتماعات'},
+    {key:'committees',label:'اللجان'},
+    {key:'reports',label:'التقارير'},
+    {key:'tasks',label:'المهام'},
+    {key:'leaves',label:'تخطيط الإجازات'}
+  ];}
+  _actions(){return [
+    {key:'view',label:'عرض'},{key:'add',label:'إضافة'},{key:'edit',label:'تعديل'},{key:'delete',label:'حذف'},
+    {key:'upload',label:'رفع مرفق'},{key:'status',label:'تغيير الحالة'},{key:'send',label:'إرسال للمراجعة'},
+    {key:'note',label:'إضافة ملاحظة'},{key:'approve',label:'اعتماد'}
+  ];}
+  // default access levels per member: edit / view / none
+  _defaults(){
+    const EDIT=['view','add','edit','upload','status','send','note'];
+    const VIEW=['view'];
+    const mk=(spec)=>{const o={};this._sections().forEach(s=>{o[s.key]={};this._actions().forEach(a=>o[s.key][a.key]=false);});for(const sec in spec){const lvl=spec[sec];const acts=lvl==='edit'?EDIT:(lvl==='view'?VIEW:[]);acts.forEach(a=>{if(o[sec])o[sec][a]=true;});}return o;};
+    return {
+      m1:mk({correspondence:'edit',tasks:'edit'}),
+      m2:mk({meetings:'edit',committees:'edit',reports:'edit',leaves:'edit',tasks:'edit'}),
+      m3:mk({projects:'edit',tasks:'edit'}),
+      m4:mk({reports:'edit',tasks:'edit'}),
+      m5:mk({reports:'edit',committees:'view',tasks:'edit'}),
+      m6:mk({projects:'edit',tasks:'edit'}),
+      admin:mk({projects:'edit',correspondence:'edit',meetings:'edit',committees:'edit',reports:'edit',tasks:'edit',leaves:'edit'})
+    };
+  }
+  _loadPerms(){let p=null;try{const raw=localStorage.getItem('ws_perms_v1');if(raw)p=JSON.parse(raw);}catch(e){}if(!p)p=this._defaults();this.setState({perms:p});}
+  _savePerms(p){try{localStorage.setItem('ws_perms_v1',JSON.stringify(p));}catch(e){}}
+  can(memberId,section,action){const p=this.state.perms;if(!p||!p[memberId]||!p[memberId][section])return false;return !!p[memberId][section][action];}
+
+  // ---- workflow overlay (no data mutation) ----
+  _wf(){ if(!this.__wf){ this.__wf={ 'ot1':{st:'بانتظار مراجعة رئيس القطاع',by:'m1'}, 'p5':{st:'أعيد للتعديل',by:'m2',note:'يرجى إرفاق الجدول الزمني المحدّث قبل إعادة الإرسال.'} }; } return this.__wf; }
+  itemStatus(id,base){const w=this._wf()[id];return w?w.st:base;}
+
+  toast(m){this.setState({toast:m});clearTimeout(this._tt);this._tt=setTimeout(()=>this.setState({toast:''}),3000);}
+
+  // ---- section → __DATA array + field schema ----
+  _secArr(section){const M={projects:this.projects,correspondence:this.correspondence,meetings:this.mtasks,committees:(window.__DATA.committees),reports:this.reports,tasks:this.otasks,leaves:(window.__DATA.leaves)};return M[section];}
+  _schema(section){
+    const ST=['مسودة','قيد التحديث','قيد التنفيذ','لم يبدأ','متأخر','مكتمل'];
+    const S={
+      projects:[{k:'name',l:'اسم المشروع',t:'text'},{k:'owner',l:'المسؤول',t:'text'},{k:'status',l:'الحالة',t:'select',opts:ST},{k:'progress',l:'نسبة الإنجاز %',t:'number'},{k:'nextStep',l:'الخطوة القادمة',t:'text'},{k:'dueDate',l:'الموعد النهائي',t:'text'}],
+      correspondence:[{k:'name',l:'اسم المستند',t:'text'},{k:'type',l:'النوع',t:'select',opts:['صادر','وارد','مذكرة داخلية']},{k:'entity',l:'الجهة المعنية',t:'text'},{k:'date',l:'التاريخ',t:'text'},{k:'status',l:'الحالة',t:'select',opts:ST}],
+      meetings:[{k:'task',l:'المهمة',t:'text'},{k:'meeting',l:'المحضر/الاجتماع',t:'text'},{k:'owner',l:'المسؤول',t:'text'},{k:'status',l:'الحالة',t:'select',opts:ST},{k:'mDate',l:'التاريخ',t:'text'}],
+      committees:[{k:'name',l:'اسم اللجنة',t:'text'},{k:'rapporteur',l:'المقرر',t:'text'},{k:'status',l:'الحالة',t:'select',opts:['نشطة','تحتاج متابعة','لا توجد اجتماعات','مهام متأخرة','ملغاة']}],
+      reports:[{k:'name',l:'اسم التقرير',t:'text'},{k:'status',l:'الحالة',t:'select',opts:ST}],
+      tasks:[{k:'title',l:'عنوان المهمة',t:'text'},{k:'owner',l:'المسؤول',t:'text'},{k:'status',l:'الحالة',t:'select',opts:ST},{k:'end',l:'الاستحقاق',t:'text'}],
+      leaves:[{k:'person',l:'اسم الشخص',t:'text'},{k:'type',l:'نوع الإجازة',t:'select',opts:['سنوية','مرضية','طارئة','بدون راتب']},{k:'start',l:'من',t:'text'},{k:'end',l:'إلى',t:'text'},{k:'status',l:'الحالة',t:'select',opts:['مخططة','بانتظار الاعتماد','معتمدة','مرفوضة']},{k:'backup',l:'البديل',t:'text'}]
+    };
+    return S[section]||[];
+  }
+  _secTitle(section){return {projects:'مشروع',correspondence:'مستند صادر/وارد',meetings:'مهمة محضر',committees:'لجنة',reports:'تقرير',tasks:'مهمة',leaves:'إجازة'}[section]||'بند';}
+
+  openForm(section,item){const sch=this._schema(section);const vals={};sch.forEach(f=>{vals[f.k]=item?(item._rec&&item._rec[f.k]!=null?String(item._rec[f.k]):''):'';});this._formVals=vals;this.setState({form:{section,id:item?item.id:null,isNew:!item}});}
+  closeForm(){this._formVals=null;this.setState({form:null});}
+  setFormVal(k,v){ if(!this._formVals)this._formVals={}; this._formVals[k]=v; }
+  saveForm(send){const f=this.state.form;if(!f)return;const arr=this._secArr(f.section);const vals=this._formVals||{};if(!arr){this.closeForm();return;}
+    let rec=f.id?arr.find(x=>x.id===f.id):null;
+    if(!rec){rec={id:f.section.slice(0,2)+'_'+Date.now()};arr.unshift(rec);}
+    for(const k in vals){ if(k==='progress'){rec[k]=parseInt(vals[k]||0)||0;} else rec[k]=vals[k]; }
+    const w=this._wf();
+    if(send){w[rec.id]={st:'بانتظار مراجعة رئيس القطاع',by:this.state.wsUser};this.toast('تم حفظ البند وإرساله لرئيس القطاع');}
+    else {w[rec.id]=Object.assign({},w[rec.id]||{},{st:'قيد التحديث'});this.toast('تم حفظ التعديلات');}
+    this._formVals=null;this.setState({form:null});this.forceUpdate();}
+
+  // ---- popup (shared, uncontrolled) ----
+  openPop(kind,item){this._popDraft='';this.setState({pop:{kind,id:item.id,subject:item.title,section:item.section}});}
+  closePop(){this._popDraft='';this.setState({pop:null});}
+  confirmPop(){const p=this.state.pop;if(!p){return;}const t=(this._popDraft||'').trim();const w=this._wf();
+    if(p.kind==='send'){w[p.id]={st:'بانتظار مراجعة رئيس القطاع',by:this.state.wsUser};this.toast('تم إرسال البند لرئيس القطاع للمراجعة');}
+    else if(p.kind==='note'){this.toast('تمت إضافة الملاحظة');}
+    else if(p.kind==='status'){w[p.id]=Object.assign({},w[p.id]||{},{st:t||'قيد التحديث'});this.toast('تم تحديث الحالة');}
+    this._popDraft='';this.setState({pop:null});this.forceUpdate();}
+
+  // ---- my items ----
+  _myItems(uid){
+    const me=(this.members.find(m=>m.id===uid)||{}).name||'';
+    const out=[];
+    const push=(o)=>out.push(o);
+    // tasks
+    (this.otasks||[]).forEach(t=>{ if(uid==='admin'||t.owner===me) push({id:t.id,section:'tasks',type:'مهمة',title:t.title,base:t.status,owner:t.owner,due:t.end,_rec:t}); });
+    // projects
+    (this.projects||[]).forEach(p=>{ if(uid==='admin'||p.owner===me) push({id:p.id,section:'projects',type:'مشروع',title:p.name,base:p.status,owner:p.owner,due:p.dueDate,_rec:p}); });
+    // meeting tasks
+    (this.mtasks||[]).forEach(m=>{ if(uid==='admin'||m.owner===me) push({id:m.id,section:'meetings',type:'مهمة محضر',title:m.task,base:m.status,owner:m.owner,due:m.mDate,_rec:m}); });
+    // correspondence (owned by موزة)
+    if(uid==='m1'||uid==='admin'){ (this.correspondence||[]).forEach(c=>{ push({id:c.id,section:'correspondence',type:c.type||'مراسلة',title:c.name,base:c.status||'قيد التنفيذ',owner:me,due:c.date,_rec:c}); }); }
+    return out;
+  }
+
+  renderVals(){
+    const S=this.state;
+    if(!S.perms){ return {}; }
+    const TYPE={'مهمة':['#e6eef6','#2f6aa8'],'مشروع':['#e9f0ec','#1f4a37'],'مهمة محضر':['#f3ecf6','#7a4d94'],'مراسلة':['#fbf3df','#8a6a1f'],'مذكرة داخلية':['#fbf3df','#8a6a1f'],'وارد':['#fbf3df','#8a6a1f'],'صادر':['#e9f0ec','#1f4a37']};
+    const SCM={'مكتمل':['#e2f0e8','#2e7d55'],'قيد التنفيذ':['#fbf0d6','#a9791f'],'متأخر':['#f7e6e4','#b0433b'],'لم يبدأ':['#eceae6','#8a8078'],'مسودة':['#eceae6','#8a8078'],'قيد التحديث':['#e6eef6','#2f6aa8'],'بانتظار مراجعة رئيس القطاع':['#e6eef6','#2f6aa8'],'أعيد للتعديل':['#f7e6e4','#b0433b'],'يحتاج قرار':['#f7ece0','#c26a2b']};
+    const sc=s=>SCM[s]||['#f2f4f0','#6d7973'];
+
+    const uid=S.wsUser;
+    const um=this.members.find(m=>m.id===uid);
+    const uname=uid==='admin'?'مدير النظام':(um?um.name:'');
+    const uimg=um?memberImg(um.name):'';
+
+    // user select dropdown
+    const userOpts=this.members.map(m=>({v:m.id,label:m.name})).concat([{v:'admin',label:'مدير النظام'}]);
+    const userSelect=DCDD.render(this,'wsUser',uid,userOpts,e=>this.setState({wsUser:e.target.value,card:'open'}),{size:'sm',minWidth:'150px'});
+
+    // my items with workflow status
+    const raw=this._myItems(uid).map(it=>{const st=this.itemStatus(it.id,it.base);const w=this._wf()[it.id];return Object.assign({},it,{status:st,note:w&&w.note?w.note:''});});
+    const isOpen=s=>['قيد التنفيذ','لم يبدأ','مسودة','قيد التحديث'].indexOf(s)>=0;
+    const counts={
+      open:raw.filter(i=>isOpen(i.status)).length,
+      update:raw.filter(i=>i.status==='قيد التحديث'||i.status==='متأخر').length,
+      sent:raw.filter(i=>i.status==='بانتظار مراجعة رئيس القطاع').length,
+      returned:raw.filter(i=>i.status==='أعيد للتعديل').length,
+      late:raw.filter(i=>i.status==='متأخر').length,
+      done:raw.filter(i=>i.status==='مكتمل').length
+    };
+    const cardDefs=[
+      {key:'open',label:'مهامي المفتوحة',icon:'list',icBg:'#e6eef6',icFg:'#2f6aa8',num:'#2f6aa8'},
+      {key:'update',label:'بانتظار التحديث',icon:'clock',icBg:'#fbf3df',icFg:'#a9791f',num:'#a9791f'},
+      {key:'sent',label:'مرسل لرئيس القطاع',icon:'send',icBg:'#e9f0ec',icFg:'#1f4a37',num:'#1f4a37'},
+      {key:'returned',label:'أعيد للتعديل',icon:'back',icBg:'#f7e6e4',icFg:'#b0433b',num:'#b0433b'},
+      {key:'late',label:'متأخر',icon:'alert',icBg:'#f7e6e4',icFg:'#b0433b',num:'#b0433b'},
+      {key:'done',label:'مكتمل هذا الأسبوع',icon:'check',icBg:'#e2f0e8',icFg:'#2e7d55',num:'#2e7d55'}
+    ];
+    const cards=cardDefs.map(c=>{const active=S.card===c.key;return {label:c.label,icon:c.icon,icBg:c.icBg,icFg:c.icFg,numColor:c.num,count:String(counts[c.key]||0),select:()=>this.setState({card:c.key}),cardStyle:'background:#fff;border-radius:16px;padding:15px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(23,40,32,.04),0 10px 24px -20px rgba(23,40,32,.2);border:2px solid '+(active?'#2f6aa8':'transparent')+';transition:border-color .15s'};});
+
+    const filt={open:isOpen,update:i=>i==='قيد التحديث'||i==='متأخر',sent:i=>i==='بانتظار مراجعة رئيس القطاع',returned:i=>i==='أعيد للتعديل',late:i=>i==='متأخر',done:i=>i==='مكتمل'};
+    const f=filt[S.card]||isOpen;
+    const list=raw.filter(i=>f(i.status)).slice(0,12);
+    const titleMap={open:'مهامي المفتوحة',update:'بنود بانتظار التحديث',sent:'بنود مرسلة لرئيس القطاع',returned:'بنود أعيدت للتعديل',late:'بنود متأخرة',done:'مكتمل هذا الأسبوع'};
+
+    const abtn=(label,tone)=>{const tones={dark:'background:#22384a;color:#fff;border:none;',ghost:'background:#f2f4f0;color:#3c4a42;border:1px solid #e2e6df;',blue:'background:#eef3f9;color:#2f6aa8;border:1px solid #d8e4ee;'};return (tones[tone]||tones.ghost)+'border-radius:9px;padding:8px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer';};
+
+    const items=list.map(it=>{
+      const t=TYPE[it.type]||['#f2f4f0','#6d7973'];const s2=sc(it.status);
+      const acts=[];
+      const sec=it.section;
+      if(this.can(uid,sec,'edit'))acts.push({label:'تعديل البيانات',style:abtn('dark'),onClick:()=>this.openForm(sec,it)});
+      if(this.can(uid,sec,'send')&&it.status!=='بانتظار مراجعة رئيس القطاع')acts.push({label:'إرسال لرئيس القطاع',style:abtn('blue'),onClick:()=>this.openPop('send',it)});
+      if(this.can(uid,sec,'note'))acts.push({label:'ملاحظة',style:abtn('ghost'),onClick:()=>this.openPop('note',it)});
+      const meta=[{k:'المسؤول',v:it.owner},{k:'الاستحقاق',v:it.due||'—'}].filter(m=>m.v);
+      return {type:it.type,typeBg:t[0],typeFg:t[1],statusLabel:it.status,stBg:s2[0],stFg:s2[1],title:it.title,meta,hasNote:!!it.note,note:it.note,actions:acts};
+    });
+
+    // add buttons for sections the user can add to
+    const addBtns=this._sections().filter(s=>this.can(uid,s.key,'add')).map(s=>({label:'+ إضافة '+this._secTitle(s.key),onClick:()=>this.openForm(s.key,null)}));
+
+    // form modal
+    const fm=S.form;
+    let formFields=[],formTitle='',formNewFlag=false;
+    if(fm){formNewFlag=fm.isNew;formTitle=(fm.isNew?'إضافة ':'تعديل ')+this._secTitle(fm.section);const fv=this._formVals||{};
+      formFields=this._schema(fm.section).map(f=>{const val=fv[f.k]!=null?fv[f.k]:'';const base='width:100%;box-sizing:border-box;border:1px solid #e2e6df;background:#f7f8f6;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;color:#17211c';
+        return {k:f.k,label:f.l,type:f.t,isText:f.t==='text',isNum:f.t==='number',isSel:f.t==='select',val:String(val),inputStyle:base,
+          opts:(f.opts||[]).map(o=>({v:o,label:o,sel:String(val)===o})),
+          onInput:e=>this.setFormVal(f.k,e.target.value)};});}
+
+    // alerts
+    const alerts=[];
+    if(counts.returned>0)alerts.push({text:'لديك '+counts.returned+' بند أعاده رئيس القطاع للتعديل',bg:'#fbf1ef',bd:'#f0dcd4',fg:'#8a4a41',dot:'#b0433b'});
+    if(counts.late>0)alerts.push({text:'لديك '+counts.late+' مهمة متأخرة',bg:'#fbf3df',bd:'#efe3c9',fg:'#8a6a1f',dot:'#a9791f'});
+    if(counts.sent>0)alerts.push({text:'لديك '+counts.sent+' بند بانتظار مراجعة رئيس القطاع',bg:'#eef3f9',bd:'#d8e4ee',fg:'#2f6aa8',dot:'#2f6aa8'});
+
+    // permissions matrix
+    const canManagePerms=(uid==='admin');
+    const pm=S.permMember;
+    const pmOpts=this.members.map(m=>({v:m.id,label:m.name}));
+    const permMemberSelect=DCDD.render(this,'permMember',pm,pmOpts,e=>this.setState({permMember:e.target.value}),{size:'sm',minWidth:'170px'});
+    const actionCols=this._actions().map(a=>a.label);
+    const permRows=this._sections().map(s=>({
+      section:s.label,
+      cells:this._actions().map(a=>{const on=this.can(pm,s.key,a.key);return {mark:on?'✓':'',style:'width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:800;font-family:inherit;border:1px solid '+(on?'#2e7d55':'#e2e6df')+';background:'+(on?'#e2f0e8':'#f7f8f6')+';color:'+(on?'#2e7d55':'#c3cec4'),toggle:()=>{const p=JSON.parse(JSON.stringify(this.state.perms));if(!p[pm])p[pm]={};if(!p[pm][s.key])p[pm][s.key]={};p[pm][s.key][a.key]=!p[pm][s.key][a.key];this._savePerms(p);this.setState({perms:p});}};})
+    }));
+
+    const pop=S.pop;
+    const popTitles={send:'إرسال لرئيس القطاع',note:'إضافة ملاحظة',status:'تحديث الحالة'};
+    const popPh={send:'اكتب ملاحظة مرفقة مع الإرسال (اختياري)...',note:'اكتب ملاحظتك...',status:'اكتب الحالة الجديدة أو ملاحظة التحديث...'};
+    const popConf={send:'إرسال',note:'حفظ الملاحظة',status:'تحديث'};
+
+    const tabActive='background:#22384a;color:#fff;';const tabIdle='background:#fff;color:#5b6b62;border:1px solid #e2e6df;';
+    const tabStyle=on=>(on?tabActive:tabIdle)+'border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:'+(on?'none':'1px solid #e2e6df');
+
+    return {
+      user:{initials:initials(uname),img:uimg,hasImg:!!uimg,noImg:!uimg},
+      userSelect,
+      isBoard:S.wsView==='board',isPerms:S.wsView==='perms',
+      canManagePerms,
+      goBoard:()=>this.setState({wsView:'board'}),goPerms:()=>this.setState({wsView:'perms'}),
+      tabBoardStyle:tabStyle(S.wsView==='board'),tabPermsStyle:tabStyle(S.wsView==='perms'),
+      cards,activeTitle:titleMap[S.card]||'',activeCount:String(list.length),
+      items,noItems:list.length===0,
+      addBtns,hasAddBtns:addBtns.length>0,
+      formOpen:!!fm,formTitle,formFields,formNewFlag,
+      onFormSaveDraft:()=>this.saveForm(false),onFormSend:()=>this.saveForm(true),closeForm:()=>this.closeForm(),
+      hasAlerts:alerts.length>0,alerts,
+      actionCols,permRows,permMemberSelect,
+      popOpen:!!pop,popTitle:pop?popTitles[pop.kind]:'',popSubject:pop?pop.subject:'',popPlaceholder:pop?popPh[pop.kind]:'',popConfirmLabel:pop?popConf[pop.kind]:'',
+      onPopInput:e=>{this._popDraft=e.target.value;},popConfirm:()=>this.confirmPop(),closePop:()=>this.closePop(),stop:e=>e.stopPropagation(),
+      toastOpen:!!S.toast,toastMsg:S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

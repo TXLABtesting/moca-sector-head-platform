@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="design_doc_mode" content="canvas">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;background:#e9ede9;direction:rtl}
+</style>
+</helmet>
+
+<div style="padding:40px 44px;background:#e9ede9;min-height:100vh">
+  <div style="max-width:1500px;margin:0 auto">
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;letter-spacing:.12em;color:#a9791f">DRIBBBLE-INSPIRED PALETTES</div>
+    <h1 style="margin:0 0 6px;font-size:26px;font-weight:700;color:#17211c">لوحات ألوان مقترحة</h1>
+    <p style="margin:0 0 30px;font-size:14px;color:#6d7973;max-width:620px;line-height:1.7">خمس لوحات رسمية حديثة مطبّقة على عناصر لوحتك. أخبرني برقم اللوحة (مثل <strong>1b</strong>) لأطبّقها على كامل المنصة.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:22px">
+      <sc-for list="{{ palettes }}" as="p" hint-placeholder-count="5">
+        <div id="{{ p.id }}" style="background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.05),0 20px 44px -22px rgba(23,40,32,.22);overflow:hidden;display:flex;flex-direction:column">
+          <!-- header -->
+          <div style="padding:18px 20px;display:flex;align-items:center;gap:11px;border-bottom:1px solid #f2f4f0">
+            <span style="font-size:11px;font-weight:800;background:#17211c;color:#fff;border-radius:8px;padding:5px 10px">{{ p.id }}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:15px;font-weight:700;color:#17211c">{{ p.name }}</div>
+              <div style="font-size:11.5px;color:#8a938c">{{ p.mood }}</div>
+            </div>
+            <div style="display:flex;gap:5px;flex:none">
+              <sc-for list="{{ p.swatches }}" as="s" hint-placeholder-count="4">
+                <span style="width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,.06);background:{{ s }}"></span>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- preview -->
+          <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;background:{{ p.appBg }}">
+            <!-- summary bar -->
+            <div style="border-radius:16px;padding:16px 18px;background:{{ p.sumBg }};color:{{ p.sumText }}">
+              <div style="font-size:12px;font-weight:700;color:{{ p.sumTitle }};margin-bottom:6px">ملخص اليوم</div>
+              <div style="font-size:13px;line-height:1.75">لديك <strong style="color:{{ p.accent }};font-weight:800">11</strong> قراراً بانتظارك، و<strong style="color:{{ p.accent }};font-weight:800">9</strong> اجتماعات تحتاج اعتماداً.</div>
+            </div>
+
+            <!-- hero decision card -->
+            <div style="background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(23,40,32,.05),0 12px 28px -18px rgba(23,40,32,.2);padding:16px 17px;border-inline-start:4px solid {{ p.danger }};display:flex;flex-direction:column;gap:11px">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;color:{{ p.accentFg }};background:{{ p.accentSoft }};border-radius:6px;padding:4px 9px">★ الأولوية الأعلى</span>
+                <span style="font-size:9.5px;font-weight:700;border-radius:6px;padding:4px 9px;background:{{ p.typeSoft }};color:{{ p.typeFg }}">مشروع</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;border-radius:6px;padding:4px 9px;background:{{ p.dangerSoft }};color:{{ p.danger }};margin-inline-start:auto"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.danger }}"></span>عاجل</span>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:#17211c;line-height:1.5">خطة استكمال أنشطة الإغلاق السنوي لعام 2025</div>
+              <div style="display:flex;gap:7px;padding-top:4px">
+                <button style="flex:1;background:{{ p.btnPrimary }};color:#fff;border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer">فتح التفاصيل</button>
+                <button style="flex:none;background:{{ p.btnSoft }};color:{{ p.btnSoftFg }};border:1px solid {{ p.btnSoftBorder }};border-radius:8px;padding:8px 12px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">إضافة توجيه</button>
+              </div>
+            </div>
+
+            <!-- priority chips row -->
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:20px;padding:5px 11px;background:{{ p.dangerSoft }};color:{{ p.danger }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.danger }}"></span>عاجل</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:20px;padding:5px 11px;background:{{ p.accentSoft }};color:{{ p.accentFg }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.accent }}"></span>اليوم</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:20px;padding:5px 11px;background:{{ p.infoSoft }};color:{{ p.info }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.info }}"></span>هذا الأسبوع</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin:44px 0 8px;font-size:12px;font-weight:700;letter-spacing:.12em;color:#7a4da9">PURPLE PALETTES</div>
+    <h2 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#17211c">لوحات بنفسجية مقترحة</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:#6d7973;max-width:620px;line-height:1.7">خمس درجات بنفسجية — من الملكي الفخم إلى البنفسجي الهادئ الحكومي. أخبرني بالرقم (مثل <strong>2c</strong>) لأطبّقه على كامل المنصة.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:22px">
+      <sc-for list="{{ purples }}" as="p" hint-placeholder-count="5">
+        <div id="{{ p.id }}" style="background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.05),0 20px 44px -22px rgba(23,40,32,.22);overflow:hidden;display:flex;flex-direction:column">
+          <div style="padding:18px 20px;display:flex;align-items:center;gap:11px;border-bottom:1px solid #f2f4f0">
+            <span style="font-size:11px;font-weight:800;background:#17211c;color:#fff;border-radius:8px;padding:5px 10px">{{ p.id }}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:15px;font-weight:700;color:#17211c">{{ p.name }}</div>
+              <div style="font-size:11.5px;color:#8a938c">{{ p.mood }}</div>
+            </div>
+            <div style="display:flex;gap:5px;flex:none">
+              <sc-for list="{{ p.swatches }}" as="s" hint-placeholder-count="4">
+                <span style="width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,.06);background:{{ s }}"></span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;background:{{ p.appBg }}">
+            <div style="border-radius:16px;padding:16px 18px;background:{{ p.sumBg }};color:{{ p.sumText }}">
+              <div style="font-size:12px;font-weight:700;color:{{ p.sumTitle }};margin-bottom:6px">ملخص اليوم</div>
+              <div style="font-size:13px;line-height:1.75">لديك <strong style="color:{{ p.accent }};font-weight:800">11</strong> قراراً بانتظارك، و<strong style="color:{{ p.accent }};font-weight:800">9</strong> اجتماعات تحتاج اعتماداً.</div>
+            </div>
+            <div style="background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(23,40,32,.05),0 12px 28px -18px rgba(23,40,32,.2);padding:16px 17px;border-inline-start:4px solid {{ p.danger }};display:flex;flex-direction:column;gap:11px">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;color:{{ p.accentFg }};background:{{ p.accentSoft }};border-radius:6px;padding:4px 9px">★ الأولوية الأعلى</span>
+                <span style="font-size:9.5px;font-weight:700;border-radius:6px;padding:4px 9px;background:{{ p.typeSoft }};color:{{ p.typeFg }}">مشروع</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;border-radius:6px;padding:4px 9px;background:{{ p.dangerSoft }};color:{{ p.danger }};margin-inline-start:auto"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.danger }}"></span>عاجل</span>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:#17211c;line-height:1.5">خطة استكمال أنشطة الإغلاق السنوي لعام 2025</div>
+              <div style="display:flex;gap:7px;padding-top:4px">
+                <button style="flex:1;background:{{ p.btnPrimary }};color:#fff;border:none;border-radius:8px;padding:8px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer">فتح التفاصيل</button>
+                <button style="flex:none;background:{{ p.btnSoft }};color:{{ p.btnSoftFg }};border:1px solid {{ p.btnSoftBorder }};border-radius:8px;padding:8px 12px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">إضافة توجيه</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:20px;padding:5px 11px;background:{{ p.dangerSoft }};color:{{ p.danger }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.danger }}"></span>عاجل</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:20px;padding:5px 11px;background:{{ p.accentSoft }};color:{{ p.accentFg }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.accent }}"></span>اليوم</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:20px;padding:5px 11px;background:{{ p.infoSoft }};color:{{ p.info }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.info }}"></span>هذا الأسبوع</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const palettes = [
+      {
+        id:'1a', name:'الأخضر الحالي', mood:'الهوية الحالية — للمقارنة',
+        swatches:['#1e4634','#c9a24b','#3a6ea5','#b0433b'],
+        appBg:'#f4f6f2', sumBg:'linear-gradient(120deg,#1e4634,#2b5c44)', sumText:'#dbe7de', sumTitle:'#fff',
+        accent:'#e9c877', accentFg:'#a9791f', accentSoft:'#fbf7ee',
+        danger:'#b0433b', dangerSoft:'#faf0ef', info:'#3a6ea5', infoSoft:'#eef3f6',
+        typeSoft:'#e6eef6', typeFg:'#3a6ea5',
+        btnPrimary:'#1f4a37', btnSoft:'#f4f6f2', btnSoftFg:'#3c4a42', btnSoftBorder:'#e2e6df'
+      },
+      {
+        id:'1b', name:'كحلي منتصف الليل ونحاسي', mood:'Midnight Navy + Copper — تنفيذي رصين',
+        swatches:['#16233b','#c8863c','#4a72a8','#b0433b'],
+        appBg:'#f3f5f8', sumBg:'linear-gradient(120deg,#16233b,#243a5e)', sumText:'#cfd9e8', sumTitle:'#fff',
+        accent:'#e0a94e', accentFg:'#a5762a', accentSoft:'#fbf3e6',
+        danger:'#b0433b', dangerSoft:'#f9efee', info:'#3f6ea8', infoSoft:'#eef3f9',
+        typeSoft:'#e8eef7', typeFg:'#3f6ea8',
+        btnPrimary:'#1e3050', btnSoft:'#eef1f6', btnSoftFg:'#33445e', btnSoftBorder:'#dde3ec'
+      },
+      {
+        id:'1c', name:'فحمي وزمردي', mood:'Charcoal + Emerald — سليك بأسلوب Linear',
+        swatches:['#1c1f26','#2e9e6b','#5b8def','#e0574a'],
+        appBg:'#f4f5f6', sumBg:'linear-gradient(120deg,#1c1f26,#2c313c)', sumText:'#cdd2da', sumTitle:'#fff',
+        accent:'#3fb883', accentFg:'#1f7a52', accentSoft:'#e7f5ee',
+        danger:'#d15448', dangerSoft:'#fbeeec', info:'#5b8def', infoSoft:'#edf2fd',
+        typeSoft:'#e9f5ef', typeFg:'#1f7a52',
+        btnPrimary:'#20242d', btnSoft:'#eef0f2', btnSoftFg:'#3a4049', btnSoftBorder:'#e0e3e7'
+      },
+      {
+        id:'1d', name:'أزرق بترولي ورملي دافئ', mood:'Slate Teal + Warm Sand — هادئ وحكومي',
+        swatches:['#1f4a4a','#cf9f5f','#3f7a86','#b0574a'],
+        appBg:'#f3f5f4', sumBg:'linear-gradient(120deg,#1f4a4a,#2d6666)', sumText:'#d4e2e0', sumTitle:'#fff',
+        accent:'#d9ad6a', accentFg:'#9a7333', accentSoft:'#f9f2e5',
+        danger:'#b0574a', dangerSoft:'#f8efed', info:'#3f7a86', infoSoft:'#ecf3f4',
+        typeSoft:'#e6f0f0', typeFg:'#2d6666',
+        btnPrimary:'#1f4a4a', btnSoft:'#eef2f1', btnSoftFg:'#33514f', btnSoftBorder:'#dde5e3'
+      },
+      {
+        id:'1e', name:'أرجواني ملكي وذهبي', mood:'Royal Aubergine + Gold — فخم ورسمي',
+        swatches:['#2e2440','#c9a24b','#5a6ea8','#b0433b'],
+        appBg:'#f5f3f7', sumBg:'linear-gradient(120deg,#2e2440,#43335e)', sumText:'#d9d2e4', sumTitle:'#fff',
+        accent:'#dcb662', accentFg:'#9a7a2e', accentSoft:'#f9f4e7',
+        danger:'#b0455f', dangerSoft:'#f9eef1', info:'#5a6ea8', infoSoft:'#eef1f8',
+        typeSoft:'#eceaf5', typeFg:'#5a4d8a',
+        btnPrimary:'#2e2440', btnSoft:'#f0eef4', btnSoftFg:'#44395e', btnSoftBorder:'#e4dfec'
+      }
+    ];
+    const purples = [
+      {
+        id:'2a', name:'بنفسجي ملكي وذهبي', mood:'Royal Purple + Gold — فخم ورسمي',
+        swatches:['#4a2b6b','#c9a24b','#6a5a9e','#b0455f'],
+        appBg:'#f6f3f9', sumBg:'linear-gradient(120deg,#3a2158,#4a2b6b)', sumText:'#e0d6ee', sumTitle:'#fff',
+        accent:'#dcb662', accentFg:'#8f6a2e', accentSoft:'#f8f2e5',
+        danger:'#b0455f', dangerSoft:'#f9eef1', info:'#6a5a9e', infoSoft:'#efedf7',
+        typeSoft:'#ece7f6', typeFg:'#5a3f8a',
+        btnPrimary:'#4a2b6b', btnSoft:'#f1ecf7', btnSoftFg:'#4a3a63', btnSoftBorder:'#e5ddef'
+      },
+      {
+        id:'2b', name:'برقوقي عميق وشمبانيا', mood:'Deep Plum + Champagne — راقٍ ودافئ',
+        swatches:['#3d2436','#d8b98c','#8a6a94','#c15a6b'],
+        appBg:'#f7f3f5', sumBg:'linear-gradient(120deg,#2f1b2a,#4a2c42)', sumText:'#e6d9e2', sumTitle:'#fff',
+        accent:'#d8b98c', accentFg:'#9a7748', accentSoft:'#f7f0e6',
+        danger:'#c15a6b', dangerSoft:'#faeef0', info:'#8a6a94', infoSoft:'#f1ecf3',
+        typeSoft:'#efe6ee', typeFg:'#7a4f74',
+        btnPrimary:'#3d2436', btnSoft:'#f2ecf0', btnSoftFg:'#4f3a49', btnSoftBorder:'#e8dde5'
+      },
+      {
+        id:'2c', name:'إنديجو بنفسجي عصري', mood:'Indigo Violet — سليك بأسلوب Linear',
+        swatches:['#2a2350','#8b7bf0','#5b8def','#e0574a'],
+        appBg:'#f4f4f8', sumBg:'linear-gradient(120deg,#211c42,#2f2760)', sumText:'#d6d2ea', sumTitle:'#fff',
+        accent:'#9d8ef5', accentFg:'#5a48c4', accentSoft:'#eeebfd',
+        danger:'#e0574a', dangerSoft:'#fbeeec', info:'#5b8def', infoSoft:'#edf2fd',
+        typeSoft:'#ebe8fb', typeFg:'#5a48c4',
+        btnPrimary:'#2a2350', btnSoft:'#eeedf5', btnSoftFg:'#3c3663', btnSoftBorder:'#e0ddee'
+      },
+      {
+        id:'2d', name:'باذنجاني ووردي ذهبي', mood:'Aubergine + Rose Gold — أنيق وناعم',
+        swatches:['#38264a','#d8a48c','#7a5a9e','#c15a72'],
+        appBg:'#f6f3f7', sumBg:'linear-gradient(120deg,#2b1c3d,#43305e)', sumText:'#e2d8ec', sumTitle:'#fff',
+        accent:'#dba98f', accentFg:'#a06e52', accentSoft:'#f8f0ea',
+        danger:'#c15a72', dangerSoft:'#faeef1', info:'#7a5a9e', infoSoft:'#f0ecf6',
+        typeSoft:'#ece6f4', typeFg:'#6a4a8e',
+        btnPrimary:'#38264a', btnSoft:'#f0ecf4', btnSoftFg:'#493a5c', btnSoftBorder:'#e6dfed'
+      },
+      {
+        id:'2e', name:'بنفسجي رمادي هادئ', mood:'Muted Lavender Slate — حكومي وهادئ',
+        swatches:['#3a3752','#a9a0c9','#6d78a8','#b0576a'],
+        appBg:'#f5f5f8', sumBg:'linear-gradient(120deg,#2e2c44,#3f3c5c)', sumText:'#dcd9ea', sumTitle:'#fff',
+        accent:'#b3a9d4', accentFg:'#6a5f96', accentSoft:'#eeebf5',
+        danger:'#b0576a', dangerSoft:'#f8eef0', info:'#6d78a8', infoSoft:'#eef0f6',
+        typeSoft:'#e9e7f2', typeFg:'#5f5a88',
+        btnPrimary:'#3a3752', btnSoft:'#eeedf3', btnSoftFg:'#454263', btnSoftBorder:'#e1dfeb'
+      }
+    ];
+    return { palettes, purples };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  a{color:#1f4a37}a:hover{color:#2b5c44}
+  @keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#eef1ec;font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl;padding:32px 24px;color:#17211c">
+  <div style="max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px">
+
+    <!-- proposal banner -->
+    <div style="background:linear-gradient(120deg,#1e4634,#2b5c44);border-radius:18px;padding:18px 22px;color:#fff;display:flex;align-items:center;gap:14px">
+      <span style="width:44px;height:44px;flex:none;border-radius:12px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">م</span>
+      <div>
+        <div style="font-size:16px;font-weight:700">مقترح تحديث شاشة المشاريع — للمراجعة قبل الاعتماد</div>
+        <div style="font-size:12.5px;color:#bcd2c3;margin-top:3px">مخطط «الإنجاز حسب المشروع» في تبويب نظرة عامة + الحقول الجديدة على بطاقة المشروع (الأولوية، آخر مناقشة، الخطوة القادمة). لم يُدمج بعد في التصميم الحالي.</div>
+      </div>
+    </div>
+
+    <!-- portfolio KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div style="background:#fff;border:1px solid #eef1ec;border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:15px 16px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:{{ k.bg }};color:{{ k.accent }};margin-bottom:11px">{{ k.iconEl }}</span>
+          <div style="font-size:26px;font-weight:800;color:#17211c;line-height:1;letter-spacing:-.5px">{{ k.value }}</div>
+          <div style="font-size:14px;color:#7d867f;margin-top:5px">{{ k.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- new fields sample card -->
+    <div style="background:#fff;border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 16px 34px -24px rgba(23,40,32,.22)">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:14px">
+        <span style="width:8px;height:24px;border-radius:6px;background:#a9791f;flex:none"></span>
+        <h3 style="margin:0;font-size:17px;font-weight:800">مثال بطاقة مشروع بعد إضافة الحقول الجديدة</h3>
+      </div>
+      <div style="border-radius:20px;padding:5px;background:linear-gradient(135deg,#dbe8dd,#eef3ea 45%,#e6eef4)">
+        <div style="background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.65);border-radius:17px;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:18px 20px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:rgba(233,240,246,.85);color:#3a6ea5">قيد التنفيذ</span>
+            <span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:rgba(247,230,228,.85);color:#b0433b">أولوية عالية</span>
+            <span style="font-size:11px;font-weight:600;border-radius:20px;padding:4px 11px;background:rgba(242,244,240,.8);color:#6d7973">آخر مناقشة مع رئيس القطاع: 30 يونيو 2026 <span style="font-size:9px;background:#a9791f;color:#fff;border-radius:20px;padding:1px 6px;margin-inline-start:3px">جديد</span></span>
+          </div>
+          <div style="font-size:20px;font-weight:800;margin-bottom:4px">IT Managed Services (EHDF)</div>
+          <div style="font-size:12.5px;color:#7d867f;margin-bottom:14px">قطاع الخدمات المركزية · سيف بيضاني</div>
+
+          <!-- progress (حقل قديم) -->
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px">
+            <div style="flex:1;height:8px;background:rgba(23,40,32,.08);border-radius:20px;overflow:hidden"><div style="height:100%;width:78%;background:#3a6ea5;border-radius:20px"></div></div>
+            <div style="flex:none;font-size:15px;font-weight:800;color:#3a6ea5;letter-spacing:-.3px">78%</div>
+          </div>
+
+          <!-- الحقول القديمة -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-bottom:12px">
+            <div style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);border-radius:11px;padding:10px 12px">
+              <div style="font-size: 12px; color: #9aa39b; margin-bottom: 4px">المرحلة الحالية</div>
+              <div style="font-size:12.5px;font-weight:600;color:#2a332d">ترحيل خدمات JIRA</div>
+            </div>
+            <div style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);border-radius:11px;padding:10px 12px">
+              <div style="font-size: 12px; color: #9aa39b; margin-bottom: 4px">تاريخ نهاية المشروع</div>
+              <div style="font-size:12.5px;font-weight:600;color:#2a332d">7 أغسطس 2026</div>
+            </div>
+            <div style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);border-radius:11px;padding:10px 12px">
+              <div style="font-size: 12px; color: #9aa39b; margin-bottom: 4px">الموعد النهائي</div>
+              <div style="font-size:12.5px;font-weight:600;color:#2a332d">7 أغسطس 2026</div>
+            </div>
+            <div style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);border-radius:11px;padding:10px 12px">
+              <div style="font-size: 12px; color: #9aa39b; margin-bottom: 4px">آخر تحديث</div>
+              <div style="font-size:12.5px;font-weight:600;color:#2a332d">30 يونيو 2026</div>
+            </div>
+          </div>
+
+          <!-- الحقول الجديدة -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+            <div style="background:rgba(251,240,214,.5);border:1px solid rgba(239,227,201,.7);border-radius:12px;padding:12px 14px">
+              <div style="font-size:11px;color:#a9791f;font-weight:700;margin-bottom:6px">الخطوة القادمة <span style="font-size:9px;background:#a9791f;color:#fff;border-radius:20px;padding:1px 7px;margin-inline-start:4px">جديد</span></div>
+              <div style="font-size:12.5px;color:#3c4a42;line-height:1.6">قياس نسبة رضا المستخدمين، وتخطيط ترحيل JIRA إلى Ivanti.</div>
+            </div>
+            <div style="background:rgba(233,240,246,.5);border:1px solid rgba(212,225,236,.7);border-radius:12px;padding:12px 14px">
+              <div style="font-size:11px;color:#3a6ea5;font-weight:700;margin-bottom:6px">آخر تحديث من الفريق</div>
+              <div style="font-size:12.5px;color:#3c4a42;line-height:1.6">تم إلحاق جميع موارد الواجهة الأمامية؛ العمل جارٍ على ترحيل خدمات JIRA.</div>
+            </div>
+          </div>
+
+          <!-- قرار تمديد الموعد النهائي (لرئيس القطاع) -->
+          <div style="margin-top:12px;background:#fbf1ef;border:1px solid #ecd7d2;border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b0433b" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+            <div style="flex:1;min-width:200px;font-size:12px;color:#7a4a44;line-height:1.55"><b style="color: rgb(176, 67, 59);">الموعد النهائي المقترح :</b> من 1 مايو إلى 4 أغسطس 2026 — بانتظار الإعتماد.</div>
+            <div style="display:flex;gap:7px;flex:none">
+              <button style="background:#8a3229;color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">اعتماد</button>
+              <button style="background:#fff;color:#8a3229;border:1px solid #e6b7b1;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">رفض</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:#6d7973;line-height:1.7;background:#f2f7f3;border-radius:12px;padding:12px 15px">
+        <b>ما سيُضاف فعلياً:</b> «الأولوية» و«تاريخ آخر مناقشة مع رئيس القطاع» و«الخطوة القادمة» كحقول على كل مشروع جديد من المستند (18 مشروعاً). الحقول الموجودة مسبقاً (نسبة الإنجاز، الموعد النهائي) تبقى كما هي. المخطط أعلاه يُضاف داخل تبويب «نظرة عامة» في شاشة المشاريع.
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  ic(paths,stroke){return React.createElement('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:stroke||'currentColor','strokeWidth':1.9,strokeLinecap:'round',strokeLinejoin:'round',dangerouslySetInnerHTML:{__html:paths}});}
+  renderVals(){
+    const BLUE='#3a6ea5',RED='#b0433b',GRAY='#9aa39b',AMBER='#a9791f',GREEN='#1f8a5b';
+    const IC={
+      folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>',
+      task:'<path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>',
+      tick:'<circle cx="12" cy="12" r="9"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path>',
+      timer:'<circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 1.5M9 2h6"></path>'
+    };
+    const exec=[
+      {name:'IT Managed Services (EHDF)',pct:78,late:false},
+      {name:'Telecom Services Cleanup',pct:43,late:true},
+      {name:'TDRA Migration',pct:97,late:false},
+      {name:'Performance Framework',pct:35,late:false},
+      {name:'Executive Dashboard',pct:0,late:true},
+      {name:'Website Cleanup',pct:40,late:true},
+      {name:'MOCA Ride',pct:90,late:true},
+      {name:'Unified WiFi',pct:90,late:false},
+      {name:'MailBox Cleanup',pct:90,late:false},
+      {name:'Pantry Services',pct:48,late:false},
+      {name:'IP Telephony',pct:90,late:false},
+      {name:'Group E-Mail Automation',pct:10,late:false}
+    ];
+    const pipeline=[
+      {name:'CCTV Upgrade',pct:10},
+      {name:'Oracle Upgrade',pct:null},
+      {name:'Devices As A Service',pct:null},
+      {name:'Paper-Less',pct:10}
+    ];
+    const done=[
+      {name:'GovSign Phase 1',pct:100},
+      {name:'Group E-Mail Cleanup',pct:100}
+    ];
+    const execRows=exec.map(r=>{const c=r.pct===0?GRAY:(r.late?RED:BLUE);return {name:r.name,pct:r.pct+'%',width:r.pct+'%',color:c,chip:r.late?'متأخر':(r.pct===0?'لم يبدأ':'قيد التنفيذ'),chipBg:r.late?'#f7e6e4':(r.pct===0?'#f2f4f0':'#e9f0f6')};});
+    const pipeRows=pipeline.map(r=>({name:r.name,pct:r.pct==null?'N/A':(r.pct+'%'),width:(r.pct==null?4:r.pct)+'%',color:AMBER,chip:'قيد الإعداد',chipBg:'#fbf0d6'}));
+    const doneRows=done.map(r=>({name:r.name,pct:'100%',width:'100%',color:GREEN,chip:'مكتمل',chipBg:'#e2f0e8'}));
+    return {
+      kpis:[
+        {label:'إجمالي المشاريع',value:'18',accent:'#2b5c44',bg:'#eef3f0',iconEl:this.ic(IC.folder)},
+        {label:'متوسط الإنجاز',value:'62%',accent:'#2f6aa8',bg:'#e6eef6',iconEl:this.ic(IC.task)},
+        {label:'مكتملة',value:'2',accent:'#1f8a5b',bg:'#e2f0e8',iconEl:this.ic(IC.tick)},
+        {label:'متأخرة',value:'4',accent:'#b0433b',bg:'#f7e6e4',iconEl:this.ic(IC.timer)}
+      ],
+      groups:[
+        {title:'قيد التنفيذ (Execution)',dot:BLUE,countLabel:'12 مشروعاً',rows:execRows},
+        {title:'قيد الإعداد (Pipeline)',dot:AMBER,countLabel:'4 مشاريع',rows:pipeRows},
+        {title:'مكتملة (Completed)',dot:GREEN,countLabel:'مشروعان',rows:doneRows}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

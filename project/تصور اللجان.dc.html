@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  a{color:#1f4a37}a:hover{color:#2b5c44}
+  @keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#eef1ec;font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl;padding:30px 26px;color:#17211c">
+  <div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px">
+
+    <div style="background:linear-gradient(120deg,#1e4634,#2b5c44);border-radius:18px;padding:16px 22px;color:#fff;display:flex;align-items:center;gap:14px">
+      <span style="width:42px;height:42px;flex:none;border-radius:12px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700">م</span>
+      <div>
+        <div style="font-size:16px;font-weight:700">تصوّر قسم «اللجان وفرق العمل» — للمراجعة قبل التنفيذ</div>
+        <div style="font-size:12.5px;color:#bcd2c3;margin-top:3px">بطاقات مختصرة ← تفاصيل اللجنة بتبويبات ← اجتماعات ومهام ← معاينة القرار. لم يُدمج بعد.</div>
+      </div>
+    </div>
+
+    <!-- 1. MAIN PAGE -->
+    <div style="background:#fff;border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 16px 34px -24px rgba(23,40,32,.2)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px"><span style="width:26px;height:26px;border-radius:8px;background:#e9f0ec;color:#1f4a37;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800">1</span><h3 style="margin:0;font-size:17px;font-weight:800">صفحة اللجان الرئيسية</h3></div>
+      <p style="margin:0 0 16px 35px;font-size:12px;color:#9aa39b">بطاقات ملخص أعلى الصفحة، ثم قائمة اللجان كبطاقات مختصرة.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:20px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+          <div style="background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.7);border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,.14);padding:16px 16px;display:flex;flex-direction:column;gap:12px">
+            <span style="width:34px;height:34px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;background:{{ k.bg }};color:{{ k.c }}" data-icon="{{ k.ic }}"></span>
+            <div><div style="font-size:26px;font-weight:800;color:#17211c;letter-spacing:-.5px;line-height:1">{{ k.v }}</div><div style="font-size:10.5px;color:#6d7973;margin-top:6px;line-height:1.4">{{ k.l }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+          <div style="border:1px solid rgba(255,255,255,.7);border-radius:15px;padding:16px 17px;background:rgba(255,255,255,.5);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);box-shadow:0 10px 36px -18px rgba(30,60,40,.18);display:flex;flex-direction:column;gap:13px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+              <div style="font-size:14px;font-weight:800;color:#17211c;line-height:1.55;min-height:44px">{{ c.name }}</div>
+              <span style="flex:none;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{ c.stBg }};color:{{ c.stFg }};white-space:nowrap">{{ c.status }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;font-size:11.5px;color:#3c4a42;border-top:1px solid #eef1ec;padding-top:12px">
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;color:#9aa39b;font-weight:600">المقرر</span><span style="font-weight:600">{{ c.rapporteur }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;color:#9aa39b;font-weight:600">آخر اجتماع</span><span style="font-weight:600">{{ c.last }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;color:#9aa39b;font-weight:600">الاجتماعات</span><span style="font-weight:600">{{ c.meetings }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;color:#9aa39b;font-weight:600">مهام مفتوحة</span><span style="font-weight:600">{{ c.openTasks }}</span></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end"><button style="background:#f2f4f0;color:#3c4a42;border:1px solid #e2e6df;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">عرض التفاصيل</button></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 2. DETAIL TABS -->
+    <div style="background:#fff;border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 16px 34px -24px rgba(23,40,32,.2)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px"><span style="width:26px;height:26px;border-radius:8px;background:#e9f0ec;color:#1f4a37;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800">2</span><h3 style="margin:0;font-size:17px;font-weight:800">تفاصيل اللجنة — أربع تبويبات</h3></div>
+      <p style="margin:0 0 16px 35px;font-size:12px;color:#9aa39b">مثال: اللجنة الإشرافية للأمن السيبراني ومشاريع الخدمات الذكية.</p>
+
+      <div style="display:flex;gap:7px;background:#f2f4f0;border-radius:11px;padding:4px;margin-bottom:18px;flex-wrap:wrap;width:fit-content">
+        <span style="background:#1e4634;color:#fff;border-radius:8px;padding:8px 15px;font-size:12.5px;font-weight:700">الملخص</span>
+        <span style="color:#5b6b62;padding:8px 15px;font-size:12.5px;font-weight:600">الاجتماعات والمهام</span>
+        <span style="color:#5b6b62;padding:8px 15px;font-size:12.5px;font-weight:600">القرارات المرفقة</span>
+        <span style="color:#5b6b62;padding:8px 15px;font-size:12.5px;font-weight:600">الأعضاء والحضور</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px">
+        <sc-for list="{{ summary }}" as="s" hint-placeholder-count="6">
+          <div style="background:#f7f9f7;border:1px solid #eef1ec;border-radius:12px;padding:12px 14px">
+            <div style="font-size:10.5px;color:#9aa39b;margin-bottom:5px">{{ s.k }}</div>
+            <div style="font-size:13px;font-weight:600;color:#2a332d;line-height:1.5">{{ s.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 3. MEETINGS + TASKS -->
+    <div style="background:#fff;border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 16px 34px -24px rgba(23,40,32,.2)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px"><span style="width:26px;height:26px;border-radius:8px;background:#e9f0ec;color:#1f4a37;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800">3</span><h3 style="margin:0;font-size:17px;font-weight:800">تبويب الاجتماعات والمهام — الأهم</h3></div>
+      <p style="margin:0 0 16px 35px;font-size:12px;color:#9aa39b">آخر اجتماع أولاً، وتحته المهام الناتجة عنه.</p>
+
+      <div style="border:1px solid #e6ece7;border-radius:14px;overflow:hidden">
+        <div style="background:#f3f7f3;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid #e6ece7">
+          <span style="flex:none;font-size:11px;font-weight:700;color:#1f4a37;background:#e4efe7;border-radius:8px;padding:5px 11px">الاجتماع الثالث · 24 يونيو 2026</span>
+          <div style="flex:1;min-width:0;font-size:12px;color:#5b6b62">الحضور: 6 من 8 · <b style="color:#2e7d55">يوجد محضر</b> · 3 مهام ناتجة</div>
+        </div>
+        <div style="padding:6px 0">
+          <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #f4f6f2;flex-wrap:wrap">
+              <span style="flex:none;width:8px;height:8px;border-radius:50%;background:{{ t.dot }}"></span>
+              <div style="flex:1;min-width:160px"><div style="font-size:13px;font-weight:600;color:#17211c;line-height:1.5">{{ t.title }}</div><div style="font-size:11px;color:#9aa39b;margin-top:2px">المسؤول: {{ t.owner }} · الإنجاز: {{ t.due }}</div></div>
+              <span style="flex:none;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{ t.stBg }};color:{{ t.stFg }}">{{ t.status }}</span>
+              <div style="flex:none;display:flex;gap:6px;flex-wrap:wrap">
+                <span style="background:#1e4634;color:#fff;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600">إضافة توجيه</span>
+                <span style="background:#f2f4f0;color:#3c4a42;border:1px solid #e2e6df;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600">طلب تحديث</span>
+                <span style="background:#fbf3df;color:#8a6a1f;border:1px solid #ecdcae;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600">تحديد موعد</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. DECISION PREVIEW -->
+    <div style="background:#fff;border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 16px 34px -24px rgba(23,40,32,.2)">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px"><span style="width:26px;height:26px;border-radius:8px;background:#e9f0ec;color:#1f4a37;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800">4</span><h3 style="margin:0;font-size:17px;font-weight:800">القرارات المرفقة — معاينة عند الضغط</h3></div>
+      <p style="margin:0 0 16px 35px;font-size:12px;color:#9aa39b">القرار يُفتح كمعاينة داخل الصفحة؛ الملغى يظهر بعلامة واضحة.</p>
+
+      <div style="display:flex;gap:13px;flex-wrap:wrap">
+        <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="3">
+          <div style="border:1px solid #eef1ec;border-radius:13px;padding:14px 16px;background:#fbfcfb;min-width:200px;flex:1;display:flex;flex-direction:column;gap:9px;opacity:{{ d.op }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:13px;font-weight:800;color:#17211c">قرار رقم ({{ d.num }})</span>
+              <span style="flex:none;font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;background:{{ d.kBg }};color:{{ d.kFg }}">{{ d.kind }}</span>
+            </div>
+            <div style="font-size:11.5px;color:#7d867f">لسنة {{ d.year }}</div>
+            <button style="background:#eef3f6;color:#2f6aa8;border:1px solid #d8e4ee;border-radius:8px;padding:7px 12px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">عرض القرار</button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background:#f2f7f3;border-radius:14px;padding:15px 18px;font-size:12.5px;color:#3c4a42;line-height:1.8">
+      <b>ملخص التدفق:</b> بطاقات مختصرة (اسم + مقرر + اجتماعات + مهام مفتوحة + آخر اجتماع + حالة) ← تفاصيل بأربع تبويبات ← الاجتماعات والمهام (آخر اجتماع أولاً + مهامه بأزرار الإجراء) ← معاينة القرار داخل الصفحة. والصفحة الرئيسية للمنصة تُبرز فقط: لجان بمهام متأخرة، اجتماعات قادمة، لجان تحتاج متابعة، ومهام لجان تحتاج توجيه. هل أعتمده وأبني القسم؟
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){this._icons();}
+  componentDidUpdate(){this._icons();}
+  _icons(){const I={list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',alert:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',cal:'<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>'};document.querySelectorAll('[data-icon]').forEach(el=>{const k=el.getAttribute('data-icon');if(I[k])el.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+I[k]+'</svg>';});}
+  renderVals(){
+    const st={active:['#e2f0e8','#2e7d55'],follow:['#fbf3df','#8a6a1f'],none:['#eceae6','#8a8078'],late:['#f7e6e4','#b0433b'],cancel:['#f0e6e4','#9a3a2b']};
+    const mk=(name,rapporteur,meetings,openTasks,last,status,tone)=>({name,rapporteur,meetings,openTasks,last,status,stBg:st[tone][0],stFg:st[tone][1]});
+    return {
+      kpis:[
+        {v:'8',l:'إجمالي اللجان',c:'#1f4a37',bg:'#e9f0ec',ic:'list'},
+        {v:'4',l:'لجان بمهام مفتوحة',c:'#3a6ea5',bg:'#e9f0f6',ic:'folder'},
+        {v:'2',l:'مهام متأخرة',c:'#b0433b',bg:'#f7e6e4',ic:'alert'},
+        {v:'1',l:'اجتماعات هذا الشهر',c:'#a9791f',bg:'#fbf3df',ic:'cal'},
+        {v:'6',l:'قرارات مرفقة',c:'#7a4d94',bg:'#f3ecf6',ic:'doc'}
+      ],
+      cards:[
+        mk('اللجنة الإشرافية للأمن السيبراني ومشاريع الخدمات الذكية والبنية الرقمية','سماح أبوشرخ + شيماء المحروق','3','2','24 يونيو 2026','نشطة','active'),
+        mk('اللجنة الإشرافية لقيادة تطوير خدمات التمكين الرقمي','سماح أبوشرخ','0','0','—','لا توجد اجتماعات','none'),
+        mk('لجنة بيع الأصول والموجودات','موزة المرزوقي','1','1','أبريل 2026','تحتاج متابعة','follow'),
+        mk('اللجنة التوجيهية لأمن المعلومات','شيماء المحروق','1','2','مايو 2026','مهام متأخرة','late')
+      ],
+      summary:[
+        {k:'الغاية من التشكيل',v:'التوصية لرئيس القطاع ونقاط تطوير تقنية'},
+        {k:'الرئيس',v:'رئيس القطاع'},
+        {k:'المقرر',v:'سماح أبوشرخ + شيماء المحروق'},
+        {k:'رقم القرار الحالي',v:'(30) لسنة 2026'},
+        {k:'دورية الاجتماعات',v:'شهري'},
+        {k:'الاجتماعات (فعلي / مطلوب)',v:'3 / 12'}
+      ],
+      tasks:[
+        {title:'رفع التوصيات التقنية لمشاريع البنية الرقمية','owner':'سيف البيضاني','due':'10 يوليو 2026',status:'قيد التنفيذ',stBg:'#fbf0d6',stFg:'#a9791f',dot:'#a9791f',owner:'سيف البيضاني'},
+        {title:'مراجعة خطة الأمن السيبراني للربع الثالث','owner':'عبدالرحمن البلوشي','due':'متأخرة','status':'متأخر',stBg:'#f7e6e4',stFg:'#b0433b',dot:'#b0433b',owner:'عبدالرحمن البلوشي'},
+        {title:'اعتماد محضر الاجتماع الثالث','owner':'شيماء المحروق','due':'مكتمل','status':'مكتمل',stBg:'#e2f0e8',stFg:'#2e7d55',dot:'#2e7d55',owner:'شيماء المحروق'}
+      ],
+      decisions:[
+        {num:'30',year:'2026',kind:'حالي',kBg:'#e2f0e8',kFg:'#2e7d55',op:'1'},
+        {num:'06',year:'2025',kind:'سابق',kBg:'#eef3f6',kFg:'#2f6aa8',op:'1'},
+        {num:'120',year:'2024',kind:'ملغى',kBg:'#f0e6e4',kFg:'#9a3a2b',op:'.6'}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

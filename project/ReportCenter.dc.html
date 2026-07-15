@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+<script src="./dc-shared.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+@keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+@keyframes ovBg{from{opacity:0}to{opacity:1}}
+@keyframes slideInX{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+/*__mob__*/
+@media(max-width:640px){
+  .rg2,.rg3,.rg4,.rg5,.ov-stats,.lv-kpis,.lv-cat,.lv-cards{grid-template-columns:1fr!important}
+  table thead{display:none!important}
+  table tr{display:block!important;margin-bottom:10px;border:1px solid var(--ceef0ec,#eef0ec);border-radius:12px;padding:4px 10px;background:#fff}
+  table td{display:flex!important;justify-content:space-between;gap:12px;border:none!important;padding:7px 2px!important;white-space:normal!important;max-width:none!important;text-align:start}
+  .trow{grid-template-columns:1fr!important;min-width:0!important;gap:5px!important}
+  div:has(> table){overflow-x:visible!important}
+  .cal-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+}
+
+.fbtn{display:none}
+@media(max-width:640px){.fbtn{display:inline-flex!important;align-items:center;gap:8px;cursor:pointer;background:#fff;border:1px solid #eef1ec;border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.05);padding:11px 16px;font-size:13px;font-weight:600;color:#1e4634;margin-bottom:14px;user-select:none}.mfbar{display:none!important}.fcb:checked ~ .mfbar{display:flex!important;flex-direction:column!important;align-items:stretch!important}.fcb:checked ~ .fbtn .fchev{transform:rotate(180deg)}.mfbar>*{width:100%!important;min-width:0!important;flex:none!important}.mfbar [data-dd] button,.mfbar [data-dd]{width:100%!important}}
+</style>
+</helmet>
+<div style="min-height:1px">
+<!-- ===================== REPORT CENTER ===================== -->
+      <sc-if value="{{ isReportCenter }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <div style="max-width:640px;margin-bottom:22px">
+            <p style="margin:0;font-size:13.5px;color:var(--c6f7a72,#6f7a72);line-height:1.7">{{ t.rc_intro }}</p>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px">
+            <sc-for list="{{ reportCards }}" as="r" hint-placeholder-count="1">
+              <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:22px 22px 20px;display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                  <div style="width:46px;height:46px;border-radius:13px;background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37);display:flex;align-items:center;justify-content:center;flex:none">{{ r.iconEl }}</div>
+                  <span style="font-size:11px;font-weight:700;border-radius:20px;padding:5px 12px;background:{{r.stBg}};color:{{r.stFg}}">{{ r.statusLabel }}</span>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;font-weight:700;color:var(--ca9791f,#a9791f);letter-spacing:.04em;margin-bottom:6px">{{ r.catLabel }}</div>
+                  <h3 style="margin:0 0 6px;font-size:16.5px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.4">{{ r.title }}</h3>
+                  
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--c3c4a42,#3c4a42);background:var(--cf3f5f1,#f3f5f1);border-radius:8px;padding:5px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg><span style="color:var(--c9aa39b,#9aa39b)">{{ t.rc_period }}:</span><span style="font-weight:600">{{ r.periodLabel }}</span></span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--c3c4a42,#3c4a42);background:var(--cf3f5f1,#f3f5f1);border-radius:8px;padding:5px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg><span style="color:var(--c9aa39b,#9aa39b)">{{ t.rc_freq }}:</span><span style="font-weight:600">{{ r.freqLabel }}</span></span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--c3c4a42,#3c4a42);background:var(--cf3f5f1,#f3f5f1);border-radius:8px;padding:5px 10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M3 21h18M6 21V8l6-4 6 4v13M10 12h4M10 16h4"></path></svg><span style="color:var(--c9aa39b,#9aa39b)">{{ t.rc_entity }}:</span><span style="font-weight:600">{{ r.entityLabel }}</span></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;border-top:1px solid var(--cf0f2ee,#f0f2ee);padding-top:12px">
+                  <span style="width:31px;height:31px;flex:none;border-radius:50%;overflow:hidden;background:var(--ce9f0ec,#e9f0ec)">{{ r.ownerAvatar }}</span>
+                  <div style="flex:1;line-height:1.35"><div style="font-size:12px;font-weight:600;color:var(--c2a332d,#2a332d)">{{ r.ownerName }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ r.ownerRole }}</div></div>
+                  <span style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ r.updatedLabel }}</span>
+                </div>
+                <div style="display:flex;gap:9px">
+                  <button onClick="{{ r.open }}" style="flex:1;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:10px;padding:11px;font-size:12.5px;font-weight:600;cursor:pointer">{{ r.viewLabel }}</button>
+                  <button style="background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c3c4a42,#3c4a42);border-radius:10px;padding:11px 14px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"></path></svg>{{ r.downloadLabel }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===================== REPORT DETAIL (Retention Payments) ===================== -->
+      <sc-if value="{{ isReportDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <!-- header strip -->
+          <div style="background:linear-gradient(120deg,var(--c1e4634,#1e4634),var(--c2b5c44,#2b5c44));border-radius:22px;padding:24px 26px;color:var(--ceaf1ec,#eaf1ec);margin-bottom:20px;display:flex;flex-wrap:wrap;align-items:center;gap:18px">
+            <div style="flex:1;min-width:240px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:11px;font-weight:700;background:rgba(255,255,255,.16);border-radius:20px;padding:5px 12px">{{ rep.freqLabel }}</span><span style="font-size:11px;font-weight:700;background:var(--ce2f0e8,#e2f0e8);color:var(--c1f4a37,#1f4a37);border-radius:20px;padding:5px 12px">{{ rep.statusLabel }}</span></div>
+              <h2 style="margin:0 0 6px;font-size:23px;font-weight:700;color:#fff;line-height:1.35">{{ rep.title }}</h2>
+              <div style="font-size:13px;color:var(--cbcd2c3,#bcd2c3)">{{ rep.periodLabel }} · {{ rep.entityLabel }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:11px 15px">
+              <span style="width:40px;height:40px;flex:none;border-radius:50%;overflow:hidden;background:rgba(255,255,255,.14)">{{ rep.ownerAvatar }}</span>
+              <div style="line-height:1.4"><div style="font-size:10.5px;color:var(--ca9c0b1,#a9c0b1)">{{ t.rc_responsible }}</div><div style="font-size:13.5px;font-weight:700;color:#fff">{{ rep.ownerName }}</div><div style="font-size:10.5px;color:var(--ca9c0b1,#a9c0b1)">{{ rep.ownerRole }}</div></div>
+            </div>
+            <button style="background:var(--ce9c877,#e9c877);color:var(--c3a2f10,#3a2f10);border:none;border-radius:11px;padding:12px 18px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"></path></svg>{{ t.rc_downloadFile }}</button>
+          </div>
+
+          <!-- version filter bar -->
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14);padding:15px 18px;margin-bottom:20px;display:flex;flex-wrap:wrap;align-items:center;gap:14px">
+            <div style="display:flex;align-items:center;gap:9px"><span style="font-size:12px;color:var(--c7d867f,#7d867f);font-weight:600">{{ t.rc_year }}</span><span>{{ rep.ddYear }}</span></div>
+            <div style="width:1px;height:26px;background:var(--ceef0ec,#eef0ec)"></div>
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap"><span style="font-size:12px;color:var(--c7d867f,#7d867f);font-weight:600">{{ t.rc_quarters }}</span>
+              <sc-for list="{{ rep.quarters }}" as="q" hint-placeholder-count="4">
+                <button onClick="{{ q.pick }}" style="{{ q.btnStyle }}"><span style="{{ q.dotStyle }}"></span>{{ q.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ rep.available }}" hint-placeholder-val="{{ true }}">
+          <!-- KPI cards -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;margin-bottom:22px">
+            <sc-for list="{{ rep.kpis }}" as="k" hint-placeholder-count="6">
+              <div style="background:var(--cffffff,#ffffff);border:none;border-radius:18px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 14px 34px -16px rgba(23,40,32,.16);padding:18px 18px 16px;border-top:3px solid {{k.accent}}">
+                <div style="font-size:11.5px;color:var(--c7d867f,#7d867f);margin-bottom:9px;line-height:1.4;min-height:32px">{{ k.label }}</div>
+                <div style="font-size:26px;font-weight:800;color:var(--c17211c,#17211c);line-height:1.05">{{ k.value }}</div>
+                <div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-top:4px">{{ k.unit }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- executive summary -->
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="width:32px;height:32px;border-radius:9px;background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.rc_summary }}</h3></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
+              <sc-for list="{{ rep.summary }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;gap:11px;align-items:flex-start;background:var(--cf7f9f6,#f7f9f6);border-radius:13px;padding:14px 15px"><span style="width:8px;height:8px;border-radius:50%;background:var(--c2e7d55,#2e7d55);margin-top:6px;flex:none"></span><span style="font-size:13px;color:var(--c3c4a42,#3c4a42);line-height:1.6">{{ s }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- strengths + weaknesses -->
+          <div class="rg2" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="width:32px;height:32px;border-radius:9px;background:var(--ce2f0e8,#e2f0e8);color:var(--c2e7d55,#2e7d55);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.rc_strengths }}</h3></div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ rep.strengths }}" as="s" hint-placeholder-count="4"><div style="display:flex;gap:10px;align-items:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2e7d55" stroke-width="2.2" style="margin-top:2px;flex:none"><path d="M20 6 9 17l-5-5"></path></svg><span style="font-size:13px;color:var(--c3c4a42,#3c4a42);line-height:1.6">{{ s }}</span></div></sc-for>
+              </div>
+            </div>
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px;border-top:3px solid var(--cb0433b,#b0433b)">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="width:32px;height:32px;border-radius:9px;background:var(--cf7e6e4,#f7e6e4);color:var(--cb0433b,#b0433b);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.rc_weaknesses }}</h3></div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ rep.weaknesses }}" as="w" hint-placeholder-count="4"><div style="display:flex;gap:10px;align-items:flex-start"><span style="width:6px;height:6px;border-radius:50%;background:var(--cb0433b,#b0433b);margin-top:7px;flex:none"></span><span style="font-size:13px;color:var(--c3c4a42,#3c4a42);line-height:1.6">{{ w }}</span></div></sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- recommendations -->
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="width:32px;height:32px;border-radius:9px;background:var(--cfbf0d6,#fbf0d6);color:var(--ca9791f,#a9791f);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.rc_recommendations }}</h3></div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:520px">
+                <thead><tr style="text-align:start">
+                  <th style="text-align:start;padding:10px 12px;font-size:11.5px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.rc_note }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11.5px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.rc_recommendation }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11.5px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.rc_importance }}</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ rep.recommendations }}" as="r" hint-placeholder-count="5"><tr>
+                    <td style="padding:13px 12px;color:var(--c3c4a42,#3c4a42);line-height:1.55;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top">{{ r.note }}</td>
+                    <td style="padding:13px 12px;color:var(--c17211c,#17211c);font-weight:500;line-height:1.55;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top">{{ r.rec }}</td>
+                    <td style="padding:13px 12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap"><span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:{{r.impBg}};color:{{r.impFg}}">{{ r.impLabel }}</span></td>
+                  </tr></sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- metrics by entity -->
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px;margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="width:32px;height:32px;border-radius:9px;background:var(--ce6eef6,#e6eef6);color:var(--c3a6ea5,#3a6ea5);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.rc_byEntity }}</h3></div>
+            <p style="margin:0 0 14px 42px;font-size:11.5px;color:var(--c9aa39b,#9aa39b)">{{ t.rc_byEntityNote }}</p>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ rep.entities }}" as="e" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:14px">
+                  <div style="width:74px;flex:none"><div style="font-size:13px;font-weight:700;color:var(--c17211c,#17211c)">{{ e.code }}</div><div style="font-size:10px;color:var(--c9aa39b,#9aa39b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.count }} {{ t.rc_paymentsWord }}</div></div>
+                  <div style="flex:1;height:26px;border-radius:8px;background:var(--cf0f2ee,#f0f2ee);overflow:hidden;position:relative"><div style="height:100%;background:{{e.barColor}};width:{{e.barW}}%;border-radius:8px;min-width:3px"></div></div>
+                  <div style="width:130px;flex:none;text-align:end"><div style="font-size:13px;font-weight:700;color:var(--c17211c,#17211c)">{{ e.value }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ e.pct }}</div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- top cases -->
+          <div style="margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:32px;height:32px;border-radius:9px;background:var(--cf7e6e4,#f7e6e4);color:var(--cb0433b,#b0433b);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7z"></path><path d="M12 8v4m0 4h.01"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.rc_topCases }}</h3></div>
+            <div class="rg2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <sc-for list="{{ rep.topCases }}" as="c" hint-placeholder-count="2">
+                <div style="background:var(--cffffff,#ffffff);border:none;border-inline-start:4px solid var(--cb0433b,#b0433b);border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 14px 30px -16px rgba(23,40,32,.14);padding:18px 20px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px"><span style="font-size:14px;font-weight:800;color:var(--c17211c,#17211c);letter-spacing:.02em">{{ c.code }}</span><span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:var(--cf7e6e4,#f7e6e4);color:var(--cb0433b,#b0433b)">{{ c.statusLabel }}</span></div>
+                  <div style="display:flex;gap:24px">
+                    <div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:3px">{{ t.rc_value }}</div><div style="font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ c.value }}</div></div>
+                    <div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:3px">{{ t.rc_reason }}</div><div style="font-size:14px;font-weight:600;color:var(--c3c4a42,#3c4a42)">{{ c.reason }}</div></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- conclusion -->
+          <div style="background:linear-gradient(120deg,var(--c1e4634,#1e4634),var(--c2b5c44,#2b5c44));border-radius:22px;padding:26px 28px;color:var(--ceaf1ec,#eaf1ec)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="width:32px;height:32px;border-radius:9px;background:rgba(233,200,119,.2);color:var(--ce9c877,#e9c877);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:#fff">{{ t.rc_conclusion }}</h3></div>
+            <p style="margin:0;font-size:14.5px;color:var(--ceaf1ec,#eaf1ec);line-height:1.85">{{ rep.conclusion }}</p>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ rep.noVersion }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border:1px dashed var(--cd8ddd4,#d8ddd4);border-radius:22px;padding:56px 30px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px">
+              <span style="width:60px;height:60px;border-radius:16px;background:var(--cf4f6f2,#f4f6f2);color:var(--ca7b0a8,#a7b0a8);display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3H14l5 5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V4.5A1.5 1.5 0 0 1 6.5 3Z"></path><path d="M14 3v4a1 1 0 0 0 1 1h4"></path><path d="M9 15h6"></path></svg></span>
+              <div><h3 style="margin:0 0 6px;font-size:17px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.rc_noReport }}</h3><p style="margin:0;font-size:13px;color:var(--c8a938c,#8a938c)">{{ rep.periodLabel }}</p></div>
+              <button onClick="{{ rep.returnLatest }}" style="background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:11px;padding:12px 22px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 5 5v3"></path></svg>{{ t.rc_backLatest }}</button>
+              <div style="font-size:11.5px;color:var(--ca7b0a8,#a7b0a8)">{{ rep.latestPeriod }}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- ===================== AUDIT REPORT DETAIL ===================== -->
+      <sc-if value="{{ isAuditDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <!-- family filter bar -->
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14);padding:15px 18px;margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+            <div style="position:relative;flex:1;min-width:180px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="2" style="position:absolute;inset-inline-start:11px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ aud.fam.repSearch }}" onInput="{{ aud.fam.onRepSearch }}" placeholder="{{ t.au_searchReport }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:9px;padding:9px 12px;padding-inline-start:34px;font-size:12.5px;font-family:inherit"></div>
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-size:11.5px;color:var(--c7d867f,#7d867f);font-weight:600">{{ t.au_unit }}</span><span>{{ aud.fam.ddUnit }}</span></div>
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-size:11.5px;color:var(--c7d867f,#7d867f);font-weight:600">{{ t.rc_year }}</span><span>{{ aud.fam.ddYear }}</span></div>
+            <span>{{ aud.fam.ddRepStatus }}</span>
+          </div>
+
+          <!-- available reports list -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+            <sc-for list="{{ aud.fam.list }}" as="r" hint-placeholder-count="1">
+              <div onClick="{{ r.pick }}" style="cursor:pointer;background:{{r.selected}};border:1px solid var(--ce6eadf,#e6eadf);border-radius:14px;padding:13px 16px;min-width:230px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:10.5px;font-weight:700;color:var(--ca9791f,#a9791f)">{{ r.unit }} · {{ r.year }}</span><span style="font-size:9.5px;font-weight:700;border-radius:20px;padding:3px 9px;background:var(--cfbf0d6,#fbf0d6);color:var(--ca9791f,#a9791f)">{{ r.statusLabel }}</span></div>
+                <div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c);line-height:1.45">{{ r.title }}</div>
+                <div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ r.total }} {{ t.au_obsWord }} · {{ r.closed }} {{ t.rc_closedShort }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ aud.fam.available }}" hint-placeholder-val="{{ true }}">
+          <!-- header -->
+          <div style="background:linear-gradient(120deg,var(--c1e4634,#1e4634),var(--c2b5c44,#2b5c44));border-radius:22px;padding:24px 26px;color:var(--ceaf1ec,#eaf1ec);margin-bottom:20px;display:flex;flex-wrap:wrap;align-items:center;gap:18px">
+            <div style="flex:1;min-width:240px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap"><span style="font-size:11px;font-weight:700;background:rgba(233,200,119,.22);color:var(--cf0d488,#f0d488);border-radius:20px;padding:5px 12px">{{ aud.catLabel }}</span><span style="font-size:11px;font-weight:700;background:var(--cfbf0d6,#fbf0d6);color:var(--ca9791f,#a9791f);border-radius:20px;padding:5px 12px">{{ aud.statusLabel }}</span></div>
+              <h2 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#fff;line-height:1.4">{{ aud.title }}</h2>
+              <div style="font-size:13px;color:var(--cbcd2c3,#bcd2c3)">{{ aud.entityLabel }} · {{ aud.typeLabel }} · {{ aud.freqLabel }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:11px 15px">
+              <span style="width:40px;height:40px;flex:none;border-radius:50%;overflow:hidden;background:rgba(255,255,255,.14)">{{ aud.ownerAvatar }}</span>
+              <div style="line-height:1.4"><div style="font-size:10.5px;color:var(--ca9c0b1,#a9c0b1)">{{ t.rc_responsible }}</div><div style="font-size:13.5px;font-weight:700;color:#fff">{{ aud.ownerName }}</div><div style="font-size:10.5px;color:var(--ca9c0b1,#a9c0b1)">{{ aud.ownerRole }}</div></div>
+            </div>
+            <button style="background:var(--ce9c877,#e9c877);color:var(--c3a2f10,#3a2f10);border:none;border-radius:11px;padding:12px 18px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"></path></svg>{{ t.rc_downloadFile }}</button>
+          </div>
+
+          <!-- KPI summary -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px">
+            <sc-for list="{{ aud.kpis }}" as="k" hint-placeholder-count="5">
+              <div onClick="{{ k.onClick }}" style="{{ k.cardStyle }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                  <span style="width:42px;height:42px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;background:{{k.bg}};color:{{k.fg}}">{{ k.iconEl }}</span>
+                  <span style="{{ k.valueStyle }}">{{ k.value }}</span>
+                </div>
+                <div>
+                  <div style="font-size:13px;color:var(--c5b6b62,#5b6b62);font-weight:600">{{ k.label }}</div>
+                  <sc-if value="{{ k.hasSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-top:4px">{{ k.sub }}</div></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- observations needing follow-up (top 3) -->
+          <sc-if value="{{ aud.hasFollow }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:8px;height:26px;border-radius:6px;background:var(--cb0433b,#b0433b);flex:none"></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.au_topObs }}</h3></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+              <sc-for list="{{ aud.follow }}" as="a" hint-placeholder-count="3">
+                <div style="background:var(--cffffff,#ffffff);border:1px solid var(--ce6eae4,#e6eae4);border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 16px 36px -22px rgba(23,40,32,.16);padding:18px;display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;background:var(--cfbf0d6,#fbf0d6);color:var(--ca9791f,#a9791f)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>{{ a.reason }}</span>
+                    <span style="font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{a._bg}};color:{{a._fg}}">{{ a.statusLabel }}</span>
+                  </div>
+                  <div style="font-size:15px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.5">{{ a.area }}</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px">
+                    <span style="display:flex;align-items:center;gap:7px;min-width:0"><span style="width:24px;height:24px;flex:none;border-radius:50%;background:{{a.ownerBg}};color:{{a.ownerFg}};display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700">{{ a.ownerInitials }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--c3c4a42,#3c4a42);font-weight:600">{{ a.owner }}</span></span>
+                    <span style="display:flex;align-items:center;gap:5px;flex:none;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-weight:700;color:var(--c3c4a42,#3c4a42)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ a.due }}</span>
+                  </div>
+                  <div style="height:1px;background:var(--ceef0ec,#eef0ec)"></div>
+                  <div style="display:flex;gap:7px;flex-wrap:wrap">
+                    <button onClick="{{ a.open }}" style="flex:1;min-width:92px;background:var(--c1f4a37,#1f4a37);color:#fff;border:none;border-radius:9px;padding:9px 10px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.au_viewDetails }}</button>
+                    <sc-if value="{{ canApprove }}" hint-placeholder-val="{{ true }}"><button onClick="{{ a.addDirective }}" style="background:var(--cf3ecf6,#f3ecf6);color:var(--c7a4d94,#7a4d94);border:none;border-radius:9px;padding:9px 12px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer">{{ t.au_addDirective }}</button></sc-if>
+                    <button onClick="{{ a.requestUpdate }}" style="background:var(--cf4f6f2,#f4f6f2);color:var(--c3c4a42,#3c4a42);border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:9px 12px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">{{ t.au_requestUpdate }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          </sc-if>
+
+          <!-- all observations table -->
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:22px 24px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="width:32px;height:32px;border-radius:9px;background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.au_allObs }}</h3></div>
+            <input type="checkbox" id="fcb-reportcenter-1" class="fcb" style="display:none"><label for="fcb-reportcenter-1" class="fbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="10" y1="17" x2="14" y2="17"></line></svg><span>الفلاتر</span><svg class="fchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-inline-start:auto;transition:transform .2s"><path d="m6 9 6 6 6-6"></path></svg></label><div class="mfbar" style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+              <div style="position:relative;flex:1;min-width:170px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="2" style="position:absolute;inset-inline-start:11px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ aud.audSearch }}" onInput="{{ aud.onSearch }}" placeholder="{{ t.au_search }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:9px;padding:9px 12px;padding-inline-start:34px;font-size:12.5px;font-family:inherit"></div>
+              <span>{{ aud.ddStatus }}</span>
+              <span>{{ aud.ddOwner }}</span>
+              <span>{{ aud.ddDept }}</span>
+              <span>{{ aud.ddDue }}</span>
+              <button onClick="{{ aud.toggleLate }}" style="{{ aud.lateBtnStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{ t.au_onlyLate }}</button>
+              <button onClick="{{ aud.toggleNeedInt }}" style="{{ aud.needIntBtnStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 9l7 .5-5.4 4.6L18.5 21 12 17l-6.5 4 1.9-6.9L2 9.5 9 9z"></path></svg>{{ t.au_onlyNeedInt }}</button>
+              <button onClick="{{ aud.clearFilters }}" style="border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c7d867f,#7d867f);border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer">{{ t.au_clear }}</button>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px">
+                <thead><tr>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.au_num }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.au_observation }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.au_closureMechanism }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.thOwner }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.thStatus }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.au_dueDate }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.au_notes }}</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ aud.rows }}" as="a" hint-placeholder-count="10"><tr onClick="{{ a.open }}" class="trow" style="background:{{a._rowBg}};cursor:pointer">
+                    <td style="padding:12px;font-weight:800;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap">{{ a.num }}</td>
+                    <td style="padding:12px;color:var(--c17211c,#17211c);font-weight:600;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top">{{ a.area }}<ul style="margin:5px 0 0;padding-inline-start:16px;font-size:11px;color:var(--c9aa39b,#9aa39b);font-weight:400;line-height:1.6;max-width:260px"><sc-for list="{{ a.obsBullets }}" as="ob" hint-placeholder-count="2"><li style="margin-bottom:3px">{{ ob }}</li></sc-for></ul></td>
+                    <td style="padding:12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;max-width:280px"><ul style="margin:0;padding-inline-start:16px;color:var(--c3c4a42,#3c4a42);line-height:1.6"><sc-for list="{{ a.actionBullets }}" as="bl" hint-placeholder-count="2"><li style="margin-bottom:3px">{{ bl }}</li></sc-for></ul></td>
+                    <td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap">{{ a.owner }}</td>
+                    <td style="padding:12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap"><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{a._bg}};color:{{a._fg}}">{{ a.statusLabel }}</span></td>
+                    <td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap;font-family:ui-monospace,'SF Mono',Menlo,monospace">{{ a.due }}</td>
+                    <td style="padding:12px;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;line-height:1.5;max-width:180px">{{ a.notes }}</td>
+                  </tr></sc-for>
+                </tbody>
+              </table>
+              <sc-if value="{{ aud.noRows }}" hint-placeholder-val="{{ false }}"><div style="padding:34px;text-align:center;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ t.au_noReport }}</div></sc-if>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ audFamNone }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border:1px dashed var(--cd8ddd4,#d8ddd4);border-radius:22px;padding:56px 30px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px">
+              <span style="width:60px;height:60px;border-radius:16px;background:var(--cf4f6f2,#f4f6f2);color:var(--ca7b0a8,#a7b0a8);display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5.5c0 4.3 3 7.4 7 8.5 4-1.1 7-4.2 7-8.5V6z"></path><path d="M9.5 11.5h5M12 9v5"></path></svg></span>
+              <div><h3 style="margin:0 0 6px;font-size:17px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.au_noReport }}</h3><p style="margin:0;font-size:13px;color:var(--c8a938c,#8a938c)">{{ aud.fam.selTitle }}</p></div>
+              <button onClick="{{ aud.fam.returnLatest }}" style="background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:11px;padding:12px 22px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 5 5v3"></path></svg>{{ t.au_backLatest }}</button>
+            </div>
+          </sc-if>
+
+          <!-- observation side panel -->
+          <sc-if value="{{ aud.hasSel }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ aud.closePanel }}" style="position:fixed;inset:0;background:rgba(20,32,26,.4);z-index:60"></div>
+            <div class="aud-drawer" style="position:fixed;top:0;inset-inline-start:0;height:100%;width:min(460px,92vw);z-index:61;box-shadow:0 0 60px -8px rgba(0,0,0,.42);display:flex;flex-direction:column;animation:fadeUp .22s ease">
+              <div style="padding:20px 22px;border-bottom:1px solid var(--ceef0ec,#eef0ec)">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px">
+                  <div style="min-width:0"><div style="font-size:11px;font-weight:700;color:var(--ca9791f,#a9791f);margin-bottom:5px">{{ t.au_num }} {{ aud.selDetail.num }}</div><h3 style="margin:0;font-size:17px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.45">{{ aud.selDetail.area }}</h3></div>
+                  <button onClick="{{ aud.closePanel }}" style="flex:none;width:32px;height:32px;border-radius:9px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c7d867f,#7d867f);cursor:pointer;font-size:15px;font-family:inherit">✕</button>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <sc-if value="{{ canApprove }}" hint-placeholder-val="{{ true }}"><button onClick="{{ aud.selDetail.addDirective }}" style="display:inline-flex;align-items:center;gap:6px;background:var(--c1f4a37,#1f4a37);color:#fff;border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>{{ t.au_addDirective }}</button></sc-if>
+                  <button onClick="{{ aud.selDetail.requestUpdate }}" style="display:inline-flex;align-items:center;gap:6px;background:var(--cf3ecf6,#f3ecf6);color:var(--c7a4d94,#7a4d94);border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>{{ t.au_requestUpdate }}</button>
+                  <sc-if value="{{ canApprove }}" hint-placeholder-val="{{ true }}"><button onClick="{{ aud.selDetail.markReviewed }}" style="display:inline-flex;align-items:center;gap:6px;background:var(--ce2f0e8,#e2f0e8);color:var(--c2e7d55,#2e7d55);border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ t.au_markReviewed }}</button></sc-if>
+                </div>
+              </div>
+              <div style="flex:1;overflow-y:auto;padding:20px 22px;display:flex;flex-direction:column;gap:18px">
+                <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+                  <span style="font-size:11px;font-weight:700;border-radius:20px;padding:5px 12px;background:{{aud.selDetail._bg}};color:{{aud.selDetail._fg}}">{{ aud.selDetail.statusLabel }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--c2a332d,#2a332d);font-family:ui-monospace,'SF Mono',Menlo,monospace"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ aud.selDetail.due }}</span>
+                </div>
+                <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:6px">{{ t.thOwner }}</div><div style="display:flex;align-items:center;gap:9px"><span style="width:28px;height:28px;flex:none;border-radius:50%;background:{{aud.selDetail.ownerBg}};color:{{aud.selDetail.ownerFg}};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">{{ aud.selDetail.ownerInitials }}</span><span style="font-size:13px;font-weight:600;color:var(--c2a332d,#2a332d)">{{ aud.selDetail.owner }}</span></div></div>
+                <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:7px">{{ t.au_obsDetail }}</div><ul style="margin:0;padding-inline-start:18px;font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.75"><sc-for list="{{ aud.selDetail.obsBullets }}" as="ob" hint-placeholder-count="2"><li style="margin-bottom:5px">{{ ob }}</li></sc-for></ul></div>
+                <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:7px">{{ t.au_closureMechanism }}</div><ul style="margin:0;padding-inline-start:18px;font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.7"><sc-for list="{{ aud.selDetail.actionBullets }}" as="bl" hint-placeholder-count="2"><li style="margin-bottom:6px">{{ bl }}</li></sc-for></ul></div>
+                <div class="aud-drawer-note" style="border:1px solid var(--ceef1ec,#eef1ec);border-radius:12px;padding:14px 16px"><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:6px">{{ t.au_notes }}</div><p style="margin:0;font-size:12.5px;color:var(--c6d7973,#6d7973);line-height:1.7">{{ aud.selDetail.notes }}</p></div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+<!-- ===================== FINANCIAL EXECUTIVE SUMMARY ===================== -->
+      <sc-if value="{{ isFinDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <!-- header strip -->
+          <div style="background:linear-gradient(120deg,var(--c132b20,#132b20),var(--c1f4a37,#1f4a37) 55%,var(--c2b5c44,#2b5c44));border-radius:22px;padding:24px 26px;color:var(--ceaf1ec,#eaf1ec);margin-bottom:20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+            <span style="width:52px;height:52px;flex:none;border-radius:15px;background:rgba(233,200,119,.18);color:var(--ce9c877,#e9c877);display:flex;align-items:center;justify-content:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3.5 7.5V9h17V7.5zM5 9v8m4-8v8m6-8v8m4-8v8M3.5 17h17v2.5h-17z"></path></svg></span>
+            <div style="flex:1;min-width:200px">
+              <h2 style="margin:0;font-size:20px;font-weight:800">{{ t.fin_title }}</h2>
+              <div style="font-size:12.5px;color:var(--cbcd2c3,#bcd2c3);margin-top:3px">{{ t.rc_period }} · {{ fin.period }} · {{ crumb }}</div>
+            </div>
+            <button onClick="{{ fin.download }}" style="background:var(--ce9c877,#e9c877);color:var(--c3a2c08,#3a2c08);border:none;border-radius:11px;padding:11px 18px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"></path></svg>{{ t.fin_download }}</button>
+          </div>
+
+          <!-- KPI consolidated panels -->
+          <div class="rg2" style="display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:24px">
+            <!-- budget hero -->
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.25)">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+                <div>
+                  <div style="font-size:12px;color:var(--c7d867f,#7d867f);font-weight:600;margin-bottom:6px">{{ t.fin_title }} · {{ fin.period }}</div>
+                  <div style="font-size:30px;font-weight:800;color:var(--c1f4a37,#1f4a37);letter-spacing:-.5px">{{ fin.budgetVal }}</div>
+                </div>
+                <div style="text-align:end"><div style="font-size:12px;color:var(--c7d867f,#7d867f);font-weight:600;margin-bottom:4px">{{ t.fin_util }}</div><div style="font-size:24px;font-weight:800;color:var(--c3a6ea5,#3a6ea5)">{{ fin.utilPctLabel }}</div></div>
+              </div>
+              <div style="display:flex;height:13px;border-radius:8px;overflow:hidden;margin-bottom:12px;background:var(--ceef1ec,#eef1ec)">
+                <div style="height:100%;width:{{ fin.utilPctLabel }};background:var(--ca9791f,#a9791f)"></div>
+              </div>
+              <div style="display:flex;gap:22px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:8px"><span style="width:11px;height:11px;border-radius:3px;background:var(--ca9791f,#a9791f);flex:none"></span><span style="font-size:12px;color:var(--c7d867f,#7d867f)">{{ t.fin_used }}</span><b style="font-size:13.5px;color:var(--ca9791f,#a9791f)">{{ fin.usedVal }}</b></div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="width:11px;height:11px;border-radius:3px;background:var(--cdfe4dd,#dfe4dd);flex:none"></span><span style="font-size:12px;color:var(--c7d867f,#7d867f)">{{ t.fin_remain }}</span><b style="font-size:13.5px;color:var(--c1f8a5b,#1f8a5b)">{{ fin.remainVal }}</b></div>
+              </div>
+            </div>
+            <!-- commitments strip -->
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;padding:22px 24px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.25);display:flex;flex-direction:column;justify-content:center;gap:14px">
+              <div style="font-size:12px;color:var(--c7d867f,#7d867f);font-weight:700">{{ t.fin_commitments }}</div>
+              <div style="display:flex;justify-content:space-between;text-align:center">
+                <div style="flex:1"><div style="font-size:22px;font-weight:800;color:var(--c7a4d94,#7a4d94)">{{ fin.commitTotal }}</div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-top:4px">{{ t.fin_commitments }}</div></div>
+                <div style="width:1px;background:var(--ceef1ec,#eef1ec)"></div>
+                <div style="flex:1"><div style="font-size:22px;font-weight:800;color:var(--c2e7d55,#2e7d55)">{{ fin.commitPaidV }}</div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-top:4px">{{ t.fin_paid }}</div></div>
+                <div style="width:1px;background:var(--ceef1ec,#eef1ec)"></div>
+                <div style="flex:1"><div style="font-size:22px;font-weight:800;color:var(--cb0433b,#b0433b)">{{ fin.commitDueV }}</div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-top:4px">{{ t.fin_due }}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- budget distribution by entity -->
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
+            <span style="width:8px;height:24px;border-radius:6px;background:var(--c2b5c44,#2b5c44);flex:none"></span>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_distribution }}</h3>
+            <span style="font-size:11.5px;color:var(--c9aa39b,#9aa39b);font-weight:600">· {{ t.fin_clickEntity }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-bottom:24px">
+            <sc-for list="{{ fin.entities }}" as="e" hint-placeholder-count="6">
+              <div onClick="{{ e.open }}" style="background:var(--cffffff,#ffffff);border-radius:16px;padding:17px 18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);cursor:pointer;border-top:3px solid {{ e.color }}" style-hover="box-shadow:0 6px 14px rgba(23,40,32,.08),0 18px 40px -18px rgba(23,40,32,.4);transform:translateY(-2px)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span style="font-size:13.5px;font-weight:800;color:{{ e.color }}">{{ e.code }}</span>
+                    <sc-if value="{{ e.hasOverdue }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:700;color:var(--cb0433b,#b0433b);background:var(--cfaf0ef,#faf0ef);border-radius:20px;padding:2px 8px">{{ e.overdueLabel }}</span></sc-if>
+                  </div>
+                  <span style="font-size:18px;font-weight:800;color:{{ e.color }}">{{ e.utilLabel }}</span>
+                </div>
+                <div style="font-size:11.5px;color:var(--c7d867f,#7d867f);line-height:1.5;margin-bottom:12px;min-height:32px">{{ e.name }}</div>
+                <div style="height:7px;border-radius:6px;background:var(--ceef1ec,#eef1ec);overflow:hidden;margin-bottom:12px"><div style="height:100%;width:{{ e.utilLabel }};background:{{ e.barBg }};border-radius:6px"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:11.5px">
+                  <div><div style="color:var(--c9aa39b,#9aa39b);margin-bottom:2px">{{ t.fin_alloc }}</div><div style="font-weight:700;color:var(--c17211c,#17211c)">{{ e.alloc }}</div></div>
+                  <div style="text-align:center"><div style="color:var(--c9aa39b,#9aa39b);margin-bottom:2px">{{ t.fin_used }}</div><div style="font-weight:700;color:var(--ca9791f,#a9791f)">{{ e.used }}</div></div>
+                  <div style="text-align:end"><div style="color:var(--c9aa39b,#9aa39b);margin-bottom:2px">{{ t.fin_due }}</div><div style="font-weight:700;color:var(--cb0433b,#b0433b)">{{ e.due }}</div></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- commitments + expenses -->
+          <div class="rg2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;padding:20px 22px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22)">
+              <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_commitments }}</h3>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="color:var(--c7d867f,#7d867f);font-weight:600">{{ t.fin_paid }}</span><span style="font-weight:800;color:var(--c2e7d55,#2e7d55)">{{ fin.commit.paid }}</span></div>
+                  <div style="height:8px;border-radius:6px;background:var(--ceef1ec,#eef1ec);overflow:hidden"><div style="height:100%;width:{{ fin.commit.paidPct }}%;background:var(--c2e7d55,#2e7d55);border-radius:6px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="color:var(--c7d867f,#7d867f);font-weight:600">{{ t.fin_due }}</span><span style="font-weight:800;color:var(--cb0433b,#b0433b)">{{ fin.commit.due }}</span></div>
+                  <div style="height:8px;border-radius:6px;background:var(--ceef1ec,#eef1ec);overflow:hidden"><div style="height:100%;width:{{ fin.commit.duePct }}%;background:var(--cb0433b,#b0433b);border-radius:6px"></div></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-top:1px solid var(--ceef1ec,#eef1ec);padding-top:12px;font-size:13px"><span style="color:var(--c17211c,#17211c);font-weight:700">{{ t.fin_commitments }}</span><span style="font-weight:800;color:var(--c7a4d94,#7a4d94)">{{ fin.commit.total }}</span></div>
+              </div>
+            </div>
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;padding:20px 22px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22)">
+              <h3 style="margin:0 0 16px;font-size:15px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_expenses }}</h3>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <sc-for list="{{ fin.expenses }}" as="x" hint-placeholder-count="2">
+                  <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><span style="font-size:13px;font-weight:700;color:{{ x.accent }}">{{ x.label }}</span><span style="font-size:12px;font-weight:700;color:var(--c7d867f,#7d867f)">{{ x.spentLabel }}</span></div>
+                    <div style="height:8px;border-radius:6px;background:var(--ceef1ec,#eef1ec);overflow:hidden;margin-bottom:7px"><div style="height:100%;width:{{ x.spentLabel }};background:{{ x.accent }};border-radius:6px"></div></div>
+                    <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--c9aa39b,#9aa39b)"><span>{{ t.fin_expected }}: <b style="color:var(--c17211c,#17211c)">{{ x.expected }}</b></span><span>{{ t.fin_paid }}: <b style="color:var(--c2e7d55,#2e7d55)">{{ x.paid }}</b></span><span>{{ t.fin_due }}: <b style="color:var(--cb0433b,#b0433b)">{{ x.due }}</b></span></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- biggest projects -->
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
+            <span style="width:8px;height:24px;border-radius:6px;background:var(--cc9a24b,#c9a24b);flex:none"></span>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_bigProjects }}</h3>
+          </div>
+          <div style="background:var(--cffffff,#ffffff);border-radius:18px;padding:10px 22px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);margin-bottom:24px">
+            <sc-for list="{{ fin.bigProjects }}" as="p" hint-placeholder-count="2">
+              <div style="padding:16px 0;border-bottom:1px solid var(--cf2f4f0,#f2f4f0)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:8px">
+                  <div style="display:flex;align-items:center;gap:10px"><span style="font-size:14px;font-weight:700;color:var(--c17211c,#17211c)">{{ p.name }}</span><span style="font-size:10.5px;font-weight:700;color:{{ p.color }};background:var(--cf4f6f2,#f4f6f2);border-radius:20px;padding:2px 9px">{{ p.entity }}</span></div>
+                  <span style="font-size:10.5px;font-weight:700;color:{{ p.statusFg }};background:{{ p.statusBg }};border-radius:20px;padding:3px 10px">{{ p.statusLabel }}</span>
+                </div>
+                <div style="height:9px;border-radius:6px;background:var(--ceef1ec,#eef1ec);overflow:hidden;margin-bottom:8px"><div style="height:100%;width:{{ p.spentLabel }};background:{{ p.color }};border-radius:6px"></div></div>
+                <div style="display:flex;gap:20px;font-size:11.5px;color:var(--c9aa39b,#9aa39b)"><span>{{ t.fin_alloc }}: <b style="color:var(--c17211c,#17211c)">{{ p.alloc }}</b></span><span>{{ t.fin_paid }}: <b style="color:var(--c2e7d55,#2e7d55)">{{ p.paid }}</b></span><span>{{ t.fin_remain }}: <b style="color:var(--ca9791f,#a9791f)">{{ p.remain }}</b></span></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- related parties -->
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
+            <span style="width:8px;height:24px;border-radius:6px;background:var(--c7a4d94,#7a4d94);flex:none"></span>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_related }}</h3>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin-bottom:15px">
+            <sc-for list="{{ fin.relTotals }}" as="r" hint-placeholder-count="4">
+              <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:15px 16px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);border-inline-start:4px solid {{ r.accent }}">
+                <div style="font-size:11px;color:var(--c7d867f,#7d867f);font-weight:600;margin-bottom:8px;line-height:1.4;min-height:30px">{{ r.label }}</div>
+                <div style="font-size:19px;font-weight:800;color:{{ r.accent }}">{{ r.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:24px">
+            <sc-for list="{{ fin.related }}" as="r" hint-placeholder-count="7">
+              <div style="background:var(--cffffff,#ffffff);border-radius:16px;padding:17px 18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);border-inline-start:4px solid {{ r.toColor }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:13px">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800">
+                    <span style="color:{{ r.fromColor }}">{{ r.from }}</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flip-x"><path d="M5 12h14m-6-6-6 6 6 6"></path></svg>
+                    <span style="color:{{ r.toColor }}">{{ r.to }}</span>
+                  </div>
+                  <span style="font-size:13px;font-weight:800;color:var(--c17211c,#17211c);font-family:ui-monospace,'SF Mono',Menlo,monospace;white-space:nowrap">{{ r.totalLabel }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ r.items }}" as="it" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:9px 12px">
+                      <div style="font-size:11.5px;color:var(--c5b6b62,#5b6b62);line-height:1.5">{{ it.n }}</div>
+                      <div style="font-size:13px;font-weight:700;color:var(--c17211c,#17211c);font-family:ui-monospace,'SF Mono',Menlo,monospace;white-space:nowrap">{{ it.v }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- AP aging -->
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
+            <span style="width:8px;height:24px;border-radius:6px;background:var(--cb0433b,#b0433b);flex:none"></span>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_aging }}</h3>
+            <span style="font-size:11.5px;color:var(--c9aa39b,#9aa39b);font-weight:600">· {{ t.fin_clickAging }} · {{ t.fin_totalAmount }}: {{ fin.agingTotal }}</span>
+          </div>
+          <div class="fin-aging-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:15px">
+            <sc-for list="{{ fin.aging }}" as="a" hint-placeholder-count="6">
+              <div onClick="{{ a.open }}" style="background:{{ a.cardBg }};border-radius:15px;padding:15px 16px;cursor:pointer;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);border-top:3px solid {{ a.color }}">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-size:12.5px;font-weight:800;color:{{ a.cardFg }}">{{ a.bucketLabel }}</span><span style="font-size:9.5px;font-weight:700;color:{{ a.riskFg }};background:{{ a.riskBg }};border-radius:20px;padding:2px 8px">{{ a.riskLabel }}</span></div>
+                <div style="font-size:19px;font-weight:800;color:{{ a.cardFg }};margin-bottom:6px">{{ a.total }}</div>
+                <div style="font-size:11px;color:{{ a.cardFg }};opacity:.75">{{ a.suppliers }} {{ t.fin_supplier }} · {{ a.contracts }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ fin.agingSelOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);overflow:hidden;margin-bottom:24px;animation:fadeUp .16s ease">
+              <div style="padding:14px 20px;border-bottom:1px solid var(--ceef1ec,#eef1ec);font-size:13.5px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_aging }} · {{ fin.agingSel.bucketLabel }}</div>
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;min-width:760px">
+                  <thead><tr style="background:var(--cf6f8f4,#f6f8f4)">
+                    <th style="padding:11px 16px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.fin_supplier }}</th>
+                    <th style="padding:11px 16px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.fin_supplierNo }}</th>
+                    <th style="padding:11px 16px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.fin_entity }}</th>
+                    <th style="padding:11px 16px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.fin_contract }}</th>
+                    <th style="padding:11px 16px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.fin_amount }}</th>
+                    <th style="padding:11px 16px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.fin_status }}</th>
+                    <th style="padding:11px 16px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.fin_notes }}</th>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{ fin.agingSel.rows }}" as="s" hint-placeholder-count="2">
+                      <tr style="border-top:1px solid var(--cf2f4f0,#f2f4f0)">
+                        <td style="padding:12px 16px;font-size:12.5px;font-weight:700;color:var(--c17211c,#17211c)">{{ s.supplier }}</td>
+                        <td style="padding:12px 16px;font-size:12px;color:var(--c7d867f,#7d867f)">{{ s.num }}</td>
+                        <td style="padding:12px 16px"><span style="font-size:11px;font-weight:800;color:{{ s.entColor }}">{{ s.entity }}</span></td>
+                        <td style="padding:12px 16px;font-size:12px;color:var(--c7d867f,#7d867f)">{{ s.contract }}</td>
+                        <td style="padding:12px 16px;font-size:12.5px;font-weight:800;color:var(--cb0433b,#b0433b)">{{ s.amount }}</td>
+                        <td style="padding:12px 16px;font-size:12px;color:var(--c17211c,#17211c)">{{ s.status }}</td>
+                        <td style="padding:12px 16px;font-size:11.5px;color:var(--c9aa39b,#9aa39b)">{{ s.notes }}</td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- bank interest -->
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
+            <span style="width:8px;height:24px;border-radius:6px;background:var(--c1f8a5b,#1f8a5b);flex:none"></span>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--c17211c,#17211c)">{{ fin.bankInterestTitle }}</h3>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:13px;margin-bottom:24px">
+            <sc-for list="{{ fin.bankInterest }}" as="b" hint-placeholder-count="3">
+              <div style="background:{{ b.bg }};border-radius:15px;padding:18px 18px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:flex-start;gap:9px"><span style="width:10px;height:10px;flex:none;border-radius:50%;background:{{ b.dot }};margin-top:4px"></span><div style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:600;line-height:1.55">{{ b.label }}</div></div>
+                <div style="font-size:22px;font-weight:800;color:var(--c17211c,#17211c);font-family:ui-monospace,'SF Mono',Menlo,monospace;letter-spacing:-.5px">{{ b.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- financial risk highlights -->
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
+            <span style="width:8px;height:24px;border-radius:6px;background:var(--c9a2f2a,#9a2f2a);flex:none"></span>
+            <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_risks }}</h3>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px">
+            <sc-for list="{{ fin.risks }}" as="r" hint-placeholder-count="4">
+              <div style="background:{{ r.bg }};border-radius:15px;padding:16px 17px;display:flex;align-items:flex-start;gap:11px">
+                <span style="width:10px;height:10px;flex:none;border-radius:50%;background:{{ r.dot }};margin-top:5px"></span>
+                <div><div style="font-size:12px;color:var(--c7d867f,#7d867f);font-weight:600;margin-bottom:5px;line-height:1.4">{{ r.label }}</div><div style="font-size:14.5px;font-weight:800;color:var(--c17211c,#17211c)">{{ r.value }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+<!-- ===================== REPORTS REGISTER (سجل التقارير) ===================== -->
+      <sc-if value="{{ isRegLog }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <!-- header strip -->
+          <div style="background:linear-gradient(120deg,var(--c132b20,#132b20),var(--c1f4a37,#1f4a37) 55%,var(--c2b5c44,#2b5c44));border-radius:22px;padding:22px 26px;color:var(--ceaf1ec,#eaf1ec);margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <span style="width:50px;height:50px;flex:none;border-radius:14px;background:rgba(233,200,119,.18);color:var(--ce9c877,#e9c877);display:flex;align-items:center;justify-content:center"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg></span>
+            <div style="flex:1;min-width:200px">
+              <h2 style="margin:0;font-size:20px;font-weight:800">{{ t.reg_title }}</h2>
+              <div style="font-size:12.5px;color:var(--cbcd2c3,#bcd2c3);margin-top:3px">{{ t.reg_intro }}</div>
+            </div>
+          </div>
+
+          <!-- KPI cards -->
+          <div class="regkpi" style="display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:20px">
+            <sc-for list="{{ reg.kpis }}" as="k" hint-placeholder-count="7">
+              <div onClick="{{ k.open }}" style="{{ k.cardStyle }}">
+                <div style="font-size:11px;color:var(--c7d867f,#7d867f);font-weight:600;margin-bottom:8px;line-height:1.4;min-height:30px">{{ k.label }}</div>
+                <div style="font-size:24px;font-weight:800;color:{{ k.accent }}">{{ k.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- reports needing follow-up -->
+          <sc-if value="{{ reg.hasNeedFollow }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;padding:18px 20px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);margin-bottom:20px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:8px;height:22px;border-radius:6px;background:var(--cb0433b,#b0433b);flex:none"></span><h3 style="margin:0;font-size:15px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.reg_needFollow }}</h3><span style="font-size:11px;font-weight:700;color:var(--cb0433b,#b0433b);background:var(--cfaf0ef,#faf0ef);border-radius:20px;padding:2px 9px">{{ reg.needFollowCount }}</span></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;max-height:340px;overflow-y:auto">
+                <sc-for list="{{ reg.needFollow }}" as="r" hint-placeholder-count="4">
+                  <div style="background:var(--cfaf8f5,#faf8f5);border-radius:13px;padding:13px 15px;border-inline-start:3px solid {{ r.curFg }}">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+                      <div style="font-size:12.5px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.45">{{ r.title }}</div>
+                      <span style="font-size:9.5px;font-weight:700;color:{{ r.curFg }};background:{{ r.curBg }};border-radius:20px;padding:3px 8px;white-space:nowrap;flex:none">{{ r.curLabel }}</span>
+                    </div>
+                    <div style="font-size:11px;color:var(--c7d867f,#7d867f);margin-bottom:10px">{{ r.dept }} · {{ r.resp }} · {{ r.freq }}</div>
+                    <div style="display:flex;gap:7px;flex-wrap:wrap">
+                      <button onClick="{{ r.requestUpdate }}" style="background:var(--cf0f2ee,#f0f2ee);color:var(--c3a6ea5,#3a6ea5);border:none;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer">{{ t.reg_reqUpdate }}</button>
+                      <button onClick="{{ r.markReceived }}" style="background:var(--ce2f0e8,#e2f0e8);color:var(--c2e7d55,#2e7d55);border:none;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer">{{ t.reg_markReceived }}</button>
+                      <button onClick="{{ r.open }}" style="background:var(--cffffff,#ffffff);color:var(--c7d867f,#7d867f);border:1px solid var(--ce2e6df,#e2e6df);border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer">{{ t.rc_view }}</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- filters + view toggle -->
+          <div style="background:var(--cffffff,#ffffff);border-radius:16px;padding:15px 18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);margin-bottom:16px">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <div style="position:relative;flex:1;min-width:180px">
+                <input value="{{ reg.regSearch }}" onInput="{{ reg.onSearch }}" placeholder="{{ t.reg_report }}…" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:9px 13px;font-size:12.5px;font-family:inherit;background:var(--cf9faf8,#f9faf8)">
+              </div>
+              <span>{{ reg.ddDept }}</span>
+              <span>{{ reg.ddType }}</span>
+              <span>{{ reg.ddFreq }}</span>
+              <span>{{ reg.ddResp }}</span>
+              <span>{{ reg.ddMonth }}</span>
+              <span>{{ reg.ddStatus }}</span>
+              <button onClick="{{ reg.toggleLate }}" style="{{ reg.lateBtn }}">{{ t.reg_late }}</button>
+              <div style="flex:1"></div>
+              <div style="display:flex;gap:7px">
+                <button onClick="{{ reg.setTable }}" style="{{ reg.tableBtn }}">{{ t.reg_tableView }}</button>
+                <button onClick="{{ reg.setMonthly }}" style="{{ reg.monthlyBtn }}">{{ t.reg_monthlyView }}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- table view -->
+          <sc-if value="{{ reg.isTable }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);overflow:hidden">
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;min-width:1000px">
+                  <thead><tr style="background:var(--cf6f8f4,#f6f8f4)">
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_report }}</th>
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_type }}</th>
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_freq }}</th>
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_resp }}</th>
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_dept }}</th>
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_status }}</th>
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_lastDate }}</th>
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start">{{ t.reg_action }}</th>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{ reg.rows }}" as="r" hint-placeholder-count="12">
+                      <tr onClick="{{ r.open }}" style="border-top:1px solid var(--cf2f4f0,#f2f4f0);cursor:pointer" style-hover="background:var(--cf9faf8,#f9faf8)">
+                        <td style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--c17211c,#17211c);max-width:320px">{{ r.title }}</td>
+                        <td style="padding:12px 14px;font-size:11.5px;color:var(--c7d867f,#7d867f)">{{ r.type }}</td>
+                        <td style="padding:12px 14px;font-size:11.5px;color:var(--c7d867f,#7d867f)">{{ r.freq }}</td>
+                        <td style="padding:12px 14px;font-size:11.5px;color:var(--c7d867f,#7d867f)">{{ r.resp }}</td>
+                        <td style="padding:12px 14px;font-size:11.5px;color:var(--c7d867f,#7d867f)">{{ r.dept }}</td>
+                        <td style="padding:12px 14px"><span style="font-size:10.5px;font-weight:700;color:{{ r.curFg }};background:{{ r.curBg }};border-radius:20px;padding:3px 10px;white-space:nowrap">{{ r.curLabel }}</span></td>
+                        <td style="padding:12px 14px;font-size:11.5px;color:var(--c7d867f,#7d867f)">{{ r.lastDate }}</td>
+                        <td style="padding:12px 14px"><button onClick="{{ r.open }}" style="background:var(--cf0f2ee,#f0f2ee);color:var(--c1f4a37,#1f4a37);border:none;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer">{{ t.rc_view }}</button></td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <sc-if value="{{ reg.noResults }}" hint-placeholder-val="{{ false }}"><div style="padding:36px;text-align:center;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ t.noResults }}</div></sc-if>
+            </div>
+          </sc-if>
+
+          <!-- monthly view -->
+          <sc-if value="{{ reg.isMonthly }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cffffff,#ffffff);border-radius:18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22);overflow:hidden">
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;min-width:860px">
+                  <thead><tr style="background:var(--cf6f8f4,#f6f8f4)">
+                    <th style="padding:12px 14px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700;text-align:start;position:sticky;inset-inline-start:0;background:var(--cf6f8f4,#f6f8f4)">{{ t.reg_report }}</th>
+                    <th style="padding:12px 10px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700">يناير</th>
+                    <th style="padding:12px 10px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700">فبراير</th>
+                    <th style="padding:12px 10px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700">مارس</th>
+                    <th style="padding:12px 10px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700">أبريل</th>
+                    <th style="padding:12px 10px;font-size:11px;color:var(--c7d867f,#7d867f);font-weight:700">مايو</th>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{ reg.rows }}" as="r" hint-placeholder-count="12">
+                      <tr onClick="{{ r.open }}" style="border-top:1px solid var(--cf2f4f0,#f2f4f0);cursor:pointer">
+                        <td style="padding:11px 14px;font-size:11.5px;font-weight:600;color:var(--c17211c,#17211c);max-width:300px;background:var(--cffffff,#ffffff)">{{ r.title }}</td>
+                        <sc-for list="{{ r.months }}" as="m" hint-placeholder-count="5">
+                          <td style="padding:9px 8px;text-align:center"><span style="display:inline-block;font-size:9.5px;font-weight:700;color:{{ m.fg }};background:{{ m.bg }};border-radius:14px;padding:3px 8px;white-space:nowrap">{{ m.short }}</span></td>
+                        </sc-for>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+<!-- ===================== REGISTER REPORT DETAIL POPUP ===================== -->
+  <sc-if value="{{ regSelOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ reg.closeDetail }}" style="position:fixed;inset:0;background:rgba(23,33,28,.42);z-index:120;display:flex;justify-content:flex-start;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="width:460px;max-width:94vw;height:100%;background:var(--cf6f8f4,#f6f8f4);box-shadow:0 0 40px rgba(0,0,0,.25);overflow-y:auto;animation:slideInX .28s ease">
+        <div style="background:linear-gradient(120deg,var(--c132b20,#132b20),var(--c1f4a37,#1f4a37));padding:22px 24px;color:var(--ceaf1ec,#eaf1ec);position:sticky;top:0;z-index:2">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px">
+            <span style="font-size:10.5px;font-weight:700;color:{{ regSel.curFg }};background:{{ regSel.curBg }};border-radius:20px;padding:4px 11px">{{ regSel.curLabel }}</span>
+            <button onClick="{{ reg.closeDetail }}" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:18px">✕</button>
+          </div>
+          <h2 style="margin:0;font-size:16px;font-weight:800;line-height:1.5">{{ regSel.title }}</h2>
+          <div style="font-size:12px;color:var(--cbcd2c3,#bcd2c3);margin-top:6px">{{ regSel.type }} · {{ regSel.freq }}</div>
+        </div>
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onClick="{{ regSel.requestUpdate }}" style="background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer">{{ t.reg_reqUpdate }}</button>
+            <button onClick="{{ regSel.markReceived }}" style="background:var(--ce2f0e8,#e2f0e8);color:var(--c2e7d55,#2e7d55);border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer">{{ t.reg_markReceived }}</button>
+            <button onClick="{{ regSel.markApproved }}" style="background:var(--cfbf0d6,#fbf0d6);color:var(--ca9791f,#a9791f);border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer">{{ t.reg_markApproved }}</button>
+            <button onClick="{{ regSel.addDirective }}" style="background:var(--cffffff,#ffffff);color:var(--c7d867f,#7d867f);border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer">{{ t.reg_addDirective }}</button>
+          </div>
+          <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:16px 18px;display:flex;flex-direction:column;gap:11px">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.reg_resp }}</span><b style="color:var(--c17211c,#17211c)">{{ regSel.resp }}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.reg_dept }}</span><b style="color:var(--c17211c,#17211c)">{{ regSel.dept }}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.reg_freq }}</span><b style="color:var(--c17211c,#17211c)">{{ regSel.freq }}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.reg_due }}</span><b style="color:var(--c17211c,#17211c)">{{ regSel.due }}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.reg_lastDate }}</span><b style="color:var(--c17211c,#17211c)">{{ regSel.lastDate }}</b></div>
+            <sc-if value="{{ regSel.hasApproval }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.reg_approval }}</span><b style="color:var(--c7a4d94,#7a4d94)">{{ regSel.approval }}</b></div></sc-if>
+          </div>
+          <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:16px 18px">
+            <h4 style="margin:0 0 12px;font-size:13px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.reg_deliveryLog }}</h4>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <sc-for list="{{ regSel.months }}" as="m" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:12px;color:var(--c7d867f,#7d867f)">{{ m.label }}</span><span style="font-size:10.5px;font-weight:700;color:{{ m.fg }};background:{{ m.bg }};border-radius:20px;padding:3px 11px">{{ m.short }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:16px 18px">
+            <h4 style="margin:0 0 10px;font-size:13px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.reg_notes }}</h4>
+            <div style="font-size:12px;color:var(--c5b6b62,#5b6b62);line-height:1.65">{{ regSel.notes }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+<!-- ===================== FINANCIAL ENTITY PANEL ===================== -->
+  <sc-if value="{{ fin.entityPanelOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ fin.entityPanel.close }}" style="position:fixed;inset:0;background:rgba(23,33,28,.42);z-index:120;display:flex;justify-content:flex-start;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="width:440px;max-width:92vw;height:100%;background:var(--cf6f8f4,#f6f8f4);box-shadow:0 0 40px rgba(0,0,0,.25);overflow-y:auto;animation:slideInX .28s ease">
+        <div style="background:linear-gradient(120deg,var(--c132b20,#132b20),var(--c1f4a37,#1f4a37));padding:22px 24px;color:var(--ceaf1ec,#eaf1ec);position:sticky;top:0;z-index:2">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:20px;font-weight:800;color:{{ fin.entityPanel.color }};background:var(--cffffff,#ffffff);border-radius:10px;padding:4px 12px">{{ fin.entityPanel.code }}</span>
+            <button onClick="{{ fin.entityPanel.close }}" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:18px">✕</button>
+          </div>
+          <div style="font-size:13.5px;color:var(--cbcd2c3,#bcd2c3);line-height:1.5">{{ fin.entityPanel.name }}</div>
+        </div>
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div style="background:var(--cffffff,#ffffff);border-radius:13px;padding:13px 14px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);font-weight:600;margin-bottom:6px">{{ t.fin_alloc }}</div><div style="font-size:16px;font-weight:800;color:var(--c1f4a37,#1f4a37)">{{ fin.entityPanel.alloc }}</div></div>
+            <div style="background:var(--cffffff,#ffffff);border-radius:13px;padding:13px 14px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);font-weight:600;margin-bottom:6px">{{ t.fin_used }}</div><div style="font-size:16px;font-weight:800;color:var(--ca9791f,#a9791f)">{{ fin.entityPanel.used }}</div></div>
+            <div style="background:var(--cffffff,#ffffff);border-radius:13px;padding:13px 14px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);font-weight:600;margin-bottom:6px">{{ t.fin_remain }}</div><div style="font-size:16px;font-weight:800;color:var(--c1f8a5b,#1f8a5b)">{{ fin.entityPanel.remain }}</div></div>
+          </div>
+          <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:16px 18px">
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:8px"><span style="color:var(--c7d867f,#7d867f);font-weight:600">{{ t.fin_util }}</span><span style="font-weight:800;color:{{ fin.entityPanel.color }}">{{ fin.entityPanel.utilLabel }}</span></div>
+            <div style="height:8px;border-radius:6px;background:var(--ceef1ec,#eef1ec);overflow:hidden"><div style="height:100%;width:{{ fin.entityPanel.utilLabel }};background:{{ fin.entityPanel.color }};border-radius:6px"></div></div>
+          </div>
+          <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:16px 18px">
+            <h4 style="margin:0 0 12px;font-size:13px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_commitments }}</h4>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.fin_commitments }}</span><b style="color:var(--c7a4d94,#7a4d94)">{{ fin.entityPanel.commit }}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.fin_paid }}</span><b style="color:var(--c2e7d55,#2e7d55)">{{ fin.entityPanel.paid }}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--c9aa39b,#9aa39b)">{{ t.fin_due }}</span><b style="color:var(--cb0433b,#b0433b)">{{ fin.entityPanel.due }}</b></div>
+          </div>
+          <div class="rg2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:15px 16px"><div style="font-size:11.5px;font-weight:700;color:var(--c3a6ea5,#3a6ea5);margin-bottom:9px">{{ t.fin_expenses }} · {{ t.n_operating }}</div><div style="font-size:11.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.fin_expected }}: <b style="color:var(--c17211c,#17211c)">{{ fin.entityPanel.opExpected }}</b></div><div style="font-size:11.5px;color:var(--c9aa39b,#9aa39b)">{{ t.fin_paid }}: <b style="color:var(--c2e7d55,#2e7d55)">{{ fin.entityPanel.opPaid }}</b></div></div>
+            <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:15px 16px"><div style="font-size:11.5px;font-weight:700;color:var(--c7a4d94,#7a4d94);margin-bottom:9px">{{ t.fin_expenses }} · {{ t.n_capital }}</div><div style="font-size:11.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.fin_expected }}: <b style="color:var(--c17211c,#17211c)">{{ fin.entityPanel.capExpected }}</b></div><div style="font-size:11.5px;color:var(--c9aa39b,#9aa39b)">{{ t.fin_paid }}: <b style="color:var(--c2e7d55,#2e7d55)">{{ fin.entityPanel.capPaid }}</b></div></div>
+          </div>
+          <div style="background:var(--cffffff,#ffffff);border-radius:15px;padding:16px 18px">
+            <h4 style="margin:0 0 12px;font-size:13px;font-weight:800;color:var(--c17211c,#17211c)">{{ t.fin_bigProjects }}</h4>
+            <sc-for list="{{ fin.entityPanel.projects }}" as="p" hint-placeholder-count="1">
+              <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span style="font-weight:700;color:var(--c17211c,#17211c)">{{ p.name }}</span><span style="font-weight:700;color:var(--c7d867f,#7d867f)">{{ p.spentLabel }}</span></div>
+                <div style="height:7px;border-radius:6px;background:var(--ceef1ec,#eef1ec);overflow:hidden;margin-bottom:5px"><div style="height:100%;width:{{ p.spentLabel }};background:{{ fin.entityPanel.color }};border-radius:6px"></div></div>
+                <div style="font-size:11px;color:var(--c9aa39b,#9aa39b)">{{ t.fin_alloc }}: <b style="color:var(--c17211c,#17211c)">{{ p.alloc }}</b> · {{ t.fin_paid }}: <b style="color:var(--c2e7d55,#2e7d55)">{{ p.paid }}</b></div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ fin.entityPanel.overdue }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--cfaf0ef,#faf0ef);border-radius:15px;padding:15px 18px;display:flex;align-items:center;gap:11px"><span style="width:10px;height:10px;border-radius:50%;background:var(--cb0433b,#b0433b);flex:none"></span><span style="font-size:12.5px;font-weight:700;color:var(--cb0433b,#b0433b)">{{ fin.entityPanel.overdueLabel }}</span></div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:200;background:var(--c1f8a5b,#1f8a5b);color:#fff;border-radius:12px;padding:13px 22px;font-size:13.5px;font-weight:600;box-shadow:0 12px 30px -8px rgba(0,0,0,.4)">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":"100%","height":760}}'>
+class Component extends DCLogic {
+  members=window.__DATA.members; audit=window.__DATA.audit; regReports=window.__DATA.regReports; finModel=window.__DATA.finModel; mtasks=window.__DATA.mtasks; otasks=window.__DATA.otasks; actions=window.__DATA.actions; projects=window.__DATA.projects; correspondence=window.__DATA.correspondence; reqMeetings=window.__DATA.reqMeetings; meetings=window.__DATA.meetings; leaves=window.__DATA.leaves;
+  state={page:(this.props&&this.props.page)||'reportcenter',selReg:null,regMonth:'',regSearch:'',regStatus:'',regType:'',regFreq:'',regResp:'',regDept:'',regLate:false,audStatus:'',audOwner:'',audImp:'',audSort:'num',audDept:'',audDue:'',audUnit:'',audYear:'',audSearch:'',audLate:false,audNeedInt:false,audSel:null,audRepStatus:'',audRepSearch:'',repQuarter:'',repYear:'',selFinEntity:null,selFinAging:null,toast:'',openDD:null,ddRect:null,lang:(this.props&&this.props.lang)||'ar'};
+  componentDidMount(){ DCDD.install(this); }
+  componentDidUpdate(prev){ if(prev.page!==this.props.page) this.setState({page:this.props.page}); if(prev.lang!==this.props.lang) this.setState({lang:this.props.lang}); }
+  componentWillUnmount(){ DCDD.uninstall(this); }
+  find(arr,id){return arr.find(x=>x.id===id);}
+  memIndex(name){return this.members.findIndex(m=>m.name===name);}
+  av(name){const i=this.memIndex(name);return AV[(i>=0?i:0)%AV.length];}
+  showToast(msg){this.setState({toast:msg});clearTimeout(this._tt);this._tt=setTimeout(()=>this.setState({toast:''}),3000);}
+  renderDD(id,value,options,onChange,opt){return DCDD.render(this,id,value,options,onChange,opt);}
+  openReg(id){this.setState({selReg:id});}
+  closeReg(){this.setState({selReg:null});}
+  regCurStatus(r){return r.may&&r.may!=='—'?r.may:(r.apr&&r.apr!=='—'?r.apr:(r.mar&&r.mar!=='—'?r.mar:r.feb));}
+  requestRegUpdate(id){this.showToast(this.state.lang==='en'?'Update request sent':'تم إرسال طلب تحديث إلى المسؤول عن التقرير');}
+  markRegReceived(id){const r=this.find(this.regReports,id);if(r){r.may='تم التسليم';}this.showToast(this.state.lang==='en'?'Marked received':'تم وضع علامة: تم الاستلام');this.forceUpdate();}
+  markRegApproved(id){const r=this.find(this.regReports,id);if(r){r.may='معتمد';}this.showToast('تم وضع علامة: معتمد');this.forceUpdate();}
+  addRegDirective(id){const r=this.find(this.regReports,id);if(r){const txt=window.prompt&&window.prompt('اكتب التوجيه:');if(txt){r.notes=(r.notes?r.notes+' — ':'')+txt;this.showToast('تمت إضافة التوجيه');this.forceUpdate();}}}
+  audRequestUpdate(id){this.showToast(this.state.lang==='en'?'Update request sent':'تم إرسال طلب تحديث إلى المسؤول عن الملاحظة');}
+  audMarkReviewed(id){const a=this.find(this.audit,id);if(a)a.reviewed=true;this.showToast(this.state.lang==='en'?'Marked as reviewed':'تم وضع علامة تمت المراجعة');this.forceUpdate();}
+  audAddDirective(id){const a=this.find(this.audit,id);if(a){a.directives=(a.directives||[]);a.directives.push({text:this.state.lang==='en'?'Directive from the Sector Head':'توجيه من رئيس القطاع'});}this.showToast('تمت إضافة التوجيه');this.forceUpdate();}
+  setStatus(kind,id,val){let arr=kind==='audit'?this.audit:kind==='reg'?this.regReports:this.actions;const o=this.find(arr,id);if(o){o.status=val;this.forceUpdate();}}
+  goto(page,extra){if(this.props.nav)this.props.nav(page,extra);}
+  renderVals(){
+    const S=this.state; const P=this.props||{};
+    const canApprove=P.canApprove!==undefined?!!P.canApprove:true;
+    LANG=S.lang; const L=S.lang==='en'?1:0;
+    const t={}; for(const k in UITEXT) t[k]=UITEXT[k][L];
+    // ---- Report Center data ----
+    const rl=(a,b)=>L?b:a;
+    const impMap={'عالية':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)'],'متوسطة':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'منخفضة':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)']};
+    const hasanAv=avEl(memberImg('حسن همام'));
+    const retKpis=[
+      {label:rl('إجمالي الدفعات','Total payments'),value:'57',unit:rl('دفعة','payments'),accent:'var(--c3a6ea5,#3a6ea5)'},
+      {label:rl('إجمالي القيمة','Total value'),value:'9.35',unit:rl('مليون درهم','AED million'),accent:'var(--c2e7d55,#2e7d55)'},
+      {label:rl('الدفعات المغلقة','Closed payments'),value:'25',unit:rl('دفعة','payments'),accent:'var(--c2e7d55,#2e7d55)'},
+      {label:rl('الدفعات غير المغلقة','Unclosed payments'),value:'11',unit:rl('دفعة','payments'),accent:'var(--cb0433b,#b0433b)'},
+      {label:rl('الدفعات المستمرة','Ongoing payments'),value:'21',unit:rl('دفعة','payments'),accent:'var(--ca9791f,#a9791f)'},
+      {label:rl('أعلى جهة قيمةً — مكتب رئاسة مجلس الوزراء','Top entity by value — PMO'),value:'52%',unit:rl('من إجمالي القيمة','of total value'),accent:'var(--c7a4d94,#7a4d94)'}
+    ];
+    const retSummary=[
+      rl('بلغ إجمالي الدفعات المستبقاة 57 دفعة عبر 6 جهات بقيمة 9.35 مليون درهم.','Retention payments totalled 57 across 6 entities, valued at AED 9.35M.'),
+      rl('تم إغلاق 47.5% من إجمالي القيمة.','47.5% of total value has been closed.'),
+      rl('توجد 11 دفعة متجاوزة للمهلة التعاقدية بقيمة 1.12 مليون درهم.','11 overdue payments remain past the contractual term, worth AED 1.12M.'),
+      rl('تتركز 52% من إجمالي القيمة لدى مكتب رئاسة مجلس الوزراء.','52% of total value is concentrated in PMO.')
+    ];
+    const retStrengths=[
+      rl('معدل إقفال جيد للدفعات المستبقاة.','Good closure rate for retention payments.'),
+      rl('الالتزام بمدة الاستبقاء التعاقدية البالغة 90 يوماً.','Adherence to the 90-day contractual retention term.'),
+      rl('تسجيل أسباب التأخير لكل دفعة غير مغلقة.','Delay reasons logged for every unclosed payment.'),
+      rl('أداء جيد لبعض الجهات مثل مكتب التبادل المعرفي والمركز الاتحادي للتنافسية والإحصاء.','Strong performance by some entities such as GEEO and FCSC.')
+    ];
+    const retWeak=[
+      rl('تركز المخاطر لدى مكتب رئاسة مجلس الوزراء.','Risk concentration at PMO.'),
+      rl('وجود 11 دفعة متجاوزة للمهلة التعاقدية.','11 payments overdue past the contractual term.'),
+      rl('تأخر الموردين في تسليم الفواتير أو رسائل براءة الذمة.','Suppliers delayed in submitting invoices or clearance letters.'),
+      rl('الحاجة إلى آلية تصعيد أكثر فعالية.','Need for a more effective escalation mechanism.')
+    ];
+    const retRecs=[
+      {note:rl('تركز 52% من إجمالي القيمة لدى مكتب رئاسة مجلس الوزراء.','52% of total value concentrated in PMO.'),rec:rl('وضع خطة إقفال ذات أولوية لدفعات المكتب.','Set a priority closure plan for PMO payments.'),imp:'عالية'},
+      {note:rl('11 دفعة متجاوزة للمهلة التعاقدية بقيمة 1.12 مليون درهم.','11 overdue payments worth AED 1.12M.'),rec:rl('تفعيل آلية تصعيد أسبوعية للحالات المتجاوزة.','Activate a weekly escalation mechanism for overdue cases.'),imp:'عالية'},
+      {note:rl('تأخر الموردين في تسليم الفواتير ورسائل براءة الذمة.','Suppliers delayed invoices and clearance letters.'),rec:rl('مخاطبة الموردين وتحديد مهلة نهائية للتسليم.','Notify suppliers and set a final submission deadline.'),imp:'متوسطة'},
+      {note:rl('غياب آلية تصعيد موحدة بين الجهات.','No unified escalation mechanism across entities.'),rec:rl('اعتماد إجراء تصعيد معياري موحد عبر الجهات.','Adopt a standard unified escalation procedure across entities.'),imp:'متوسطة'},
+      {note:rl('تفاوت الأداء بين الجهات.','Performance varies across entities.'),rec:rl('تعميم ممارسات الجهات الأعلى أداءً.','Roll out best practices from top-performing entities.'),imp:'منخفضة'}
+    ].map(r=>{const[b,f]=impMap[r.imp];return Object.assign({},r,{impLabel:tr(r.imp),impBg:b,impFg:f});});
+    const retEntRaw=[
+      {code:'PMO',count:30,value:'4,856,373',pct:'51.9%',w:100,c:'var(--ca9791f,#a9791f)'},
+      {code:'GEEO',count:6,value:'1,751,932',pct:'18.7%',w:36,c:'var(--c2e7d55,#2e7d55)'},
+      {code:'GSOC',count:9,value:'1,422,068',pct:'15.2%',w:29,c:'var(--c2e7d55,#2e7d55)'},
+      {code:'FCSC',count:5,value:'593,150',pct:'6.3%',w:12,c:'var(--c2e7d55,#2e7d55)'},
+      {code:'MAIO',count:3,value:'534,993',pct:'5.7%',w:11,c:'var(--c2e7d55,#2e7d55)'},
+      {code:'MOCA',count:4,value:'191,016',pct:'2.0%',w:4,c:'var(--c2e7d55,#2e7d55)'}
+    ];
+    const retEntities=retEntRaw.map(e=>({code:e.code,count:e.count,value:e.value,pct:e.pct,barW:e.w,barColor:e.c}));
+    const retCases=[
+      {code:'PMO-PO-25-0406',value:rl('520,000 درهم','AED 520,000'),statusLabel:rl('غير مغلق','Unclosed'),reason:rl('مقاولات','Contracting')},
+      {code:'GSOC-PO-24-0124',value:rl('216,223 درهم','AED 216,223'),statusLabel:rl('غير مغلق','Unclosed'),reason:rl('مقاولات','Contracting')}
+    ];
+    const retConclusion=rl('أداء الإدارة جيد عموماً، لكن تراكم 11 دفعة متجاوزة بقيمة 1.1 مليون درهم، معظمها لدى مكتب رئاسة مجلس الوزراء، يستوجب أولوية لإقفال الحالات الأعلى قيمة خلال الفترة القادمة.','Overall departmental performance is good, but the buildup of 11 overdue payments worth AED 1.1M — mostly at PMO — calls for prioritising closure of the highest-value cases in the coming period.');
+    const repMeta={
+      title:rl('تقرير الدفعات المستبقاة — الربع الثاني 2026','Retention Payments Report — Q2 2026'),
+      freqLabel:rl('ربع سنوي','Quarterly'),statusLabel:rl('مكتمل','Completed'),
+      periodLabel:rl('الربع الثاني 2026','Q2 2026'),entityLabel:rl('إدارة الخدمات المالية','Financial Services Dept.'),
+      ownerAvatar:hasanAv,ownerName:rl('حسن همام','Hasan Hammam'),ownerRole:rl('خبير الجودة والامتثال','Quality and Compliance Expert')
+    };
+    const rl2=(a,b)=>L?b:a;
+    const QLAB={q1:rl2('الربع الأول','Q1'),q2:rl2('الربع الثاني','Q2'),q3:rl2('الربع الثالث','Q3'),q4:rl2('الربع الرابع','Q4')};
+    // available versions of the retention report (only Q2 2026 uploaded so far)
+    const RET_AVAIL={'2026-q2':true};
+    const latestYear='2026',latestQ='q2';
+    const selY=S.repYear||latestYear, selQ=S.repQuarter||latestQ;
+    const selKey=selY+'-'+selQ;
+    const repAvailable=!!RET_AVAIL[selKey];
+    const periodOf=(y,q)=>QLAB[q]+' '+y;
+    let rep=null;
+    if(S.page==='reportDetail'){
+    rep=Object.assign({},repMeta,{
+      kpis:retKpis,summary:retSummary,strengths:retStrengths,weaknesses:retWeak,recommendations:retRecs,entities:retEntities,topCases:retCases,conclusion:retConclusion,
+      available:repAvailable,
+      periodLabel:periodOf(selY,selQ),
+      title:rl('تقرير الدفعات المستبقاة','Retention Payments Report'),
+      years:[{v:'2026',label:'2026'},{v:'2025',label:'2025'}],
+      quarters:['q1','q2','q3','q4'].map(q=>{const av=!!RET_AVAIL[selY+'-'+q];const sel=q===selQ;
+        return {v:q,label:QLAB[q],available:av,selected:sel,
+          btnStyle:'display:flex;align-items:center;gap:7px;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid '+(sel?'var(--c1e4634,#1e4634)':av?'var(--ccfe0d5,#cfe0d5)':'var(--ce6e3de,#e6e3de)')+';background:'+(sel?'var(--c1e4634,#1e4634)':av?'var(--ceef4f0,#eef4f0)':'var(--cf4f3f1,#f4f3f1)')+';color:'+(sel?'#fff':av?'var(--c1f4a37,#1f4a37)':'var(--ca7a29a,#a7a29a)'),
+          dotStyle:'width:7px;height:7px;border-radius:50%;background:'+(sel?'var(--ce9c877,#e9c877)':av?'var(--c2e7d55,#2e7d55)':'var(--cc9c4bc,#c9c4bc)'),
+          pick:()=>this.setState({repQuarter:q})};}),
+      selYear:selY,latestPeriod:periodOf(latestYear,latestQ),noVersion:!repAvailable,
+      onYear:e=>this.setState({repYear:e.target.value}),
+      returnLatest:()=>this.setState({repYear:latestYear,repQuarter:latestQ})
+    });
+    rep.ddYear=this.renderDD('repYear',rep.selYear,rep.years,e=>this.setState({repYear:e.target.value}),{minWidth:'92px',weight:600});
+    }
+    // ---- Audit follow-up report (Admin Affairs 2025) ----
+    const AUS={'مغلق':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'قيد التنفيذ':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'متأخر':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)']};
+    const audTotal=this.audit.length;
+    const audClosed=this.audit.filter(a=>a.status==='مغلق').length;
+    const audProg=this.audit.filter(a=>a.status==='قيد التنفيذ').length;
+    const audLate=this.audit.filter(a=>a.status==='متأخر').length;
+    const audHigh=this.audit.filter(a=>a.imp==='عالية').length;
+    const closePct=Math.round(audClosed/audTotal*100);
+    const progPct=Math.round(audProg/audTotal*100);
+    const audStale=a=>{const y=(String(a.updated||'').match(/20\d\d/)||[])[0];return !y||parseInt(y)<2026;};
+    const audFlag=a=>a.status!=='مغلق'&&(a.status==='متأخر'||a.imp==='عالية'||audStale(a));
+    const audReason=a=>a.status==='متأخر'?rl('متأخرة عن تاريخ التنفيذ','Overdue past due date'):(a.imp==='عالية'?rl('أهمية عالية تتطلب تدخلك','High priority — needs attention'):(audStale(a)?rl('لم تُحدَّث مؤخراً','No recent update'):rl('تحتاج متابعة','Needs follow-up')));
+    const audNeedInt=this.audit.filter(audFlag).length;
+    const audLbl=s=>s==='قيد التنفيذ'?rl('جاري العمل','In progress'):tr(s);
+    const audBase={audStatus:'',audOwner:'',audImp:'',audDept:'',audDue:'',audLate:false,audNeedInt:false};
+    const audCard=(active,accent)=>'background:var(--cffffff,#ffffff);border-radius:18px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,.14);padding:18px 20px;display:flex;flex-direction:column;gap:12px;transition:box-shadow .15s,transform .15s;cursor:pointer;'+(active?('outline:2px solid '+accent+';outline-offset:-2px;transform:translateY(-2px)'):'');
+    const audKpis=[
+      {label:rl('إجمالي الملاحظات','Total observations'),value:String(audTotal),icon:'shield',bg:'var(--ce6eef6,#e6eef6)',fg:'var(--c3a6ea5,#3a6ea5)',accent:'var(--c3a6ea5,#3a6ea5)',kind:'all'},
+      {label:rl('الملاحظات المغلقة','Closed'),value:String(audClosed),icon:'tick',bg:'var(--ce2f0e8,#e2f0e8)',fg:'var(--c2e7d55,#2e7d55)',accent:'var(--c2e7d55,#2e7d55)',kind:'مغلق'},
+      {label:rl('جاري العمل','In progress'),value:String(audProg),icon:'timer',bg:'var(--cfbf0d6,#fbf0d6)',fg:'var(--ca9791f,#a9791f)',accent:'var(--ca9791f,#a9791f)',kind:'قيد التنفيذ'},
+      {label:rl('المتأخرة','Overdue'),value:String(audLate),icon:'pin',bg:'var(--cf7e6e4,#f7e6e4)',fg:'var(--cb0433b,#b0433b)',accent:'var(--cb0433b,#b0433b)',kind:'متأخر'}
+    ].map(k=>{const active=k.kind==='needint'?!!S.audNeedInt:(k.kind==='all'?(!S.audStatus&&!S.audNeedInt):(S.audStatus===k.kind&&!S.audNeedInt));return Object.assign(k,{active,iconEl:svgIcon(k.icon,19),hasSub:false,valueStyle:'font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--c17211c,#17211c);text-align:end',onClick:(k.kind==='needint'?()=>this.setState(Object.assign({},audBase,{audNeedInt:true})):(k.kind==='all'?()=>this.setState(Object.assign({},audBase)):()=>this.setState(Object.assign({},audBase,{audStatus:k.kind})))),cardStyle:audCard(active,k.accent)});});
+    // follow-up indicators (closure %, progress %, by responsible)
+    const audOwners=[...new Set(this.audit.map(a=>a.owner))].map(o=>{
+      const items=this.audit.filter(a=>a.owner===o);const cl=items.filter(a=>a.status==='مغلق').length;
+      return {name:o,initials:initials(o),count:items.length,closed:cl,barW:Math.round(items.length/audTotal*100),
+        open:items.length-cl,barColor:o.includes('راشد')?'var(--c3a6ea5,#3a6ea5)':o.includes('بدر')?'var(--c2e7d55,#2e7d55)':o.includes('عهود')?'var(--ca9791f,#a9791f)':o.includes('خلفان')?'var(--c7a4d94,#7a4d94)':'var(--cb0433b,#b0433b)'};
+    }).sort((a,b)=>b.count-a.count);
+    const audIndicators=[
+      {label:rl('نسبة الإغلاق','Closure rate'),pct:closePct,color:'var(--c2e7d55,#2e7d55)'},
+      {label:rl('قيد التنفيذ','In progress'),pct:progPct,color:'var(--ca9791f,#a9791f)'},
+      {label:rl('المتأخرة','Overdue'),pct:Math.round(audLate/audTotal*100),color:'var(--cb0433b,#b0433b)'}
+    ];
+    // observations needing follow-up (non-closed), sorted overdue→high→rest
+    const impRank={'عالية':0,'متوسطة':1,'منخفضة':2};
+    const audBullets=s=>{s=String(s||'').trim();if(!s)return['—'];let parts=/[0-9]\s*[\.\-]/.test(s)?s.split(/\s*[0-9]+\s*[\.\-]\s*/):s.split(/،\s*/);parts=parts.map(x=>x.trim()).filter(Boolean);return parts.length?parts:[s];};
+    const decAud=a=>{const[b,f]=AUS[a.status]||['#eee','#555'];const[ib,iff]=impMap[a.imp]||['#eee','#555'];const[ob,of]=this.av(a.owner);
+      return Object.assign({},a,{area:tr(a.area),obs:tr(a.obs),obsBullets:audBullets(tr(a.obs)),action:tr(a.action),actionBullets:audBullets(tr(a.action)),notes:a.notes?tr(a.notes):'—',owner:tr(a.owner),ownerInitials:initials(a.owner),ownerBg:ob,ownerFg:of,
+        due:dateLoc(a.due),updated:dateLoc(a.updated),statusLabel:audLbl(a.status),impLabel:tr(a.imp),reason:audReason(a),flag:audFlag(a),reviewedFlag:!!a.reviewed,_bg:b,_fg:f,_ib:ib,_if:iff,isLate:a.status==='متأخر',_rowBg:a.status==='متأخر'?'var(--cfdf6f5,#fdf6f5)':'transparent',
+        open:()=>this.setState({audSel:a.id}),requestUpdate:()=>this.audRequestUpdate(a.id),markReviewed:()=>this.audMarkReviewed(a.id),addDirective:()=>this.audAddDirective(a.id),
+        statusDd:this.renderDD('audrow-'+a.id,a.status,['متأخر','قيد التنفيذ','مغلق'].map(s=>({v:s,label:audLbl(s)})),e=>this.setStatus('audit',a.id,e.target.value),{bg:b,color:f,weight:700,size:'sm',borderColor:'transparent',block:true}),
+        setStatus:e=>this.setStatus('audit',a.id,e.target.value)});};
+    const audFollow=this.audit.filter(audFlag)
+      .sort((a,b)=>(a.status==='متأخر'?-1:0)-(b.status==='متأخر'?-1:0)||impRank[a.imp]-impRank[b.imp]).slice(0,3).map(decAud);
+    // detailed filterable table
+    const aq=(S.audSearch||'').trim();
+    let audRows=this.audit.filter(a=>{
+      if(S.audStatus&&a.status!==S.audStatus)return false;
+      if(S.audOwner&&a.owner!==S.audOwner)return false;
+      if(S.audImp&&a.imp!==S.audImp)return false;
+      if(S.audDept&&a.area!==S.audDept)return false;
+      if(S.audDue&&a.due!==S.audDue)return false;
+      if(S.audLate&&a.status!=='متأخر')return false;
+      if(S.audNeedInt&&!audFlag(a))return false;
+      if(aq&&!(a.area.includes(aq)||a.obs.includes(aq)||a.action.includes(aq)||a.num.includes(aq)))return false;
+      return true;});
+    if(S.audSort==='status')audRows=audRows.slice().sort((a,b)=>({'متأخر':0,'قيد التنفيذ':1,'مغلق':2})[a.status]-({'متأخر':0,'قيد التنفيذ':1,'مغلق':2})[b.status]);
+    else if(S.audSort==='imp')audRows=audRows.slice().sort((a,b)=>impRank[a.imp]-impRank[b.imp]);
+    const auditRows=audRows.map(decAud);
+    const audSelDetail=(()=>{if(!S.audSel)return null;const a=this.audit.find(x=>x.id===S.audSel);return a?decAud(a):null;})();
+    const audMeta={
+      title:rl('تقرير المتابعة على إدارة الشؤون الإدارية 2025','Admin Affairs Follow-up Report 2025'),
+      catLabel:rl('تقارير المتابعة والتدقيق','Follow-up & Audit reports'),
+      freqLabel:rl('متابعة دورية / حسب الحاجة','Periodic / as needed'),statusLabel:rl('قيد المتابعة','Under follow-up'),
+      periodLabel:rl('السنة 2025','Year 2025'),entityLabel:rl('إدارة الشؤون الإدارية','Admin Affairs Dept.'),
+      typeLabel:rl('متابعة ملاحظات التدقيق الداخلي','Internal audit findings follow-up'),
+      ownerAvatar:avEl(memberImg('حسن همام')),ownerName:rl('حسن همام','Hasan Hammam'),ownerRole:rl('خبير الجودة والامتثال','Quality and Compliance Expert')
+    };
+    let audStatusOpts=null,audOwnerOpts=null,audImpOpts=null,audSortOpts=null,audDeptOpts=null,audDueOpts=null;
+    let aud=null;
+    if(S.page==='auditDetail'){
+    aud=Object.assign({},audMeta,{kpis:audKpis,indicators:audIndicators,owners:audOwners,follow:audFollow,rows:auditRows,hasFollow:audFollow.length>0,
+      total:audTotal,closed:audClosed,prog:audProg,late:audLate,needInt:audNeedInt,closePct,noRows:auditRows.length===0,
+      selDetail:audSelDetail,hasSel:!!audSelDetail,closePanel:()=>this.setState({audSel:null}),
+      audDept:S.audDept,audDue:S.audDue,audLateOn:!!S.audLate,audNeedIntOn:!!S.audNeedInt,
+      toggleLate:()=>this.setState({audLate:!S.audLate,audNeedInt:false}),
+      toggleNeedInt:()=>this.setState({audNeedInt:!S.audNeedInt,audLate:false}),
+      lateBtnStyle:'display:flex;align-items:center;gap:6px;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid '+(S.audLate?'var(--cb0433b,#b0433b)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.audLate?'var(--cf7e6e4,#f7e6e4)':'var(--cffffff,#ffffff)')+';color:'+(S.audLate?'var(--cb0433b,#b0433b)':'var(--c7d867f,#7d867f)'),
+      needIntBtnStyle:'display:flex;align-items:center;gap:6px;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid '+(S.audNeedInt?'var(--c7a4d94,#7a4d94)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.audNeedInt?'var(--cf3ecf6,#f3ecf6)':'var(--cffffff,#ffffff)')+';color:'+(S.audNeedInt?'var(--c7a4d94,#7a4d94)':'var(--c7d867f,#7d867f)'),
+      onSearch:e=>this.setState({audSearch:e.target.value}),
+      audStatus:S.audStatus,audOwner:S.audOwner,audImp:S.audImp,audSort:S.audSort,
+      onStatus:e=>this.setState({audStatus:e.target.value}),onOwner:e=>this.setState({audOwner:e.target.value}),
+      onImp:e=>this.setState({audImp:e.target.value}),onSort:e=>this.setState({audSort:e.target.value}),
+      clearFilters:()=>this.setState({audSearch:'',audStatus:'',audOwner:'',audImp:'',audDept:'',audDue:'',audLate:false,audNeedInt:false,audSort:'num'})});
+    // ---- Audit family (multi-unit registry) ----
+    const AUDIT_UNITS=['إدارة الشؤون الإدارية','إدارة الخدمات المالية','إدارة خدمات الموارد البشرية','إدارة العقود والمشتريات','إدارة الخدمات والبنية التحتية','مركز التجربة المتكاملة'];
+    const AUDIT_REG=[{id:'admin2025',unit:'إدارة الشؤون الإدارية',year:'2025',period:'—',status:'قيد المتابعة',title:rl('تقرير المتابعة على إدارة الشؤون الإدارية 2025','Admin Affairs Follow-up Report 2025'),total:audTotal,closed:audClosed}];
+    const audLatest=AUDIT_REG[0];
+    const audSelUnit=S.audUnit||audLatest.unit, audSelYear=S.audYear||audLatest.year;
+    const audSelReport=AUDIT_REG.find(r=>r.unit===audSelUnit&&r.year===audSelYear)||null;
+    const audYears=['2026','2025'];
+    const arq=(S.audRepSearch||'').trim();
+    const audReportsList=AUDIT_REG.filter(r=>{if(S.audRepStatus&&r.status!==S.audRepStatus)return false;if(arq&&!(r.title.includes(arq)||r.unit.includes(arq)))return false;return true;})
+      .map(r=>({id:r.id,title:tr(r.title),unit:tr(r.unit),year:r.year,statusLabel:tr(r.status),total:r.total,closed:r.closed,selected:(r.unit===audSelUnit&&r.year===audSelYear)?'var(--cfbf7ec,#fbf7ec)':'#fff',pick:()=>this.setState({audUnit:r.unit,audYear:r.year})}));
+    aud.fam={
+      catLabel:rl('تقارير المتابعة والتدقيق','Follow-up & Audit reports'),
+      latestTitle:tr(audLatest.title),latestUnit:tr(audLatest.unit),latestYear:audLatest.year,count:AUDIT_REG.length,
+      available:!!audSelReport,selUnit:tr(audSelUnit),selUnitRaw:audSelUnit,selYear:audSelYear,
+      selTitle:audSelReport?tr(audSelReport.title):(tr(audSelUnit)+' '+audSelYear),
+      units:[{v:'',label:rl('كل الوحدات','All units')}].concat(AUDIT_UNITS.map(u=>({v:u,label:tr(u)}))),
+      years:[{v:'',label:rl('كل السنوات','All years')}].concat(audYears.map(y=>({v:y,label:y}))),
+      statuses:[{v:'',label:t.allStatuses}].concat(['قيد المتابعة','مكتمل'].map(s=>({v:s,label:tr(s)}))),
+      repStatus:S.audRepStatus,repSearch:S.audRepSearch,list:audReportsList,
+      onUnit:e=>this.setState({audUnit:e.target.value}),onYear:e=>this.setState({audYear:e.target.value}),
+      onRepStatus:e=>this.setState({audRepStatus:e.target.value}),onRepSearch:e=>this.setState({audRepSearch:e.target.value}),
+      returnLatest:()=>this.setState({audUnit:audLatest.unit,audYear:audLatest.year,audRepStatus:'',audRepSearch:''})
+    };
+    audStatusOpts=[{v:'',label:t.allStatuses}].concat(['متأخر','قيد التنفيذ','مغلق'].map(s=>({v:s,label:audLbl(s)})));
+    audOwnerOpts=[{v:'',label:rl('كل المسؤولين','All responsibles')}].concat([...new Set(this.audit.map(a=>a.owner))].map(o=>({v:o,label:tr(o)})));
+    audImpOpts=[{v:'',label:rl('كل المستويات','All levels')}].concat(['عالية','متوسطة','منخفضة'].map(s=>({v:s,label:tr(s)})));
+    audSortOpts=[{v:'num',label:rl('رقم الملاحظة','Observation no.')},{v:'status',label:rl('الحالة','Status')},{v:'imp',label:rl('الأهمية','Priority')}];
+    aud.ddStatus=this.renderDD('audStatus',S.audStatus,audStatusOpts,e=>this.setState({audStatus:e.target.value}),{size:'sm',minWidth:'118px'});
+    aud.ddOwner=this.renderDD('audOwner',S.audOwner,audOwnerOpts,e=>this.setState({audOwner:e.target.value}),{size:'sm',minWidth:'120px'});
+    aud.ddImp=this.renderDD('audImp',S.audImp,audImpOpts,e=>this.setState({audImp:e.target.value}),{size:'sm',minWidth:'116px'});
+    aud.ddSort=this.renderDD('audSort',S.audSort,audSortOpts,e=>this.setState({audSort:e.target.value}),{size:'sm',minWidth:'128px'});
+    audDeptOpts=[{v:'',label:rl('كل الوحدات','All units')}].concat([...new Set(this.audit.map(a=>a.area))].map(o=>({v:o,label:tr(o)})));
+    audDueOpts=[{v:'',label:rl('كل التواريخ','All dates')}].concat([...new Set(this.audit.map(a=>a.due))].map(o=>({v:o,label:dateLoc(o)})));
+    aud.ddDept=this.renderDD('audDept',S.audDept||'',audDeptOpts,e=>this.setState({audDept:e.target.value}),{size:'sm',minWidth:'150px',popMaxWidth:'320px'});
+    aud.ddDue=this.renderDD('audDue',S.audDue||'',audDueOpts,e=>this.setState({audDue:e.target.value}),{size:'sm',minWidth:'120px'});
+    aud.fam.ddUnit=this.renderDD('audFamUnit',aud.fam.selUnitRaw,aud.fam.units,e=>this.setState({audUnit:e.target.value}),{size:'sm',minWidth:'150px',popMaxWidth:'340px'});
+    aud.fam.ddYear=this.renderDD('audFamYear',aud.fam.selYear,aud.fam.years,e=>this.setState({audYear:e.target.value}),{size:'sm',minWidth:'96px'});
+    aud.fam.ddRepStatus=this.renderDD('audFamRepStatus',aud.fam.repStatus,aud.fam.statuses,e=>this.setState({audRepStatus:e.target.value}),{size:'sm',minWidth:'118px'});
+    }
+
+    // link non-completed meeting tasks into Actions
+    const mtNeedsSupport=tk=>tk.status==='لم يبدأ'||tk.status==='متأخر';
+    const mtaskActions=this.mtasks.filter(tk=>tk.status!=='مكتمل').map(tk=>({id:tk.id,_mtask:true,title:tk.task.length>70?tk.task.slice(0,70)+'…':tk.task,source:'مهمة محضر: '+tk.meeting,sourceType:'مهمة محضر',owner:tk.owner,priority:mtNeedsSupport(tk)?'عالية':'متوسطة',due:tk.due,status:tk.status==='لم يبدأ'?'مفتوح':tk.status}));
+
+    // ---- Office team tasks ----
+    const OTS={'لم يبدأ':['var(--ceceae6,#eceae6)','var(--c8a8078,#8a8078)'],'قيد التنفيذ':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'بانتظار اعتماد':['var(--ce6eef6,#e6eef6)','var(--c3a6ea5,#3a6ea5)'],'يحتاج توجيه':['var(--cf7ece0,#f7ece0)','var(--cc26a2b,#c26a2b)'],'مكتمل':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'متأخر':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)']};
+    const oNoDue=tk=>!tk.due||!String(tk.due).trim();
+    const oNeedsAttn=tk=>tk.status!=='مكتمل'&&(tk.status==='متأخر'||tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||oNoDue(tk));
+    const oTotal=this.otasks.length;
+    const oProg=this.otasks.filter(tk=>tk.status==='قيد التنفيذ').length;
+    const oLateN=this.otasks.filter(tk=>tk.status==='متأخر').length;
+    const oNeedDir=this.otasks.filter(tk=>tk.status==='يحتاج توجيه').length;
+    const oNoDueN=this.otasks.filter(tk=>oNoDue(tk)&&tk.status!=='مكتمل').length;
+    const oDone=this.otasks.filter(tk=>tk.status==='مكتمل').length;
+    const oKpis=[
+      {label:rl('إجمالي المهام','Total tasks'),value:String(oTotal),accent:'var(--c3a6ea5,#3a6ea5)'},
+      {label:rl('قيد التنفيذ','In progress'),value:String(oProg),accent:'var(--ca9791f,#a9791f)'},
+      {label:rl('المتأخرة','Overdue'),value:String(oLateN),accent:'var(--cb0433b,#b0433b)'},
+      {label:rl('تحتاج توجيه','Need direction'),value:String(oNeedDir),accent:'var(--cc26a2b,#c26a2b)'},
+      {label:rl('بدون موعد نهائي','No deadline'),value:String(oNoDueN),accent:'var(--c7a4d94,#7a4d94)'},
+      {label:rl('المكتملة','Completed'),value:String(oDone),accent:'var(--c2e7d55,#2e7d55)'}
+    ];
+    const decOt=tk=>{const[b,f]=OTS[tk.status]||['#eee','#555'];const[ob,of]=this.av(tk.owner);const nd=oNoDue(tk);const otimg=memberImg(tk.owner);return Object.assign({},tk,{title:tr(tk.title),desc:tr(tk.desc),dept:tr(tk.dept),owner:tr(tk.owner),ownerInitials:initials(tk.owner),ownerBg:ob,ownerFg:of,avatarEl:otimg?avEl(otimg):React.createElement('span',{style:{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'9.5px',fontWeight:700,background:ob,color:of}},initials(tk.owner)),statusLabel:tr(tk.status),lastUpdate:tk.lastUpdate?dateLoc(tk.lastUpdate):'—',dueLabel:nd?rl('لم يُحدَّد','Not set'):dateLoc(tk.due),noDue:nd,dueColor:nd?'var(--cb0433b,#b0433b)':'var(--c2e7d55,#2e7d55)',notes:tk.notes?tr(tk.notes):'—',dirCount:(tk.directives||[]).length,reviewedBg:tk.reviewed?'var(--ce2f0e8,#e2f0e8)':'var(--cf2f4f0,#f2f4f0)',_bg:b,_fg:f,accent:f,prog:({'لم يبدأ':6,'يحتاج توجيه':35,'متأخر':45,'قيد التنفيذ':60,'بانتظار اعتماد':80,'مكتمل':100}[tk.status]||30),needsAttn:oNeedsAttn(tk),isDone:tk.status==='مكتمل',notDone:tk.status!=='مكتمل',
+      prLabel:tk.status==='متأخر'?rl('عالية','High'):((tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||nd)&&tk.status!=='مكتمل'?rl('متوسطة','Medium'):rl('منخفضة','Low')),
+      prBg:tk.status==='متأخر'?'var(--cfaf0ef,#faf0ef)':((tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||nd)&&tk.status!=='مكتمل'?'var(--cfbf7ee,#fbf7ee)':'var(--cf0f2ee,#f0f2ee)'),
+      prFg:tk.status==='متأخر'?'var(--cb0433b,#b0433b)':((tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||nd)&&tk.status!=='مكتمل'?'var(--ca9791f,#a9791f)':'var(--c8a938c,#8a938c)'),
+      open:()=>this.openOtask(tk.id),setDeadline:()=>this.openOModal('deadline',tk.id),addDirective:()=>this.openOModal('directive',tk.id),requestUpdate:()=>this.requestOUpdate(tk.id),markComplete:()=>this.markOComplete(tk.id),statusDd:this.renderDD('otrow-'+tk.id,tk.status,['لم يبدأ','قيد التنفيذ','بانتظار اعتماد','يحتاج توجيه','متأخر','مكتمل'].map(s=>({v:s,label:tr(s)})),e=>this.setStatus('otask',tk.id,e.target.value),{bg:b,color:f,weight:700,size:'sm',borderColor:'transparent',block:true}),setStatus:e=>this.setStatus('otask',tk.id,e.target.value)});};
+    const oSelDetail=(()=>{if(!S.selOtask)return null;const tk=this.find(this.otasks,S.selOtask);if(!tk)return null;const d=decOt(tk);d.directivesList=(tk.directives||[]).map(x=>({text:tr(x.text),date:dateLoc(x.date)}));d.hasDirectives=(tk.directives||[]).length>0;d.noDirectives=(tk.directives||[]).length===0;d.startLabel=tk.start?dateLoc(tk.start):rl('لم يُحدَّد','Not set');d.endLabel=tk.end?dateLoc(tk.end):(tk.due?dateLoc(tk.due):rl('لم يُحدَّد','Not set'));d.labelText=tk.label?tr(tk.label):rl('بدون تصنيف','Untagged');d.hasLabel=!!(tk.label&&tk.label.trim());d.attachList=(tk.attachments||[]).map(a=>({name:tr(a)}));d.hasAttach=(tk.attachments||[]).length>0;d.noAttach=(tk.attachments||[]).length===0;return d;})();
+    let oNeedAttention=[];if(S.page==='dashboard'){oNeedAttention=this.otasks.filter(oNeedsAttn).map(decOt).slice(0,6);}
+    const otaskActions=this.otasks.filter(oNeedsAttn).map(tk=>({id:tk.id,_otask:true,title:tk.title,source:'مهمة مكتب: '+tk.dept,sourceType:'مهمة مكتب',owner:tk.owner,priority:(tk.status==='متأخر'||tk.status==='يحتاج توجيه')?'عالية':'متوسطة',due:tk.due||'',status:tk.status==='لم يبدأ'?'مفتوح':(tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'?'قيد التنفيذ':tk.status)}));
+    const oModalData=S.oModal?Object.assign({},S.oModal,{isDeadline:S.oModal.kind==='deadline'}):null;
+
+
+    const reportCards=[
+      Object.assign({},repMeta,{
+        catLabel:rl('التقارير المالية','Financial reports'),iconEl:svgIcon('bank',22),statusLabel:rl('محدّث','Updated'),stBg:'var(--ce2f0e8,#e2f0e8)',stFg:'var(--c2e7d55,#2e7d55)',
+        ownerAvatar:avEl(memberImg('هاجر هلول')),ownerName:rl('هاجر هلول','Hajar Halool'),ownerRole:rl('إداري - الإنجاز والمتابعة','Administrator - Achievement & Follow up'),entityLabel:rl('إدارة الخدمات المالية','Financial Services Dept.'),periodLabel:rl('حتى 30 مايو 2026','To 30 May 2026'),freqLabel:rl('دوري','Periodic'),
+        title:rl('الملخص التنفيذي المالي','Financial Executive Summary'),
+        desc:rl('لوحة مالية تنفيذية للوزارة: الميزانية والاستخدام، توزيع الميزانية على الجهات، المخصصات والمصروفات، أكبر المشاريع، الأطراف ذات العلاقة، والعقود المستحقة حسب مدة التأخير.','Executive financial board: budget & usage, distribution across entities, allocations & expenses, biggest projects, related parties, and AP aging.'),
+        latestLabel:rl('الفترة: حتى 30 مايو 2026','Period: to 30 May 2026'),
+        updatedLabel:rl('آخر تحديث: مايو 2026','Updated: May 2026'),downloadLabel:rl('تحميل الملف','Download file'),viewLabel:rl('عرض التقرير','View report'),open:()=>this.goto('finDetail')
+      }),
+      Object.assign({},repMeta,{
+        catLabel:rl('التقارير المالية','Financial reports'),iconEl:svgIcon('note',22),statusLabel:rl('مكتمل','Completed'),stBg:'var(--ce2f0e8,#e2f0e8)',stFg:'var(--c2e7d55,#2e7d55)',
+        title:rl('تقرير الدفعات المستبقاة','Retention Payments Report'),
+        desc:rl('آخر إصدار متوفر: الربع الثاني 2026 — ملخص تنفيذي، مؤشرات، مواطن القوة والضعف، التوصيات، والمؤشرات حسب الجهة. تصفّح الأرباع الأخرى من داخل التقرير.','Latest version: Q2 2026 — executive summary, KPIs, strengths & weaknesses, recommendations, and metrics by entity. Browse other quarters from inside the report.'),
+        latestLabel:rl('آخر إصدار متوفر: الربع الثاني 2026','Latest version: Q2 2026'),
+        updatedLabel:rl('آخر تحديث: يونيو 2026','Updated: Jun 2026'),downloadLabel:rl('تحميل آخر إصدار','Download latest'),viewLabel:rl('عرض التقرير','View report'),open:()=>this.goto('reportDetail')
+      }),
+      Object.assign({},repMeta,{
+        catLabel:rl('سجل المتابعة','Tracking register'),iconEl:svgIcon('list',22),statusLabel:rl('سجل حي','Live register'),stBg:'var(--ce6eef6,#e6eef6)',stFg:'var(--c3a6ea5,#3a6ea5)',
+        ownerAvatar:avEl(memberImg('هاجر هلول')),ownerName:rl('هاجر هلول','Hajar Halloul'),ownerRole:rl('إداري - الإنجاز والمتابعة','Admin – Delivery & Follow-up'),entityLabel:rl('كل الإدارات','All departments'),periodLabel:rl('2026 · متابعة شهرية','2026 · monthly tracking'),freqLabel:rl('متعدد الدوريات','Mixed frequency'),
+        title:rl('سجل التقارير','Reports Register'),
+        desc:rl('سجل متابعة لجميع التقارير المطلوبة من الإدارات والوحدات: الحالة حسب الشهر والدورية، التقارير المتأخرة وغير المستلمة، والتي تحتاج اعتماداً أو متابعة.','A tracking register for all required reports across departments: status by month & frequency, overdue/not-received items, and those needing approval or follow-up.'),
+        latestLabel:rl('70 تقريراً مسجلاً','70 registered reports'),
+        updatedLabel:rl('آخر تحديث: مايو 2026','Updated: May 2026'),downloadLabel:rl('تحميل السجل','Download register'),viewLabel:rl('عرض السجل','View register'),open:()=>this.goto('reglog')
+      }),
+      Object.assign({},audMeta,{
+        title:rl('تقارير المتابعة والتدقيق','Follow-up & Audit reports'),
+        iconEl:svgIcon('shield',22),stBg:'var(--cfbf0d6,#fbf0d6)',stFg:'var(--ca9791f,#a9791f)',statusLabel:rl('قيد المتابعة','Under follow-up'),
+        desc:rl('عائلة تقارير المتابعة والتدقيق على وحدات وإدارات القطاع. أحدث تقرير: تقرير المتابعة على إدارة الشؤون الإدارية 2025. تصفّح باقي الوحدات والسنوات من داخل الصفحة.','Family of follow-up & audit reports across the sector\u2019s units. Latest: Admin Affairs Follow-up 2025. Browse other units and years from inside.'),
+        latestLabel:rl('أحدث تقرير: إدارة الشؤون الإدارية 2025','Latest: Admin Affairs 2025'),countLabel:rl('عدد التقارير المتوفرة: 1','Available reports: 1'),
+        updatedLabel:rl('آخر تحديث: يونيو 2025','Updated: Jun 2025'),viewLabel:rl('عرض التقارير','View reports'),downloadLabel:rl('تحميل أحدث تقرير','Download latest'),open:()=>this.goto('auditDetail')
+      })
+    ];
+
+    // ---- Financial Executive Summary (lazy: finDetail only) ----
+    let finReport=null,finEntityPanel=null;
+    if(S.page==='finDetail'){
+    const FM=this.finModel;
+    const fmt=n=>{const neg=n<0;const s=Math.abs(n).toLocaleString('en-US');return (neg?'-':'')+s;};
+    const mAED=v=>rl(fmt(v)+' م.د',fmt(v)+'M');
+    const pct=(a,b)=>b?Math.round(a/b*100):0;
+    const entColors={MOCA:'var(--c1f8a5b,#1f8a5b)',PMO:'var(--c3a6ea5,#3a6ea5)',FCSC:'var(--ca9791f,#a9791f)',GSOC:'var(--c7a4d94,#7a4d94)',GEEO:'var(--cc26a2b,#c26a2b)',GMO:'var(--c2b8a8a,#2b8a8a)',SPO:'var(--c8a8078,#8a8078)',AIO:'var(--cb0433b,#b0433b)',GDFO:'var(--c5b6b62,#5b6b62)'};
+    const finKpis=[
+      {label:rl('الميزانية الكلية','Total budget'),value:mAED(FM.budget),accent:'var(--c1f4a37,#1f4a37)',big:true},
+      {label:rl('المستخدم من الميزانية','Budget used'),value:mAED(FM.used),sub:pct(FM.used,FM.budget)+'%',accent:'var(--ca9791f,#a9791f)'},
+      {label:rl('المتبقي من الميزانية','Budget remaining'),value:mAED(FM.remain),sub:pct(FM.remain,FM.budget)+'%',accent:'var(--c1f8a5b,#1f8a5b)'},
+      {label:rl('نسبة الاستخدام','Utilisation'),value:pct(FM.used,FM.budget)+'%',accent:'var(--c3a6ea5,#3a6ea5)'},
+      {label:rl('إجمالي المخصصات','Total allocations'),value:mAED(FM.commit),accent:'var(--c7a4d94,#7a4d94)'},
+      {label:rl('إجمالي المدفوع','Total paid'),value:mAED(FM.commitPaid),accent:'var(--c2e7d55,#2e7d55)'},
+      {label:rl('المستحق الدفع','Payable due'),value:mAED(FM.commitDue),accent:'var(--cb0433b,#b0433b)'}
+    ];
+    const finUtil=pct(FM.used,FM.budget);
+    const entityCards=FM.entities.map(e=>{const u=pct(e.used,e.alloc);const col=entColors[e.code]||'var(--c1f4a37,#1f4a37)';return {code:e.code,name:tr(e.name),alloc:mAED(e.alloc),used:mAED(e.used),remain:mAED(e.alloc-e.used),util:u,utilLabel:u+'%',commit:mAED(e.commit),paid:mAED(e.paid),due:mAED(e.due),color:col,barBg:col,overdue:e.overdue,hasOverdue:e.overdue>0,overdueLabel:rl(e.overdue+' عقد متأخر',e.overdue+' overdue'),open:()=>this.setState({selFinEntity:e.code})};});
+    // commitments + expenses
+    const finCommit={total:mAED(FM.commit),paid:mAED(FM.commitPaid),due:mAED(FM.commitDue),paidPct:pct(FM.commitPaid,FM.commit),duePct:pct(FM.commitDue,FM.commit)};
+    const expBlocks=[
+      {key:'op',label:rl('المصروفات التشغيلية','Operating expenses'),expected:FM.opex.expected,paid:FM.opex.paid,accent:'var(--c3a6ea5,#3a6ea5)'},
+      {key:'cap',label:rl('المصروفات الرأسمالية','Capital expenses'),expected:FM.capex.expected,paid:FM.capex.paid,accent:'var(--c7a4d94,#7a4d94)'}
+    ].map(b=>{const due=b.expected-b.paid;const sp=pct(b.paid,b.expected);return {key:b.key,label:b.label,accent:b.accent,expected:mAED(b.expected),paid:mAED(b.paid),due:mAED(due),spentPct:sp,spentLabel:sp+'%'};});
+    // biggest projects
+    const maxAlloc=Math.max.apply(null,FM.bigProjects.map(p=>p.alloc));
+    const finBigProjects=FM.bigProjects.map(p=>{const sp=pct(p.paid,p.alloc);const col=entColors[p.entity]||'var(--c1f4a37,#1f4a37)';return {name:tr(p.name),entity:p.entity,alloc:mAED(p.alloc),paid:mAED(p.paid),remain:mAED(p.alloc-p.paid),spentPct:sp,spentLabel:sp+'%',widthPct:Math.round(p.alloc/maxAlloc*100),color:col,statusLabel:sp>=80?rl('صرف مرتفع','High spend'):sp>=40?rl('ضمن الخطة','On track'):rl('صرف منخفض','Low spend'),statusBg:sp>=80?'var(--cfaf0ef,#faf0ef)':sp>=40?'var(--ce2f0e8,#e2f0e8)':'var(--cfbf0d6,#fbf0d6)',statusFg:sp>=80?'var(--cb0433b,#b0433b)':sp>=40?'var(--c2e7d55,#2e7d55)':'var(--ca9791f,#a9791f)'};});
+    // related parties
+    const relRows=FM.related.map(r=>{const total=r.items.reduce((s,x)=>s+x.v,0);return {from:r.from,to:r.to,fromColor:entColors[r.from]||'var(--c5b6b62,#5b6b62)',toColor:entColors[r.to]||'var(--c5b6b62,#5b6b62)',totalLabel:fmt(total),items:r.items.map(x=>({n:tr(x.n),v:fmt(x.v)}))};});
+    const relT=FM.relTotals;
+    const relTotalCards=[
+      {label:rl('إجمالي الأرصدة بين الجهات','Total inter-entity balances'),value:fmt(relT.allPeriods),accent:'var(--c1f4a37,#1f4a37)'},
+      {label:rl('إجمالي جارى التسوية','Total under settlement'),value:fmt(relT.settling),accent:'var(--c7a4d94,#7a4d94)'},
+      {label:rl('عقود مرحلة من العام السابق','Prior-year carried contracts'),value:fmt(relT.prior),accent:'var(--ca9791f,#a9791f)'},
+      {label:rl('أرصدة العام الحالي (عقود – رواتب)','Current-year balances'),value:fmt(relT.current),accent:'var(--c3a6ea5,#3a6ea5)'}
+    ];
+    // aging
+    const agingColors=['var(--c2e7d55,#2e7d55)','var(--ca9791f,#a9791f)','var(--cc26a2b,#c26a2b)','var(--cb0433b,#b0433b)','var(--c9a2f2a,#9a2f2a)','var(--c6b1f1c,#6b1f1c)'];
+    const agingRisk={'منخفض':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'متوسط':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'مرتفع':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)'],'حرج':['var(--cf3dcd9,#f3dcd9)','var(--c6b1f1c,#6b1f1c)']};
+    const finAging=FM.aging.map((a,i)=>{const total=a.items.reduce((s,x)=>s+x.amount,0);const supp=new Set(a.items.map(x=>x.supplier)).size;const[rb,rf]=agingRisk[a.risk]||['#eee','#555'];const sel=S.selFinAging===a.bucket;return {bucket:a.bucket,bucketLabel:rl(a.bucket+' يوم',a.bucket+' d'),total:fmt(total),suppliers:supp,contracts:a.items.length,riskLabel:tr(a.risk),riskBg:rb,riskFg:rf,color:agingColors[i]||'var(--cb0433b,#b0433b)',selected:sel,cardBg:sel?'var(--c1f4a37,#1f4a37)':'#fff',cardFg:sel?'#fff':'var(--c17211c,#17211c)',open:()=>this.setState({selFinAging:sel?null:a.bucket})};});
+    const agingSel=(()=>{if(!S.selFinAging)return null;const a=FM.aging.find(x=>x.bucket===S.selFinAging);if(!a)return null;return {bucketLabel:rl(a.bucket+' يوم','('+a.bucket+' days)'),rows:a.items.map(x=>({supplier:tr(x.supplier),num:x.num,entity:x.entity,entColor:entColors[x.entity]||'var(--c5b6b62,#5b6b62)',contract:x.contract,amount:fmt(x.amount),status:tr(x.status),notes:x.notes?tr(x.notes):'—'}))};})();
+    const agingTotal=FM.aging.reduce((s,a)=>s+a.items.reduce((t,x)=>t+x.amount,0),0);
+    const over60=FM.aging.slice(2).reduce((s,a)=>s+a.items.reduce((t,x)=>t+x.amount,0),0);
+    // bank interest
+    const finBankInterest=[
+      {label:rl('إجمالي الفوائد البنكية اليومية المحصلة على الحسابات للجهات','Total daily bank interest collected on entity accounts'),value:fmt(1192902),bg:'var(--ceaf3ee,#eaf3ee)',dot:'var(--c2e7d55,#2e7d55)'},
+      {label:rl('إجمالي الفوائد البنكية المحصلة على الودائع الثابتة للجهات','Total bank interest collected on entity fixed deposits'),value:fmt(2265002),bg:'var(--ce9f0f6,#e9f0f6)',dot:'var(--c3a6ea5,#3a6ea5)'},
+      {label:rl('إجمالي الودائع الثابتة الجارية خلال الربع الحالي','Total active fixed deposits during the current quarter'),value:fmt(200343098),bg:'var(--cf3ecf6,#f3ecf6)',dot:'var(--c7a4d94,#7a4d94)'}
+    ];
+    // financial risk highlights
+    const finRisks=[
+      {label:rl('الجهة الأعلى استخداماً للميزانية','Highest budget utilisation'),value:'MOCA · '+pct(FM.entities[0].used,FM.entities[0].alloc)+'%',tone:'gold'},
+      {label:rl('الأعلى مستحقات دفع','Highest payable'),value:'MOCA · '+mAED(FM.entities[0].due),tone:'red'},
+      {label:rl('عقود متجاوزة أكثر من 60 يوم','Contracts overdue >60 days'),value:fmt(over60)+rl(' درهم',' AED'),tone:'red'},
+      {label:rl('إجمالي المبالغ جارى تسويتها','Total amounts under settlement'),value:fmt(relT.settling)+rl(' درهم',' AED'),tone:'amber'}
+    ].map(r=>({label:r.label,value:r.value,dot:r.tone==='red'?'var(--cb0433b,#b0433b)':'var(--ca9791f,#a9791f)',bg:r.tone==='red'?'var(--cfaf0ef,#faf0ef)':'var(--cfbf7ee,#fbf7ee)'}));
+    finEntityPanel=(()=>{if(!S.selFinEntity)return null;const e=FM.entities.find(x=>x.code===S.selFinEntity);if(!e)return null;const col=entColors[e.code]||'var(--c1f4a37,#1f4a37)';return {code:e.code,name:tr(e.name),color:col,alloc:mAED(e.alloc),used:mAED(e.used),remain:mAED(e.alloc-e.used),util:pct(e.used,e.alloc),utilLabel:pct(e.used,e.alloc)+'%',commit:mAED(e.commit),paid:mAED(e.paid),due:mAED(e.due),opExpected:mAED(e.opex.expected),opPaid:mAED(e.opex.paid),capExpected:mAED(e.capex.expected),capPaid:mAED(e.capex.paid),overdue:e.overdue,overdueLabel:rl(e.overdue+' عقد متأخر',e.overdue+' overdue contracts'),projects:e.projects.map(p=>({name:tr(p.name),alloc:mAED(p.alloc),paid:mAED(p.paid),spentPct:pct(p.paid,p.alloc),spentLabel:pct(p.paid,p.alloc)+'%'})),close:()=>this.setState({selFinEntity:null})};})();
+    finReport={period:rl('حتى 30 مايو 2026','to 30 May 2026'),kpis:finKpis,util:finUtil,
+      budgetVal:mAED(FM.budget),usedVal:mAED(FM.used),remainVal:mAED(FM.remain),usedPct:pct(FM.used,FM.budget),remainPct:pct(FM.remain,FM.budget),utilPctLabel:pct(FM.used,FM.budget)+'%',
+      commitTotal:mAED(FM.commit),commitPaidV:mAED(FM.commitPaid),commitDueV:mAED(FM.commitDue),entities:entityCards,commit:finCommit,expenses:expBlocks,bigProjects:finBigProjects,bankInterest:finBankInterest,bankInterestTitle:rl('الفوائد البنكية','Bank interest'),related:relRows,relTotals:relTotalCards,aging:finAging,agingSel:agingSel,agingSelOpen:!!agingSel,agingTotal:fmt(agingTotal),risks:finRisks,entityPanel:finEntityPanel,entityPanelOpen:!!finEntityPanel,
+      download:()=>this.showToast(rl('يبدأ تنزيل ملف الملخص التنفيذي المالي','Downloading financial summary'))};
+    }
+
+    // ---- Report Register (سجل التقارير) ----
+    const REGST={'معتمد':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'تم التسليم':['var(--ce0f0ea,#e0f0ea)','var(--c1f8a5b,#1f8a5b)'],'بانتظار الاعتماد':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'لم يستلم':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)'],'قيد المراجعة':['var(--ce6eef6,#e6eef6)','var(--c3a6ea5,#3a6ea5)'],'مدمج':['var(--cefeaf4,#efeaf4)','var(--c7a4d94,#7a4d94)'],'غير مطلوب':['var(--cf0f2ee,#f0f2ee)','var(--c8a8078,#8a8078)'],'متأخر':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)'],'—':['var(--cf4f6f2,#f4f6f2)','var(--cb8bfb6,#b8bfb6)']};
+    const regCur=r=>this.regCurStatus(r);
+    const regMonthKey=S.regMonth||'may';
+    const regDisp=r=>{const mk=S.regMonth?S.regMonth:'cur';return mk==='cur'?regCur(r):r[mk];};
+    const RG=this.regReports;
+    const cnt=f=>RG.filter(f).length;
+    const isReceived=s=>s==='معتمد'||s==='تم التسليم';
+    const regKpis=[
+      {label:rl('إجمالي التقارير','Total reports'),value:String(RG.length),accent:'var(--c1f4a37,#1f4a37)',fk:'all'},
+      {label:rl('مستلمة / معتمدة','Received / approved'),value:String(cnt(r=>isReceived(regCur(r)))),accent:'var(--c2e7d55,#2e7d55)',fk:'معتمد'},
+      {label:rl('غير مستلمة','Not received'),value:String(cnt(r=>regCur(r)==='لم يستلم')),accent:'var(--cb0433b,#b0433b)',fk:'لم يستلم'},
+      {label:rl('بانتظار الاعتماد','Pending approval'),value:String(cnt(r=>regCur(r)==='بانتظار الاعتماد')),accent:'var(--ca9791f,#a9791f)',fk:'بانتظار الاعتماد'},
+      {label:rl('قيد المراجعة','Under review'),value:String(cnt(r=>regCur(r)==='قيد المراجعة')),accent:'var(--c3a6ea5,#3a6ea5)',fk:'قيد المراجعة'},
+      {label:rl('متأخرة','Overdue'),value:String(cnt(r=>regCur(r)==='لم يستلم')),accent:'var(--c9a2f2a,#9a2f2a)',fk:'late'},
+      {label:rl('مستحقة هذا الشهر','Due this month'),value:String(cnt(r=>r.freq==='شهري'&&!isReceived(regCur(r))&&regCur(r)!=='مدمج'&&regCur(r)!=='غير مطلوب')),accent:'var(--c7a4d94,#7a4d94)',fk:'freqShahri'}
+    ].map(k=>{
+      let active=false;
+      if(k.fk==='all')active=!S.regStatus&&!S.regLate&&!S.regFreq;
+      else if(k.fk==='late')active=!!S.regLate;
+      else if(k.fk==='freqShahri')active=S.regFreq==='شهري';
+      else active=S.regStatus===k.fk;
+      const apply=()=>{
+        if(k.fk==='all')this.setState({regStatus:'',regLate:false,regFreq:'',regDept:'',regType:'',regResp:'',regSearch:''});
+        else if(k.fk==='late')this.setState({regStatus:'',regLate:!S.regLate,regFreq:''});
+        else if(k.fk==='freqShahri')this.setState({regStatus:'',regLate:false,regFreq:S.regFreq==='شهري'?'':'شهري'});
+        else this.setState({regStatus:S.regStatus===k.fk?'':k.fk,regLate:false,regFreq:''});
+      };
+      return Object.assign({},k,{active,open:apply,
+        cardStyle:'background:'+(active?'var(--cf6faf7,#f6faf7)':'#fff')+';border-radius:16px;padding:16px 18px;box-shadow:0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.25);cursor:pointer;border-top:3px solid '+(active?k.accent:'transparent')+';transition:transform .14s ease,box-shadow .14s ease;outline:'+(active?('2px solid '+k.accent):'1px solid var(--ceef1ec,#eef1ec)')+';outline-offset:-1px'});
+    });
+    const uniq=k=>[...new Set(RG.map(r=>r[k]).filter(Boolean))];
+    const regDeptOpts=[{v:'',label:rl('كل الإدارات','All departments')}].concat(uniq('dept').map(d=>({v:d,label:tr(d)})));
+    const regTypeOpts=[{v:'',label:rl('كل الأنواع','All types')}].concat(uniq('type').map(d=>({v:d,label:tr(d)})));
+    const regFreqOpts=[{v:'',label:rl('كل الدوريات','All frequencies')}].concat(uniq('freq').map(d=>({v:d,label:tr(d)})));
+    const regRespOpts=[{v:'',label:rl('كل المسؤولين','All owners')}].concat(uniq('resp').map(d=>({v:d,label:tr(d)})));
+    const regMonthOpts=[{v:'',label:rl('الحالة الحالية','Current status')},{v:'jan',label:rl('يناير','Jan')},{v:'feb',label:rl('فبراير','Feb')},{v:'mar',label:rl('مارس','Mar')},{v:'apr',label:rl('أبريل','Apr')},{v:'may',label:rl('مايو','May')}];
+    const regStatusList=['معتمد','تم التسليم','بانتظار الاعتماد','لم يستلم','قيد المراجعة','مدمج','غير مطلوب'];
+    const regStatusOpts=[{v:'',label:t.allStatuses}].concat(regStatusList.map(s=>({v:s,label:tr(s)})));
+    const rq=(S.regSearch||'').trim();
+    const regNeedFollow=s=>s==='لم يستلم'||s==='بانتظار الاعتماد'||s==='قيد المراجعة';
+    const decReg=r=>{const cur=regDisp(r);const[cb,cf]=REGST[cur]||REGST['—'];const months=[['jan',r.jan],['feb',r.feb],['mar',r.mar],['apr',r.apr],['may',r.may]].map(([k,s])=>{const[b,f]=REGST[s]||REGST['—'];return {key:k,label:tr(({jan:'يناير',feb:'فبراير',mar:'مارس',apr:'أبريل',may:'مايو'})[k]),status:s,short:s==='—'?'—':tr(s),bg:b,fg:f};});return Object.assign({},r,{title:tr(r.title),type:tr(r.type),freq:tr(r.freq),resp:tr(r.resp),dept:tr(r.dept),due:tr(r.due),notes:r.notes?tr(r.notes):'—',approval:r.approval?tr(r.approval):'—',hasApproval:!!r.approval,curStatus:cur,curLabel:cur==='—'?'—':tr(cur),curBg:cb,curFg:cf,months:months,lastDate:r.lastDate?dateLoc(r.lastDate):'—',needsFollow:regNeedFollow(cur),open:()=>this.openReg(r.id),requestUpdate:()=>this.requestRegUpdate(r.id),markReceived:()=>this.markRegReceived(r.id),markApproved:()=>this.markRegApproved(r.id),addDirective:()=>this.addRegDirective(r.id)});};
+    let regView=null,regSelDetail=null;
+    if(S.page==='reglog'){
+    let regFiltered=RG.filter(r=>{
+      const cur=regDisp(r);
+      if(S.regDept&&r.dept!==S.regDept)return false;
+      if(S.regType&&r.type!==S.regType)return false;
+      if(S.regFreq&&r.freq!==S.regFreq)return false;
+      if(S.regResp&&r.resp!==S.regResp)return false;
+      if(S.regStatus&&cur!==S.regStatus)return false;
+      if(S.regLate&&cur!=='لم يستلم')return false;
+      if(rq&&!(r.title.includes(rq)||r.type.includes(rq)||r.dept.includes(rq)||r.resp.includes(rq)))return false;
+      return true;});
+    const regRows=regFiltered.map(decReg);
+    const regNeedFollowRows=RG.filter(r=>regNeedFollow(regCur(r))).map(decReg);
+    regView={
+      kpis:regKpis,rows:regRows,total:regRows.length,noResults:regRows.length===0,
+      needFollow:regNeedFollowRows,needFollowCount:regNeedFollowRows.length,hasNeedFollow:regNeedFollowRows.length>0,
+      isTable:(S.regView||'table')==='table',isMonthly:S.regView==='monthly',
+      setTable:()=>this.setState({regView:'table'}),setMonthly:()=>this.setState({regView:'monthly'}),
+      tableBtn:'display:flex;align-items:center;gap:6px;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid '+((S.regView||'table')==='table'?'var(--c1f4a37,#1f4a37)':'var(--ce2e6df,#e2e6df)')+';background:'+((S.regView||'table')==='table'?'var(--c1f4a37,#1f4a37)':'#fff')+';color:'+((S.regView||'table')==='table'?'#fff':'var(--c7d867f,#7d867f)'),
+      monthlyBtn:'display:flex;align-items:center;gap:6px;border-radius:9px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid '+(S.regView==='monthly'?'var(--c1f4a37,#1f4a37)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.regView==='monthly'?'var(--c1f4a37,#1f4a37)':'#fff')+';color:'+(S.regView==='monthly'?'#fff':'var(--c7d867f,#7d867f)'),
+      regSearch:S.regSearch,regDept:S.regDept,regType:S.regType,regFreq:S.regFreq,regResp:S.regResp,regMonth:S.regMonth,regStatus:S.regStatus,regLate:S.regLate,
+      onSearch:e=>this.setState({regSearch:e.target.value}),onDept:e=>this.setState({regDept:e.target.value}),onType:e=>this.setState({regType:e.target.value}),onFreq:e=>this.setState({regFreq:e.target.value}),onResp:e=>this.setState({regResp:e.target.value}),onMonth:e=>this.setState({regMonth:e.target.value}),onStatus:e=>this.setState({regStatus:e.target.value}),
+      toggleLate:()=>this.setState({regLate:!S.regLate}),
+      lateBtn:'display:flex;align-items:center;gap:6px;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid '+(S.regLate?'var(--cb0433b,#b0433b)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.regLate?'var(--cfaf0ef,#faf0ef)':'#fff')+';color:'+(S.regLate?'var(--cb0433b,#b0433b)':'var(--c7d867f,#7d867f)'),
+      clearFilters:()=>this.setState({regSearch:'',regDept:'',regType:'',regFreq:'',regResp:'',regMonth:'',regStatus:'',regLate:false}),
+      closeDetail:()=>this.closeReg(),
+      deptOpts:regDeptOpts,typeOpts:regTypeOpts,freqOpts:regFreqOpts,respOpts:regRespOpts,monthOpts:regMonthOpts,statusOpts:regStatusOpts,
+      ddDept:this.renderDD('regDept',S.regDept,regDeptOpts,e=>this.setState({regDept:e.target.value}),{size:'sm',minWidth:'120px',bg:'var(--cf9faf8,#f9faf8)',popMaxWidth:'340px'}),
+      ddType:this.renderDD('regType',S.regType,regTypeOpts,e=>this.setState({regType:e.target.value}),{size:'sm',minWidth:'112px',bg:'var(--cf9faf8,#f9faf8)'}),
+      ddFreq:this.renderDD('regFreq',S.regFreq,regFreqOpts,e=>this.setState({regFreq:e.target.value}),{size:'sm',minWidth:'110px',bg:'var(--cf9faf8,#f9faf8)'}),
+      ddResp:this.renderDD('regResp',S.regResp,regRespOpts,e=>this.setState({regResp:e.target.value}),{size:'sm',minWidth:'120px',bg:'var(--cf9faf8,#f9faf8)'}),
+      ddMonth:this.renderDD('regMonth',S.regMonth,regMonthOpts,e=>this.setState({regMonth:e.target.value}),{size:'sm',minWidth:'104px',bg:'var(--cf9faf8,#f9faf8)'}),
+      ddStatus:this.renderDD('regStatus',S.regStatus,regStatusOpts,e=>this.setState({regStatus:e.target.value}),{size:'sm',minWidth:'116px',bg:'var(--cf9faf8,#f9faf8)'})
+    };
+    regSelDetail=(()=>{if(!S.selReg)return null;const r=this.find(this.regReports,S.selReg);return r?decReg(r):null;})();
+    }
+    const regActions=RG.filter(r=>{const c=regCur(r);return c==='لم يستلم'||c==='بانتظار الاعتماد';}).map(r=>({id:r.id,_reg:true,title:'تقرير: '+(r.title.length>60?r.title.slice(0,60)+'…':r.title),source:'سجل التقارير: '+r.dept,sourceType:'تقرير',owner:r.resp,priority:regCur(r)==='لم يستلم'?'عالية':'متوسطة',due:r.due||'',status:regCur(r)==='لم يستلم'?'متأخر':'بانتظار اعتماد'}));
+    return {
+      t, stop:e=>e.stopPropagation(), canApprove, hasToast:!!S.toast, toast:S.toast,
+      isReportCenter:S.page==='reportcenter',isReportDetail:S.page==='reportDetail',isAuditDetail:S.page==='auditDetail',isFinDetail:S.page==='finDetail',isRegLog:S.page==='reglog',
+      reportCards,rep,aud,fin:finReport,reg:regView,regSel:regSelDetail,regSelOpen:!!regSelDetail
+    };
+  }
+}
+</script>
+</body>
+</html>

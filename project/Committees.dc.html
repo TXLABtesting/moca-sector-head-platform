@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  a{color:#1f4a37}a:hover{color:#2b5c44}
+  @keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl;color:#17211c">
+
+  <!-- ===== LIST ===== -->
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+    <div style="animation:fadeUp .16s ease">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+          <div style="background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.7);border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,.14);padding:15px 15px;display:flex;flex-direction:column;gap:11px">
+            <span style="width:34px;height:34px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;background:{{ k.bg }};color:{{ k.c }}" data-cicon="{{ k.icon }}"></span>
+            <div><div style="font-size:25px;font-weight:800;color:#17211c;letter-spacing:-.5px;line-height:1">{{ k.v }}</div><div style="font-size:10.5px;color:#6d7973;margin-top:5px;line-height:1.4">{{ k.l }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+          <div style="border:1px solid rgba(255,255,255,.7);border-radius:15px;padding:16px 17px;background:rgba(255,255,255,.5);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);box-shadow:0 10px 36px -18px rgba(30,60,40,.18);display:flex;flex-direction:column;gap:13px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+              <div style="font-size:14px;font-weight:800;color:#17211c;line-height:1.55">{{ c.name }}</div>
+              <span style="flex:none;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{ c.stBg }};color:{{ c.stFg }};white-space:nowrap">{{ c.status }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:11px;border-top:1px solid #eef1ec;padding-top:14px">
+              <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:#3c4a42"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><span style="color:#9aa39b;font-weight:500">المقرر</span><span style="font-weight:700;color:#17211c">{{ c.rapporteur }}</span></div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:#3c4a42"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="3.5" y="5" width="17" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path></svg><span style="color:#9aa39b;font-weight:500">آخر اجتماع</span><span style="font-weight:700;color:#17211c">{{ c.last }}</span></div>
+              <div style="display:flex;align-items:center;gap:16px;padding-top:10px;border-top:1px dashed #eef1ec">
+                <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:18px;font-weight:800;color:#1f4a37;letter-spacing:-.3px">{{ c.meetingsCount }}</span><span style="font-size:12px;color:#7d867f;font-weight:500">اجتماع</span></div>
+                <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:18px;font-weight:800;color:{{ c.openColor }};letter-spacing:-.3px">{{ c.openTasks }}</span><span style="font-size:12px;color:#7d867f;font-weight:500">مهمة مفتوحة</span></div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end"><button onClick="{{ c.open }}" style="background:#1e4634;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">عرض التفاصيل</button></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== DETAIL ===== -->
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+    <div style="animation:fadeUp .16s ease">
+      <button onClick="{{ backToList }}" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e6df;color:#3c4a42;border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;margin-bottom:16px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:scaleX(-1)"><path d="M15 18l-6-6 6-6"></path></svg>كل اللجان</button>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px">
+        <div>
+          <h1 style="margin:0 0 6px;font-size:21px;font-weight:800;line-height:1.4;color:#17211c">{{ cur.name }}</h1>
+          <div style="font-size:12.5px;color:#7d867f">الرئيس: {{ cur.chair }} · المقرر: {{ cur.rapporteur }}</div>
+        </div>
+        <span style="flex:none;font-size:11px;font-weight:700;border-radius:20px;padding:6px 14px;background:{{ cur.stBg }};color:{{ cur.stFg }}">{{ cur.status }}</span>
+      </div>
+
+      <div style="display:flex;gap:6px;background:#f2f4f0;border-radius:12px;padding:4px;margin-bottom:18px;flex-wrap:wrap;width:fit-content">
+        <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4">
+          <button onClick="{{ tb.go }}" style="{{ tb.style }}">{{ tb.label }}</button>
+        </sc-for>
+      </div>
+
+      <!-- tab: summary -->
+      <sc-if value="{{ tabSummary }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border:1px solid #eef1ec;border-radius:16px;padding:20px 22px;box-shadow:0 1px 2px rgba(23,40,32,.04)">
+          <div style="background:#f3f7f3;border:1px solid #e4efe7;border-radius:12px;padding:14px 16px;margin-bottom:16px"><div style="font-size:11px;color:#1f7a4e;font-weight:700;margin-bottom:6px">الغاية من التشكيل</div><div style="font-size:13.5px;color:#2a332d;line-height:1.7">{{ cur.purpose }}</div></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px">
+            <sc-for list="{{ summaryFacts }}" as="s" hint-placeholder-count="6">
+              <div style="background:#f7f9f7;border:1px solid #eef1ec;border-radius:12px;padding:12px 14px"><div style="font-size:10.5px;color:#9aa39b;margin-bottom:5px">{{ s.k }}</div><div style="font-size:13px;font-weight:600;color:#2a332d;line-height:1.5">{{ s.v }}</div></div>
+            </sc-for>
+          </div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:11px">
+            <sc-for list="{{ cmScores }}" as="sc" hint-placeholder-count="4">
+              <div style="background:#f7f9f7;border:1px solid #eef1ec;border-radius:12px;padding:12px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><span style="font-size:11.5px;color:#5b6b62;font-weight:600">{{ sc.k }}</span><span style="font-size:12px;font-weight:800;color:#17211c">{{ sc.pct }}</span></div>
+                <div style="height:7px;border-radius:20px;background:#e6ece7;overflow:hidden"><div style="{{ sc.barStyle }}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ cmHasStatement }}" hint-placeholder-val="{{ false }}"><div style="margin-top:16px;background:#f7f9f7;border:1px solid #eef1ec;border-radius:12px;padding:14px 16px"><div style="font-size:11px;color:#9aa39b;font-weight:700;margin-bottom:6px">البيان</div><div style="font-size:13px;color:#2a332d;line-height:1.7">{{ cmStatement }}</div></div></sc-if>
+          <sc-if value="{{ cmHasImpr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;background:#fbf7ee;border:1px solid #efe3c9;border-radius:12px;padding:14px 16px"><div style="font-size:11px;color:#a9791f;font-weight:700;margin-bottom:8px">نقاط تطوير وتحسينية</div><div style="display:flex;flex-direction:column;gap:6px"><sc-for list="{{ cmImprovements }}" as="ip" hint-placeholder-count="2"><div style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#6b5b1e;line-height:1.6"><span style="width:6px;height:6px;border-radius:50%;background:#a9791f;margin-top:7px;flex:none"></span>{{ ip }}</div></sc-for></div></div></sc-if>
+          <sc-if value="{{ cmHasRec }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;background:#eef4ef;border:1px solid #d5e6da;border-radius:12px;padding:14px 16px"><div style="font-size:11px;color:#1f7a4e;font-weight:700;margin-bottom:6px">التوصية لرئيس القطاع</div><div style="font-size:13px;color:#1e3c2c;line-height:1.7">{{ cmRecommendation }}</div></div></sc-if>
+        </div>
+      </sc-if>
+
+      <!-- tab: meetings + tasks -->
+      <sc-if value="{{ tabMeetings }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ cur.noMeetings }}" hint-placeholder-val="{{ false }}"><div style="background:#fff;border:1px dashed #d8dedb;border-radius:16px;padding:34px;text-align:center;color:#9aa39b;font-size:13px">لا توجد اجتماعات مسجّلة لهذه اللجنة بعد.</div></sc-if>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <sc-for list="{{ cur.meetings }}" as="m" hint-placeholder-count="2">
+            <div style="border:1px solid #e6ece7;border-radius:15px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(23,40,32,.04)">
+              <div style="background:#f3f7f3;padding:14px 16px;border-bottom:1px solid #e6ece7">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px"><span style="flex:none;font-size:11px;font-weight:700;color:#1f4a37;background:#e4efe7;border-radius:8px;padding:5px 11px">{{ m.no }} · {{ m.date }}</span><span style="font-size:11.5px;color:#5b6b62">الحضور: {{ m.presentLabel }} · {{ m.minutesLabel }} · {{ m.tasksLabel }}</span></div>
+                <div style="font-size:12.5px;color:#3c4a42;line-height:1.65">{{ m.points }}</div>
+              </div>
+              <div>
+                <sc-for list="{{ m.tasks }}" as="tk" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid #f4f6f2;flex-wrap:wrap">
+                    <span style="flex:none;width:8px;height:8px;border-radius:50%;background:{{ tk.dot }};margin-top:5px"></span>
+                    <div style="flex:1;min-width:170px"><div style="font-size:13px;font-weight:600;color:#17211c;line-height:1.5">{{ tk.title }}</div><div style="font-size:11px;color:#9aa39b;margin-top:3px">المسؤول: {{ tk.owner }} · الإنجاز: {{ tk.due }}</div></div>
+                    <span style="flex:none;font-size:10px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{ tk.stBg }};color:{{ tk.stFg }}">{{ tk.status }}</span>
+                    <div style="flex:none;display:flex;gap:6px;flex-wrap:wrap">
+                      <sc-if value="{{ canApprove }}" hint-placeholder-val="{{ true }}">
+                      <button onClick="{{ tk.addDir }}" style="background:#1e4634;color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">إضافة توجيه</button>
+                      <button onClick="{{ tk.reqUpd }}" style="background:#f2f4f0;color:#3c4a42;border:1px solid #e2e6df;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">طلب تحديث</button>
+                      <button onClick="{{ tk.review }}" style="background:#e2f0e8;color:#2e7d55;border:1px solid #cce6d4;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">تمت المراجعة</button>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- tab: decisions -->
+      <sc-if value="{{ tabDecisions }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ cur.noDecisions }}" hint-placeholder-val="{{ false }}"><div style="background:#fff;border:1px dashed #d8dedb;border-radius:16px;padding:34px;text-align:center;color:#9aa39b;font-size:13px">لا توجد قرارات مرفقة.</div></sc-if>
+        <div style="display:flex;gap:13px;flex-wrap:wrap">
+          <sc-for list="{{ cur.decisions }}" as="d" hint-placeholder-count="2">
+            <div style="border:1px solid #eef1ec;border-radius:13px;padding:15px 17px;background:#fff;min-width:210px;flex:1;display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 2px rgba(23,40,32,.04);opacity:{{ d.op }}">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:14px;font-weight:800;color:#17211c">قرار رقم ({{ d.num }})</span><span style="flex:none;font-size:10px;font-weight:700;border-radius:20px;padding:3px 9px;background:{{ d.kBg }};color:{{ d.kFg }}">{{ d.kind }}</span></div>
+              <div style="font-size:11.5px;color:#7d867f">لسنة {{ d.year }}{{ d.dateSuffix }}</div>
+              <button onClick="{{ d.preview }}" style="background:#eef3f6;color:#2f6aa8;border:1px solid #d8e4ee;border-radius:8px;padding:7px 12px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">عرض القرار</button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- tab: members -->
+      <sc-if value="{{ tabMembers }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #eef1ec;border-radius:16px;padding:20px 22px;box-shadow:0 1px 2px rgba(23,40,32,.04)">
+          <div style="font-size:12px;color:#9aa39b;font-weight:600;margin-bottom:12px">أعضاء اللجنة ({{ cur.memberCount }})</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+            <sc-for list="{{ cur.memberRows }}" as="mb" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:10px;background:#f7f9f7;border:1px solid #eef1ec;border-radius:11px;padding:10px 12px">
+                <span style="width:34px;height:34px;flex:none;border-radius:9px;background:#1e4634;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;overflow:hidden"><sc-if value="{{ mb.hasImg }}" hint-placeholder-val="{{ false }}"><img src="{{ mb.img }}" style="width:100%;height:100%;object-fit:cover;object-position:top"></sc-if><sc-if value="{{ mb.noImg }}" hint-placeholder-val="{{ true }}">{{ mb.initials }}</sc-if></span>
+                <div style="min-width:0"><div style="font-size:12.5px;font-weight:600;color:#17211c;line-height:1.4">{{ mb.name }}</div><sc-if value="{{ mb.isRapporteur }}" hint-placeholder-val="{{ false }}"><div style="font-size:10px;color:#a9791f;font-weight:700;margin-top:1px">مقرر</div></sc-if></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- decision preview modal -->
+  <sc-if value="{{ previewOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePreview }}" style="position:fixed;inset:0;background:rgba(23,33,28,.55);z-index:120;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:16px;width:560px;max-width:100%;max-height:88vh;overflow:auto">
+        <div style="padding:16px 22px;border-bottom:1px solid #eef0ec;display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <h2 style="margin:0;font-size:15.5px;font-weight:700;color:#17211c">معاينة القرار — رقم ({{ previewNum }})</h2>
+          <button onClick="{{ closePreview }}" style="width:30px;height:30px;border-radius:8px;border:1px solid #e2e6df;background:#f7f8f6;cursor:pointer;color:#7d867f;font-size:15px;flex:none">✕</button>
+        </div>
+        <div style="padding:22px">
+          <sc-if value="{{ previewCancelled }}" hint-placeholder-val="{{ false }}"><div style="background:#f7e6e4;color:#b0433b;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:700;margin-bottom:16px;text-align:center">هذا القرار ملغى</div></sc-if>
+          <sc-if value="{{ previewHasImg }}" hint-placeholder-val="{{ false }}">
+            <img src="{{ previewImg }}" style="width:100%;border:1px solid #e6ece7;border-radius:12px;display:block">
+          </sc-if>
+          <sc-if value="{{ previewNoImg }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid #e6ece7;border-radius:12px;background:#fbfcfb;aspect-ratio:1/1.28;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#9aa39b">
+              <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#c3cec4" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path><path d="M9.5 13h6M9.5 16.5h6"></path></svg>
+              <div style="font-size:13px;font-weight:600;color:#5b6b62;text-align:center;line-height:1.7">صورة القرار رقم ({{ previewNum }}) لسنة {{ previewYear }}<br><span style="font-size:11px;color:#9aa39b">لم تُرفق صورة رسمية لهذا القرار</span></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:760}}">
+class Component extends DCLogic {
+  committees=window.__DATA.committees;
+  state={view:'list',selId:null,tab:'summary',preview:null};
+  componentDidMount(){ if(window.DCDD)DCDD.install(this); this._icons(); }
+  componentDidUpdate(){ this._icons(); }
+  _icons(){const I={list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',alert:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',cal:'<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>'};document.querySelectorAll('[data-cicon]').forEach(el=>{const k=el.getAttribute('data-cicon');if(I[k])el.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+I[k]+'</svg>';});}
+  componentWillUnmount(){ if(window.DCDD)DCDD.uninstall(this); }
+  initials(n){const p=String(n||'').trim().split(/\s+/);return ((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
+  goto(page,extra){if(this.props&&this.props.nav)this.props.nav(page,extra);}
+  openC(id){this.setState({view:'detail',selId:id,tab:'summary'});}
+  toList(){this.setState({view:'list',selId:null});}
+  openTasks(c){let n=0;(c.meetings||[]).forEach(m=>(m.tasks||[]).forEach(t=>{if(t.status!=='مكتمل')n++;}));return n;}
+  lastMeeting(c){return (c.meetings&&c.meetings.length)?c.meetings[0].date:'—';}
+  renderVals(){
+    const S=this.state;
+    const canApprove=(this.props&&this.props.canApprove!==undefined)?!!this.props.canApprove:true;
+    const memberImg=window.memberImg||(()=>null);
+    const STC={'نشطة':['#e2f0e8','#2e7d55'],'تحتاج متابعة':['#fbf3df','#8a6a1f'],'لا توجد اجتماعات':['#eceae6','#8a8078'],'مهام متأخرة':['#f7e6e4','#b0433b'],'ملغاة':['#f0e6e4','#9a3a2b']};
+    const TSK={'مكتمل':['#e2f0e8','#2e7d55','#2e7d55'],'قيد التنفيذ':['#fbf0d6','#a9791f','#a9791f'],'متأخر':['#f7e6e4','#b0433b','#b0433b'],'لم يبدأ':['#eceae6','#8a8078','#c3cec4']};
+    const sc=s=>STC[s]||['#f2f4f0','#6d7973'];
+
+    let kpis=null,cards=null;
+    if(S.view==='list'){
+      const cs=this.committees;
+      const withOpen=cs.filter(c=>this.openTasks(c)>0).length;
+      let lateN=0,mThisMonth=0,decN=0;
+      cs.forEach(c=>{(c.meetings||[]).forEach(m=>{(m.tasks||[]).forEach(t=>{if(t.status==='متأخر')lateN++;});if(/يونيو|July|يوليو/.test(m.date))mThisMonth++;});decN+=(c.decisions||[]).length;});
+      kpis=[
+        {v:String(cs.length),l:'إجمالي اللجان التي أترأسها',c:'#1f4a37',bg:'#e9f0ec',icon:'list'},
+        {v:String(withOpen),l:'لجان بمهام مفتوحة',c:'#3a6ea5',bg:'#e9f0f6',icon:'folder'},
+        {v:String(lateN),l:'مهام متأخرة',c:'#b0433b',bg:'#f7e6e4',icon:'alert'},
+        {v:String(mThisMonth),l:'اجتماعات هذا الشهر',c:'#a9791f',bg:'#fbf3df',icon:'cal'},
+        {v:String(decN),l:'قرارات مرفقة',c:'#7a4d94',bg:'#f3ecf6',icon:'doc'}
+      ];
+      cards=cs.map(c=>{const st=sc(c.status);return {name:c.name,rapporteur:c.rapporteur,status:c.status,stBg:st[0],stFg:st[1],meetingsCount:String((c.meetings||[]).length),openTasks:String(this.openTasks(c)),last:this.lastMeeting(c),openColor:this.openTasks(c)>0?'#b0433b':'#2e7d55',open:()=>this.openC(c.id)};});
+    }
+
+    let cur=null,tabs=null,summaryFacts=null,cmScores=null,cmStatement='',cmHasStatement=false,cmImprovements=null,cmHasImpr=false,cmRecommendation='',cmHasRec=false;
+    let tabSummary=false,tabMeetings=false,tabDecisions=false,tabMembers=false;
+    if(S.view==='detail'){
+      const c=this.committees.find(x=>x.id===S.selId)||this.committees[0];
+      const st=sc(c.status);
+      const dec0=(c.decisions||[])[0];
+      tabSummary=S.tab==='summary';tabMeetings=S.tab==='meetings';tabDecisions=S.tab==='decisions';tabMembers=S.tab==='members';
+      const mkMeeting=m=>{return {no:m.no,date:m.date,points:m.points,presentLabel:m.present+' من '+m.total,minutesLabel:m.minutes?'يوجد محضر':'لا يوجد محضر',tasksLabel:(m.tasks||[]).length+' مهام ناتجة',
+        tasks:(m.tasks||[]).map(t=>{const ts=TSK[t.status]||['#f2f4f0','#6d7973','#c3cec4'];return {title:t.title,owner:t.owner,due:t.due,status:t.status,stBg:ts[0],stFg:ts[1],dot:ts[2],addDir:()=>this.goto&&this.showToastLocal('تمت إضافة التوجيه'),reqUpd:()=>this.showToastLocal('تم إرسال طلب التحديث'),review:()=>this.showToastLocal('تم وضع علامة: تمت المراجعة')};})};};
+      const DEC_KIND={'حالي':['#e2f0e8','#2e7d55'],'سابق':['#eef3f6','#2f6aa8'],'ملغى':['#f0e6e4','#9a3a2b']};
+      cur=Object.assign({},c,{stBg:st[0],stFg:st[1],
+        noMeetings:(c.meetings||[]).length===0,
+        noDecisions:(c.decisions||[]).length===0,
+        meetings:(c.meetings||[]).map(mkMeeting),
+        decisions:(c.decisions||[]).map(d=>{const k=DEC_KIND[d.kind]||['#f2f4f0','#6d7973'];return {num:d.num,year:d.year,kind:d.kind,kBg:k[0],kFg:k[1],op:d.kind==='ملغى'?'.6':'1',dateSuffix:d.date?(' · '+d.date):'',preview:()=>this.setState({preview:{num:d.num,year:d.year,cancelled:d.kind==='ملغى',img:d.img||''}})};}),
+        memberCount:String((c.members||[]).length),
+        memberRows:(c.members||[]).map(name=>{const img=memberImg(name);const isR=String(c.rapporteur||'').indexOf(name)>=0;return {name,initials:this.initials(name),img,hasImg:!!img,noImg:!img,isRapporteur:isR};})});
+      summaryFacts=[
+        {k:'الرئيس',v:c.chair},
+        {k:'المقرر',v:c.rapporteur},
+        {k:'التصنيف / الغاية',v:c.cat||'—'},
+        {k:'رقم القرار الحالي',v:dec0?('('+dec0.num+') لسنة '+dec0.year):'—'},
+        {k:'تاريخ الإنشاء',v:c.created||'—'},
+        {k:'دورية الاجتماعات',v:c.freq||'—'},
+        {k:'الاجتماعات (فعلي / مطلوب)',v:(c.actualMeetings||0)+' / '+(c.reqMeetings||0)},
+        {k:'خطة عمل محددة مسبقاً',v:c.hasWorkPlan?'نعم':'لا'},
+        {k:'توثيق الاجتماعات بمحاضر',v:((c.meetings||[]).filter(m=>m.minutes).length)+' / '+((c.meetings||[]).length||0)},
+        {k:'الأعضاء غير المشاركين',v:(c.absent&&c.absent.length)?c.absent.join('، '):'لا يوجد'}
+      ];
+      const _sc=c.scores||{};cmScores=[{k:'المخرجات',v:(_sc.outputs||0)},{k:'المحاضر',v:(_sc.minutes||0)},{k:'عدد الاجتماعات',v:(_sc.meetings||0)},{k:'تعاون الفريق',v:(_sc.teamwork||0)}].map(x=>({k:x.k,v:x.v,pct:x.v+'%',barStyle:'width:'+x.v+'%;height:100%;border-radius:20px;background:'+(x.v>=70?'#2e7d55':(x.v>=40?'#a9791f':'#b0433b'))}));
+      cmStatement=c.statement||'';cmHasStatement=!!c.statement;cmImprovements=(c.improvements||[]);cmHasImpr=(c.improvements||[]).length>0;cmRecommendation=c.recommendation||'';cmHasRec=!!c.recommendation;
+      const mkTab=(key,label)=>({label,go:()=>this.setState({tab:key}),style:(S.tab===key?'background:#1e4634;color:#fff;':'background:transparent;color:#5b6b62;')+'border:none;border-radius:8px;padding:8px 15px;font-size:12.5px;font-weight:'+(S.tab===key?'700':'600')+';font-family:inherit;cursor:pointer'});
+      tabs=[mkTab('summary','الملخص'),mkTab('meetings','الاجتماعات والمهام'),mkTab('decisions','القرارات المرفقة'),mkTab('members','الأعضاء والحضور')];
+    }
+
+    const pv=S.preview;
+    return {
+      isList:S.view==='list',isDetail:S.view==='detail',
+      kpis,cards,cur,tabs,summaryFacts,tabSummary,tabMeetings,tabDecisions,tabMembers,canApprove,cmScores,cmStatement,cmHasStatement,cmImprovements,cmHasImpr,cmRecommendation,cmHasRec,
+      backToList:()=>this.toList(),stop:e=>e.stopPropagation(),
+      previewOpen:!!pv,previewNum:pv?pv.num:'',previewYear:pv?pv.year:'',previewCancelled:pv?pv.cancelled:false,previewImg:pv&&pv.img?pv.img:'',previewHasImg:!!(pv&&pv.img),previewNoImg:!(pv&&pv.img),closePreview:()=>this.setState({preview:null})
+    };
+  }
+  showToastLocal(msg){if(this.props&&this.props.toast){this.props.toast(msg);}else{this.setState({_t:msg});}}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+<script src="./dc-shared.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+@keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+@keyframes ovBg{from{opacity:0}to{opacity:1}}
+@keyframes ovCard{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:1024px){ .rg2{grid-template-columns:1fr!important} .rg5{grid-template-columns:repeat(2,1fr)!important} }
+@media(max-width:900px){ div:has(> .trow){overflow-x:auto!important} .trow{min-width:860px} }
+/*__mob__*/
+@media(max-width:640px){
+  .rg2,.rg3,.rg4,.rg5,.ov-stats,.lv-kpis,.lv-cat,.lv-cards{grid-template-columns:1fr!important}
+  table thead{display:none!important}
+  table tr{display:block!important;margin-bottom:10px;border:1px solid var(--ceef0ec,#eef0ec);border-radius:12px;padding:4px 10px;background:#fff}
+  table td{display:flex!important;justify-content:space-between;gap:12px;border:none!important;padding:7px 2px!important;white-space:normal!important;max-width:none!important;text-align:start}
+  .trow{grid-template-columns:1fr!important;min-width:0!important;gap:5px!important}
+  div:has(> table){overflow-x:visible!important}
+  .cal-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+}
+
+.fbtn{display:none}
+@media(max-width:640px){.fbtn{display:inline-flex!important;align-items:center;gap:8px;cursor:pointer;background:#fff;border:1px solid #eef1ec;border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.05);padding:11px 16px;font-size:13px;font-weight:600;color:#1e4634;margin-bottom:14px;user-select:none}.mfbar{display:none!important}.fcb:checked ~ .mfbar{display:flex!important;flex-direction:column!important;align-items:stretch!important}.fcb:checked ~ .fbtn .fchev{transform:rotate(180deg)}.mfbar>*{width:100%!important;min-width:0!important;flex:none!important}.mfbar [data-dd] button,.mfbar [data-dd]{width:100%!important}}
+</style>
+</helmet>
+<div style="min-height:1px">
+      <sc-if value="{{ isMeetings }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:fadeUp .16s ease">
+          <div class="rg5" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+            <sc-for list="{{ meetingKpis }}" as="k" hint-placeholder-count="5">
+              <div onClick="{{ k.open }}" style="{{ k.tileStyle }}"><div style="font-size:24px;font-weight:700;color:{{k.color}}">{{ k.value }}</div><div style="font-size: 14px; color: var(--c7d867f,#7d867f); margin-top: 4px">{{ k.label }}</div></div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ meetings }}" as="mt" hint-placeholder-count="5">
+              <div onClick="{{ mt.open }}" style="background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.65);border-radius:22px;box-shadow:0 10px 36px -12px rgba(30,60,40,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 20px;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center">
+                <div style="width:56px;height:56px;flex:none;border-radius:12px;background:var(--ce9f0ec,#e9f0ec);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--c1e4634,#1e4634)"><div style="font-size:18px;font-weight:700;line-height:1">{{ mt.day }}</div><div style="font-size:10px">{{ mt.month }}</div></div>
+                <div style="min-width:0">
+                  <div style="font-size:15px;font-weight:600;color:var(--c17211c,#17211c);margin-bottom:8px">{{ mt.title }}</div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--c5b6b62,#5b6b62);margin-bottom:8px;min-width:0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path><circle cx="9" cy="7" r="3.2"></circle><path d="M17 11h4M19 9v4"></path></svg><span style="color:var(--c9aa39b,#9aa39b);flex:none">{{ t.ownerShort }}:</span><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ mt.owner }}</span></div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;border-radius:8px;padding:4px 9px;background:var(--cf0f3ee,#f0f3ee);color:var(--c3c4a42,#3c4a42)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"></path></svg>{{ mt.attCount }} {{ t.attendeesWord }}</span><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;border-radius:8px;padding:4px 9px;background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>{{ mt.actCount }} {{ t.actionWord }}</span></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <sc-if value="{{ mt.hasLate }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:4px 10px;background:var(--cf7e6e4,#f7e6e4);color:var(--cb0433b,#b0433b)">{{ mt.lateCount }} {{ t.overdueWord }}</span></sc-if>
+                  <span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:4px 10px;background:{{mt._bg}};color:{{mt._fg}}">{{ mt.status }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isMeetingDetail }}" hint-placeholder-val="{{ false }}">
+        <div class="rg2" style="animation:fadeUp .16s ease;display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:22px 24px">
+              <h2 style="margin:0 0 8px;font-size:20px;font-weight:600">{{ meeting.title }}</h2>
+              <div style="font-size:12.5px;color:var(--c8a938c,#8a938c);margin-bottom:16px">{{ meeting.date }} · {{ t.ownerShort }} {{ meeting.owner }}</div>
+              <div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:6px">{{ t.meetingSummary }}</div>
+              <p style="margin:0;font-size:13.5px;color:var(--c3c4a42,#3c4a42);line-height:1.7">{{ meeting.summary }}</p>
+            </div>
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:20px 24px">
+              <h3 style="margin:0 0 14px;font-size:15px;font-weight:600">{{ t.keyPoints }}</h3>
+              <sc-for list="{{ meeting.keyPoints }}" as="kp" hint-placeholder-count="3"><div style="display:flex;gap:10px;padding:8px 0;font-size:13.5px;color:var(--c2a332d,#2a332d);line-height:1.6"><span style="color:var(--cc9a24b,#c9a24b);font-weight:700">•</span>{{ kp }}</div></sc-for>
+            </div>
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:20px 24px">
+              <h3 style="margin:0 0 14px;font-size:15px;font-weight:600">{{ t.decisions }}</h3>
+              <sc-for list="{{ meeting.decisions }}" as="d" hint-placeholder-count="2"><div style="display:flex;gap:10px;padding:9px 0;font-size:13.5px;color:var(--c284c3a,#284c3a);line-height:1.6"><svg width="16" height="16" style="flex:none;margin-top:2px" viewBox="0 0 24 24" fill="none" stroke="#2b5c44" stroke-width="2"><path d="M20 6 9 17l-5-5"></path></svg>{{ d }}</div></sc-for>
+            </div>
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:20px 24px">
+              <h3 style="margin:0 0 14px;font-size:15px;font-weight:600">{{ t.actionsFromMinutes }}</h3>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ meeting.actions }}" as="a" hint-placeholder-count="3">
+                  <div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;background:var(--cf7f8f6,#f7f8f6);border-radius:11px;padding:12px 14px">
+                    <div><div style="font-size:13px;color:var(--c2a332d,#2a332d);font-weight:500">{{ a.text }}</div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-top:3px">{{ a.owner }} · {{ t.dueWord }} {{ a.due }}</div></div>
+                    <span>{{ a.statusDd }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:20px">
+              <h3 style="margin:0 0 12px;font-size:14px;font-weight:600">{{ t.attendees }}</h3>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ meeting.attendees }}" as="at" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:9px"><span style="width:28px;height:28px;border-radius:50%;background:var(--ce9f0ec,#e9f0ec);color:var(--c2b5c44,#2b5c44);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">{{ at.initials }}</span><span style="font-size:12.5px;color:var(--c2a332d,#2a332d)">{{ at.name }}</span></div></sc-for>
+              </div>
+              <sc-if value="{{ meeting.hasAbsentees }}" hint-placeholder-val="{{ false }}">
+                <div style="height:1px;background:var(--ceef0ec,#eef0ec);margin:14px 0"></div>
+                <h3 style="margin:0 0 12px;font-size:14px;font-weight:600;color:var(--cb0433b,#b0433b)">{{ t.absentees }}</h3>
+                <div style="display:flex;flex-direction:column;gap:9px">
+                  <sc-for list="{{ meeting.absentees }}" as="ab" hint-placeholder-count="1"><div style="display:flex;align-items:center;gap:9px"><span style="width:28px;height:28px;border-radius:50%;background:var(--cf7e6e4,#f7e6e4);color:var(--cb0433b,#b0433b);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">{{ ab.initials }}</span><span style="font-size:12.5px;color:var(--c2a332d,#2a332d)">{{ ab.name }}</span></div></sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:20px">
+              <h3 style="margin:0 0 12px;font-size:14px;font-weight:600">{{ t.minutesAttachment }}</h3>
+              <div style="display:flex;align-items:center;gap:10px;background:var(--cf7f8f6,#f7f8f6);border-radius:11px;padding:13px 14px">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0433b" stroke-width="1.6"><path d="M14 3v5h5"></path><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                <div><div style="font-size:12.5px;font-weight:600;color:var(--c2a332d,#2a332d)">{{ meeting.attachment }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">PDF</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isMtasks }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <!-- KPI summary -->
+          <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:22px">
+            <sc-for list="{{ mt.kpis }}" as="k" hint-placeholder-count="6">
+              <div onClick="{{ k.onClick }}" style="{{ k.cardStyle }}">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="width:42px;height:42px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;background:{{k.bg}};color:{{k.fg}}">{{ k.iconEl }}</span>
+                  <span style="font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--c17211c,#17211c)">{{ k.value }}</span>
+                </div>
+                <div style="font-size:12.5px;color:var(--c5b6b62,#5b6b62);font-weight:600;line-height:1.4">{{ k.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- tasks table with filters -->
+          <div id="mt-table-section" style="background: var(--cffffff,#ffffff); border: none; border-radius: 22px; box-shadow: 0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13); padding: 22px 24px; margin-bottom: 30px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="width:32px;height:32px;border-radius:9px;background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ mt.tableTitle }}</h3></div>
+            <input type="checkbox" id="fcb-meetingminutes-1" class="fcb" style="display:none"><label for="fcb-meetingminutes-1" class="fbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="10" y1="17" x2="14" y2="17"></line></svg><span>الفلاتر</span><svg class="fchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-inline-start:auto;transition:transform .2s"><path d="m6 9 6 6 6-6"></path></svg></label><div class="mfbar" style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+              <div style="position:relative;flex:1;min-width:180px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="2" style="position:absolute;inset-inline-start:11px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ mt.mtSearch }}" onInput="{{ mt.onSearch }}" placeholder="{{ t.mt_search }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:9px;padding:9px 12px;padding-inline-start:34px;font-size:12.5px;font-family:inherit"></div>
+              <span>{{ mt.ddStatus }}</span>
+              <span>{{ mt.ddOwner }}</span>
+              <span>{{ mt.ddDept }}</span>
+              <button onClick="{{ mt.toggleSupport }}" style="{{ mt.supportBtnStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7z"></path></svg>{{ t.mt_onlySupport }}</button>
+              <button onClick="{{ mt.toggleDetailed }}" style="{{ mt.detailBtnStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18"></path></svg>{{ mt.detailedLabel }}</button>
+              <button onClick="{{ mt.clearFilters }}" style="border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c7d867f,#7d867f);border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer">{{ t.mt_clear }}</button>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px">
+                <thead><tr>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_mDate }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.mt_meeting }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.mt_task }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_owner }}</th>
+                  <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_prereq }}</th></sc-if>
+                  <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_support }}</th></sc-if>
+                  <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_budget }}</th></sc-if>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_due }}</th>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_status }}</th>
+                  <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_deps }}</th></sc-if>
+                  <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec)">{{ t.mt_notes }}</th></sc-if>
+                  <th style="text-align:start;padding:10px 12px;font-size:11px;font-weight:700;color:var(--c8a938c,#8a938c);border-bottom:1px solid var(--ceef0ec,#eef0ec);white-space:nowrap">{{ t.mt_markReviewed }}</th>
+                </tr></thead>
+                <tbody>
+                  <sc-for list="{{ mt.groups }}" as="g" hint-placeholder-count="6">
+                    <tr><td colspan="{{ g.span }}" style="padding:12px 14px;background:var(--cf3f7f3,#f3f7f3);border-top:1px solid var(--ce6ece7,#e6ece7);border-bottom:1px solid var(--ce6ece7,#e6ece7)">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <span style="display:inline-flex;align-items:center;gap:6px;flex:none;font-size:11px;font-weight:700;color:var(--c1f4a37,#1f4a37);background:var(--ce4efe7,#e4efe7);border-radius:8px;padding:5px 10px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ g.mDate }}</span>
+                        <div style="min-width:0"><div style="font-size:13.5px;font-weight:800;color:var(--c17211c,#17211c);line-height:1.4">{{ g.meeting }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-top:2px">{{ g.dept }}</div></div>
+                        <div style="flex:1"></div>
+                        <span style="flex:none;font-size:11px;font-weight:700;color:{{ g.stFg }};background:{{ g.stBg }};border-radius:20px;padding:5px 12px">{{ g.statusLabel }}</span>
+                        <span style="flex:none;font-size:11px;font-weight:700;color:var(--c8a6a1f,#8a6a1f);background:var(--cfbf3df,#fbf3df);border-radius:20px;padding:5px 12px">{{ g.countLabel }}</span>
+                      </div>
+                    </td></tr>
+                    <sc-for list="{{ g.tasks }}" as="a" hint-placeholder-count="3"><tr>
+                    <td style="padding:12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top"></td>
+                    <td style="padding:12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;text-align:center"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cc3cec4,#c3cec4)"></span></td>
+                    <td onClick="{{ a.open }}" style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;line-height:1.55;max-width:340px;cursor:pointer">{{ a.task }}<sc-if value="{{ a.dirCount }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:10px;font-weight:600;color:var(--c1f4a37,#1f4a37);background:var(--ce9f0ec,#e9f0ec);border-radius:6px;padding:2px 8px">{{ a.dirCount }} {{ t.mt_dirCount }}</span></sc-if></td>
+                    <td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap">{{ a.owner }}</td>
+                    <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;max-width:190px;line-height:1.5">{{ a.prerequisite }}</td></sc-if>
+                    <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;max-width:190px;line-height:1.5">{{ a.support }}</td></sc-if>
+                    <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap">{{ a.budget }}</td></sc-if>
+                    <td style="padding:12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap"><span style="font-size:12px;color:var(--c3c4a42,#3c4a42)">{{ a.due }}</span></td>
+                    <td style="padding:12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap">{{ a.statusDd }}</td>
+                    <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;max-width:190px;line-height:1.5">{{ a.dependencies }}</td></sc-if>
+                    <sc-if value="{{ mt.detailed }}" hint-placeholder-val="{{ false }}"><td style="padding:12px;color:var(--c3c4a42,#3c4a42);border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;max-width:220px;line-height:1.5">{{ a.notesDisp }}</td></sc-if>
+                    <td style="padding:12px;border-bottom:1px solid var(--cf4f6f2,#f4f6f2);vertical-align:top;white-space:nowrap"><div style="display:flex;gap:5px"><button onClick="{{ a.addDirective }}" title="{{ t.mt_addDirective }}" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);border-radius:8px;color:var(--c1f4a37,#1f4a37);cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button><button onClick="{{ a.markReviewed }}" title="{{ t.mt_markReviewed }}" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:{{a.reviewed}};border:1px solid var(--ce2e6df,#e2e6df);border-radius:8px;color:var(--c2e7d55,#2e7d55);cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></button></div></td>
+                  </tr></sc-for></sc-for>
+                </tbody>
+              </table>
+              <sc-if value="{{ mt.noResults }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;padding:40px;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ t.mt_noResults }}</div></sc-if>
+            </div>
+            <sc-if value="{{ mt.hasMore }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 12px 4px">
+                <button onClick="{{ mt.showMore }}" style="display:flex;align-items:center;gap:7px;background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c1f4a37,#1f4a37);border-radius:10px;padding:10px 20px;font-size:12.5px;font-weight:700;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>{{ mt.showMoreLabel }}</button>
+                <span style="font-size:11.5px;color:var(--c9aa39b,#9aa39b)">{{ mt.countLabel }}</span>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- tasks needing chief support -->
+          <sc-if value="{{ mt.hasSupport }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-bottom:24px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="width:32px;height:32px;border-radius:9px;background:var(--cfbf0d6,#fbf0d6);color:var(--ca9791f,#a9791f);display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg></span><h3 style="margin:0;font-size:16px;font-weight:700;color:var(--c17211c,#17211c)">{{ t.mt_needSupport }}</h3></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">
+                <sc-for list="{{ mt.support }}" as="a" hint-placeholder-count="3">
+                  <div style="background:var(--cffffff,#ffffff);border:1px solid var(--cedf0ea,#edf0ea);border-radius:14px;box-shadow:0 1px 3px rgba(23,40,32,.05),0 10px 26px -18px rgba(23,40,32,.14);padding:14px 15px;display:flex;flex-direction:column">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:9px;flex-wrap:wrap">
+                      <span style="font-size:9.5px;font-weight:700;border-radius:20px;padding:3px 9px;background:{{a._bg}};color:{{a._fg}}">{{ a.statusLabel }}</span>
+                      <span style="font-size:9.5px;font-weight:600;border-radius:20px;padding:3px 9px;background:var(--ceef3f0,#eef3f0);color:var(--c2b5c44,#2b5c44);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">{{ a.dept }}</span>
+                    </div>
+                    <div style="font-size:13.5px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.45;margin-bottom:10px">{{ a.task }}</div>
+                    <div style="display:flex;align-items:flex-start;gap:7px;background:var(--cfbf7ec,#fbf7ec);border-radius:10px;padding:9px 11px;margin-bottom:11px">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a9791f" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7z"></path><path d="M12 9v4M12 16h.01"></path></svg>
+                      <div><div style="font-size:10px;color:var(--ca9791f,#a9791f);font-weight:700;margin-bottom:2px">{{ t.mt_supportReason }}</div><div style="font-size:11.5px;color:var(--c5b4a1f,#5b4a1f);line-height:1.5">{{ a.supportReason }}</div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--c8a938c,#8a938c);padding-bottom:11px">
+                      <span style="display:flex;align-items:center;gap:6px;min-width:0"><span style="width:22px;height:22px;flex:none;border-radius:50%;overflow:hidden">{{ a.avatarEl }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--c3c4a42,#3c4a42)">{{ a.owner }}</span></span>
+                      <span style="flex:none;display:flex;align-items:center;gap:4px;color:{{a.dueColor}};font-weight:600"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ a.due }}</span>
+                    </div>
+                    <div style="display:flex;gap:6px;border-top:1px solid var(--cf2f4f0,#f2f4f0);padding-top:10px">
+                      <button onClick="{{ a.addDirective }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:9px;padding:8px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>{{ t.mt_addDirective }}</button>
+                      <button onClick="{{ a.requestUpdate }}" title="{{ t.mt_requestUpdate }}" style="width:34px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--ceef3f6,#eef3f6);color:var(--c2f6aa8,#2f6aa8);border:1px solid var(--cd8e4ee,#d8e4ee);border-radius:9px;padding:8px;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg></button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </sc-if>
+      <sc-if value="{{ mtSelOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeMtask }}" style="position:fixed;inset:0;background:rgba(23,33,28,0.4);z-index:96;display:flex;justify-content:flex-start;animation:ovBg .2s ease">
+          <div onClick="{{ stop }}" style="width:468px;max-width:94%;height:100%;background:#ffffff;box-shadow:-8px 0 40px rgba(23,33,28,.18);display:flex;flex-direction:column;animation:slideInX .28s ease;overflow-y:auto">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--ceef0ec,#eef0ec)">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+                <span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 11px;background:{{mtSel._bg}};color:{{mtSel._fg}}">{{ mtSel.statusLabel }}</span>
+                <button onClick="{{ closeMtask }}" style="width:32px;height:32px;flex:none;border-radius:9px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);cursor:pointer;color:var(--c7d867f,#7d867f);font-size:15px">✕</button>
+              </div>
+              <div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ mtSel.meeting }} · {{ mtSel.mDate }}</div>
+              <h2 style="margin:0;font-size:15.5px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.6">{{ mtSel.task }}</h2>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+                <button onClick="{{ mtSel.addDirective }}" style="display:flex;align-items:center;gap:6px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>{{ t.mt_addDirective }}</button>
+                <button onClick="{{ mtSel.requestUpdate }}" style="display:flex;align-items:center;gap:6px;background:var(--ceef3f6,#eef3f6);border:1px solid var(--cd8e4ee,#d8e4ee);color:var(--c2f6aa8,#2f6aa8);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>{{ t.mt_requestUpdate }}</button>
+                <button onClick="{{ mtSel.markReviewed }}" style="display:flex;align-items:center;gap:6px;background:var(--ce2f0e8,#e2f0e8);border:1px solid var(--ccfe6d8,#cfe6d8);color:var(--c1f7a4d,#1f7a4d);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ t.mt_markReviewed }}</button>
+              </div>
+            </div>
+            <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;flex:1">
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <div style="flex:1;min-width:140px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:11.5px;font-weight:600;color:var(--c6d7973,#6d7973);margin-bottom:3px">{{ t.mt_owner }}</div><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c)">{{ mtSel.owner }}</div></div>
+                <div style="flex:1;min-width:140px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:11.5px;font-weight:600;color:var(--c6d7973,#6d7973);margin-bottom:3px">{{ t.mt_dept }}</div><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c)">{{ mtSel.dept }}</div></div>
+              </div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <div style="flex:1;min-width:140px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:11.5px;font-weight:600;color:var(--c6d7973,#6d7973);margin-bottom:3px">{{ t.mt_due }}</div><div style="font-size:13px;font-weight:700;color:{{mtSel.dueColor}}">{{ mtSel.due }}</div></div>
+                <div style="flex:1;min-width:140px;background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:11px 13px"><div style="font-size:11.5px;font-weight:600;color:var(--c6d7973,#6d7973);margin-bottom:3px">{{ t.mt_budget }}</div><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c)">{{ mtSel.budget }}</div></div>
+              </div>
+              <div><div style="font-size:11.5px;font-weight:600;color:var(--c6d7973,#6d7973);margin-bottom:4px">{{ t.mt_prereq }}</div><div style="font-size:13.5px;color:var(--c17211c,#17211c);line-height:1.7">{{ mtSel.prerequisite }}</div></div>
+              <div><div style="font-size:11.5px;font-weight:600;color:var(--c6d7973,#6d7973);margin-bottom:4px">{{ t.mt_deps }}</div><div style="font-size:13.5px;color:var(--c17211c,#17211c);line-height:1.7">{{ mtSel.dependencies }}</div></div>
+              <div style="background:var(--cfbf3df,#fbf3df);border:1px solid var(--cefe0be,#efe0be);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--cc9a24b,#c9a24b);margin-bottom:4px;font-weight:700">{{ t.mt_support }}</div><div style="font-size:12.5px;color:var(--c8a6a1f,#8a6a1f);line-height:1.6">{{ mtSel.support }}</div></div>
+              <div><div style="font-size:11.5px;font-weight:600;color:var(--c6d7973,#6d7973);margin-bottom:4px">{{ t.mt_notes }}</div><div style="font-size:13.5px;color:var(--c17211c,#17211c);line-height:1.7">{{ mtSel.notesDisp }}</div></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ mtModalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeMtModal }}" style="position:fixed;inset:0;background:rgba(23,33,28,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="background:var(--cffffff,#ffffff);border-radius:18px;width:460px;max-width:100%;animation:ovCard .25s ease">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--ceef0ec,#eef0ec);display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0;font-size:16px;font-weight:600">{{ t.mt_dirTitle }}</h2>
+          <button onClick="{{ closeMtModal }}" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);cursor:pointer;color:var(--c7d867f,#7d867f);font-size:15px">✕</button>
+        </div>
+        <div style="padding:22px 24px">
+          <textarea value="{{ mtDirDraft }}" onInput="{{ onMtDirInput }}" rows="4" placeholder="{{ t.mt_dirPh }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:11px 13px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
+        </div>
+        <div style="padding:14px 24px;border-top:1px solid var(--ceef0ec,#eef0ec);display:flex;gap:10px">
+          <button onClick="{{ saveMtDir }}" style="background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer">{{ t.mt_save }}</button>
+          <button onClick="{{ closeMtModal }}" style="background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c5b6b62,#5b6b62);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;cursor:pointer">{{ t.mt_cancel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:300;background:var(--c1f8a5b,#1f8a5b);color:#fff;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 12px 30px -8px rgba(0,0,0,.4)">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":"100%","height":720}}'>
+class Component extends DCLogic {
+  meetings=window.__DATA.meetings; mtasks=window.__DATA.mtasks; members=window.__DATA.members;
+  state={mtSearch:'',mtStatus:'',mtOwner:'',mtDept:'',mtSupport:false,selMtMonth:'',mtModal:null,mtForm:{},mtDetailed:false,mtLimit:12,selMtask:null,toast:'',openDD:null,ddRect:null,lang:(this.props&&this.props.lang)||'ar'};
+  find(arr,id){return arr.find(x=>x.id===id);}
+  memIndex(name){return this.members.findIndex(m=>m.name===name);}
+  av(name){const i=this.memIndex(name);return AV[(i>=0?i:0)%AV.length];}
+  dueColor(due){return (String(due).includes('يونيو')||String(due).includes('مارس')||String(due).includes('1 يوليو')||String(due).includes('2 يوليو'))?'var(--cb0433b,#b0433b)':'var(--c3c4a42,#3c4a42)';}
+  showToast(msg){this.setState({toast:msg});clearTimeout(this._tt);this._tt=setTimeout(()=>this.setState({toast:''}),3200);}
+  componentDidMount(){ DCDD.install(this); if(this.props.lang&&this.props.lang!==this.state.lang) this.setState({lang:this.props.lang}); }
+  componentDidUpdate(prev){ if(prev.lang!==this.props.lang) this.setState({lang:this.props.lang}); }
+  componentWillUnmount(){ DCDD.uninstall(this); }
+    openMtDirective(id){this.setState({mtModal:{id},mtForm:{}});}
+  openMtask(id){this.setState({selMtask:id});}
+  closeMtask(){this.setState({selMtask:null});}
+  showMoreMt(){this.setState({mtLimit:this.state.mtLimit+12});}
+  toggleMtDetailed(){this.setState({mtDetailed:!this.state.mtDetailed});}
+  setMtMonth(key){this.setState({selMtMonth:key,mtStatus:'',mtSupport:false,mtSearch:'',mtOwner:'',mtDept:'',mtLimit:12});}
+  mtKpiClick(kind){const upd={mtStatus:'',mtSupport:false};if(kind==='support')upd.mtSupport=true;else if(kind!=='all')upd.mtStatus=kind;this.setState(upd);setTimeout(()=>{const el=document.getElementById('mt-table-section');const m=document.querySelector('main');if(el&&m){const r=el.getBoundingClientRect(),mr=m.getBoundingClientRect();m.scrollTop+=r.top-mr.top-16;}},70);}
+  saveMtDirective(){const md=this.state.mtModal;const txt=(this.state.mtForm.text||'').trim();if(!md||!txt)return;const tk=this.find(this.mtasks,md.id);if(tk){tk.directives=tk.directives||[];tk.directives.push({text:txt,date:'اليوم'});}this.setState({mtModal:null,mtForm:{},toast:'تم حفظ التوجيه في سجل المهمة'});setTimeout(()=>this.setState({toast:''}),2600);}
+  requestMtUpdate(id){this.setState({toast:'تم إرسال طلب تحديث إلى المسؤول عن المهمة'});setTimeout(()=>this.setState({toast:''}),2600);}
+  markMtReviewed(id){const tk=this.find(this.mtasks,id);if(tk){tk.reviewed=!tk.reviewed;}this.setState({toast:tk&&tk.reviewed?'تم وضع علامة تمت المراجعة':'أُلغيت علامة المراجعة'});setTimeout(()=>this.setState({toast:''}),2600);this.forceUpdate();}
+  setStatus(kind,id,val){
+    let arr=kind==='project'?this.projects:kind==='corr'?this.correspondence:kind==='audit'?this.audit:kind==='mtask'?this.mtasks:kind==='otask'?this.otasks:this.actions;
+    const o=this.find(arr,id);if(o){o.status=val;this.forceUpdate();}
+  }
+    setMeetingActionStatus(mid,aid,val){const mt=this.find(this.meetings,mid);if(mt){const a=this.find(mt.actions,aid);if(a){a.status=val;this.forceUpdate();}}}
+  renderVals(){
+    const S=this.state; const P=this.props||{};
+    LANG=S.lang; const L=S.lang==='en'?1:0;
+    const rl=(a,e)=>L?e:a;
+    const t={}; for(const k in UITEXT) t[k]=UITEXT[k][L];
+    const opt=arr=>arr.map(v=>({v,label:tr(v)}));
+    const statusLabel=s=>tr(s);
+        // meetings
+    const decMt=mt=>{const[b,f]=PS[mt.status]||['#eee','#555'];const d=mt.date.split(' ');const late=mt.actions.filter(a=>a.status==='متأخر').length;return Object.assign({},mt,{title:tr(mt.title),owner:tr(mt.owner),status:statusLabel(mt.status),_bg:b,_fg:f,day:d[0],month:dateLoc(d[1]),attCount:mt.attendees.length,actCount:mt.actions.length,lateCount:late,hasLate:late>0,open:()=>P.nav('meetingDetail',{selMeeting:mt.id})});};
+    const meetings=this.meetings.map(decMt);
+    let meeting=null;
+    if(P.selMeeting){const mt=this.find(this.meetings,P.selMeeting);if(mt){meeting=Object.assign({},mt,{title:tr(mt.title),owner:tr(mt.owner),date:dateLoc(mt.date),summary:tr(mt.summary),attachment:tr(mt.attachment),keyPoints:mt.keyPoints.map(tr),decisions:mt.decisions.map(tr)});meeting.attendees=mt.attendees.map(a=>Object.assign({},a,{name:tr(a.name),initials:initials(tr(a.name))}));meeting.absentees=(mt.absentees||[]).map(a=>Object.assign({},a,{name:tr(a.name),initials:initials(tr(a.name))}));meeting.hasAbsentees=(mt.absentees||[]).length>0;meeting.actions=mt.actions.map(a=>{const[b,f]=AS[a.status]||['#eee','#555'];const rawS=a.status;return Object.assign({},a,{text:tr(a.text),owner:tr(a.owner),due:dateLoc(a.due),status:statusLabel(a.status),_bg:b,_fg:f,statusDd:DCDD.render(this,'mact-'+a.id,rawS,['مفتوح','قيد التنفيذ','مكتمل','متأخر'].map(s=>({v:s,label:tr(s)})),e=>this.setMeetingActionStatus(mt.id,a.id,e.target.value),{bg:b,color:f,weight:700,size:'sm',borderColor:'transparent',block:true}),onStatus:e=>this.setMeetingActionStatus(mt.id,a.id,e.target.value)});});}}
+    const allMActions=this.meetings.flatMap(m=>m.actions);
+    const meetingKpis=[{value:this.meetings.length,label:t.minutesCount,color:'var(--c17211c,#17211c)'},{value:this.mtasks.length,label:rl('مهام الاجتماعات','Meeting tasks'),color:'var(--c2f6aa8,#2f6aa8)'},{value:this.mtasks.filter(a=>a.status==='متأخر').length,label:t.overdueActions,color:'var(--cb0433b,#b0433b)'},{value:this.mtasks.filter(a=>a.status==='مكتمل').length,label:t.decisionsDone,color:'var(--c2e7d55,#2e7d55)'}];
+    const mkNav=extra=>()=>P.nav('mtasks',Object.assign({mtStatus:'',mtSupport:false,mtSearch:'',mtOwner:'',mtDept:''},extra));
+    meetingKpis[0].open=mkNav({});
+    meetingKpis[1].open=mkNav({});
+    meetingKpis[2].open=mkNav({mtStatus:'متأخر'});
+    meetingKpis[3].open=mkNav({mtStatus:'مكتمل'});
+    meetingKpis.forEach(k=>{k.tileStyle='background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.65);border-radius:22px;box-shadow:0 10px 36px -12px rgba(30,60,40,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:16px 17px;cursor:pointer;transition:transform .12s,box-shadow .12s';});
+        // ---- Meeting-minutes tasks (June 2026) ----
+    const MTS={'مكتمل':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'قيد التنفيذ':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'لم يبدأ':['var(--ceceae6,#eceae6)','var(--c8a8078,#8a8078)'],'متأخر':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)'],'مستمر':['var(--ce6eef6,#e6eef6)','var(--c3a6ea5,#3a6ea5)']};
+    const mtNeedsSupport=tk=>tk.status==='لم يبدأ'||tk.status==='متأخر';
+    const mtMonKey=d=>{const m=String(d||'').match(/(يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)\s+(\d{4})/);return m?(m[2]+'-'+pad2(MONN[m[1]])):'';};
+    const mtMonLabel=k=>{if(!k)return '';const p=k.split('-');const ar=AR_MONTHS[(+p[1])-1]+' '+p[0];return LANG==='ar'?ar:(MON[AR_MONTHS[(+p[1])-1]]+' '+p[0]);};
+    const mtMonthsAll=[...new Set(this.mtasks.map(tk2=>mtMonKey(tk2.mDate)))].filter(Boolean).sort().reverse();
+    const curMonth=(S.selMtMonth&&mtMonthsAll.includes(S.selMtMonth))?S.selMtMonth:(mtMonthsAll[0]||'');
+    const curMonIdx=mtMonthsAll.indexOf(curMonth);
+    const monthTasks=this.mtasks;
+    const mtMonthOpts=mtMonthsAll.map(k=>({v:k,label:mtMonLabel(k)}));
+    const mtMonthDd=DCDD.render(this,'mtMonth',curMonth,mtMonthOpts,e=>this.setMtMonth(e.target.value),{size:'sm',minWidth:'150px'});
+    const canOlder=curMonIdx>-1&&curMonIdx<mtMonthsAll.length-1;
+    const canNewer=curMonIdx>0;
+    const stepBtn=(on)=>'width:34px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:'+(on?'var(--c1f4a37,#1f4a37)':'var(--cc8cec6,#c8cec6)')+';cursor:'+(on?'pointer':'default')+';font-family:inherit';
+    const mtNav={monthDd:mtMonthDd,canOlder,canNewer,
+      goOlder:()=>{if(canOlder)this.setMtMonth(mtMonthsAll[curMonIdx+1]);},
+      goNewer:()=>{if(canNewer)this.setMtMonth(mtMonthsAll[curMonIdx-1]);},
+      goLatest:()=>this.setMtMonth(mtMonthsAll[0]),
+      olderStyle:stepBtn(canOlder),newerStyle:stepBtn(canNewer)};
+    const mtTotal=monthTasks.length;
+    const mtDone=monthTasks.filter(t2=>t2.status==='مكتمل').length;
+    const mtProg=monthTasks.filter(t2=>t2.status==='قيد التنفيذ').length;
+    const mtNot=monthTasks.filter(t2=>t2.status==='لم يبدأ').length;
+    const mtLate=monthTasks.filter(t2=>t2.status==='متأخر').length;
+    const mtSup=monthTasks.filter(mtNeedsSupport).length;
+    const mtKpis=[
+      {icon:'list',label:rl('إجمالي المهام','Total tasks'),value:String(mtTotal),bg:'var(--ce6eef6,#e6eef6)',fg:'var(--c3a6ea5,#3a6ea5)',accent:'var(--c3a6ea5,#3a6ea5)',kind:'all'},
+      {icon:'tick',label:rl('المكتملة','Completed'),value:String(mtDone),bg:'var(--ce2f0e8,#e2f0e8)',fg:'var(--c2e7d55,#2e7d55)',accent:'var(--c2e7d55,#2e7d55)',kind:'مكتمل'},
+      {icon:'timer',label:rl('قيد التنفيذ','In progress'),value:String(mtProg),bg:'var(--cfbf0d6,#fbf0d6)',fg:'var(--ca9791f,#a9791f)',accent:'var(--ca9791f,#a9791f)',kind:'قيد التنفيذ'},
+      {icon:'note',label:rl('لم تبدأ','Not started'),value:String(mtNot),bg:'var(--ceceae6,#eceae6)',fg:'var(--c8a8078,#8a8078)',accent:'var(--c8a8078,#8a8078)',kind:'لم يبدأ'},
+      {icon:'pin',label:rl('المتأخرة','Overdue'),value:String(mtLate),bg:'var(--cf7e6e4,#f7e6e4)',fg:'var(--cb0433b,#b0433b)',accent:'var(--cb0433b,#b0433b)',kind:'متأخر'},
+      {icon:'shield',label:rl('تحتاج دعم رئيس القطاع','Need your support'),value:String(mtSup),bg:'var(--cfbf3df,#fbf3df)',fg:'var(--cc9a24b,#c9a24b)',accent:'var(--cc9a24b,#c9a24b)',kind:'support'}
+    ].map(k=>{const active=(k.kind==='support'?!!S.mtSupport:(k.kind==='all'?(!S.mtStatus&&!S.mtSupport):S.mtStatus===k.kind));return Object.assign(k,{active,iconEl:svgIcon(k.icon,19),cardStyle:'background:var(--cffffff,#ffffff);border-radius:18px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,'+(active?'.26':'.14')+');padding:18px;cursor:pointer;display:flex;flex-direction:column;gap:15px;transition:box-shadow .15s,transform .15s;'+(active?('outline:2px solid '+k.accent+';outline-offset:-2px;transform:translateY(-2px)'):''),onClick:()=>this.mtKpiClick(k.kind)});});
+    let mtView=null,mtStatusOpts=null,mtOwnerOpts=null,mtDeptOpts=null,mtStatusSetOpts=null;
+    if(P.page==='mtasks'){
+    const decMtk=tk=>{const[b,f]=MTS[tk.status]||['#eee','#555'];const[ob,of]=this.av(tk.owner);const noDate=String(tk.due).includes('سيحدد');
+      return Object.assign({},tk,{task:tr(tk.task),meeting:tr(tk.meeting),dept:tr(tk.dept),owner:tr(tk.owner),ownerInitials:initials(tk.owner),ownerBg:ob,ownerFg:of,
+        prerequisite:tk.prerequisite&&tk.prerequisite.trim()?tr(tk.prerequisite):'—',support:tk.support&&tk.support.trim()?tr(tk.support):'—',budget:tk.budget&&tk.budget.trim()?tr(tk.budget):'—',dependencies:tk.dependencies&&tk.dependencies.trim()?tr(tk.dependencies):'—',notesDisp:tk.notes&&tk.notes.trim()?tr(tk.notes):'—',
+        avatarEl:(memberImg(tk.owner)?avEl(memberImg(tk.owner)):React.createElement('div',{style:{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:ob,color:of,fontSize:'9px',fontWeight:700}},initials(tk.owner))),
+        dueColor:tk.status==='متأخر'?'var(--cb0433b,#b0433b)':'var(--c8a938c,#8a938c)',
+        mDate:dateLoc(tk.mDate),due:dateLoc(tk.due),statusLabel:tr(tk.status),notes:tk.notes?tr(tk.notes):'—',_bg:b,_fg:f,noDate,
+        needsSupport:mtNeedsSupport(tk),reviewed:tk.reviewed?'var(--ce2f0e8,#e2f0e8)':'var(--cf2f4f0,#f2f4f0)',dirCount:(tk.directives||[]).length,
+        supportReason:tk.status==='متأخر'?rl('المهمة متأخرة عن موعدها','Task is overdue'):rl('لم يُحدَّد تاريخ إنجاز — تحتاج توجيه رئيس القطاع للأولوية','No due date set — needs the Sector Head\u2019s prioritisation'),
+        addDirective:()=>this.openMtDirective(tk.id),requestUpdate:()=>this.requestMtUpdate(tk.id),markReviewed:()=>this.markMtReviewed(tk.id),open:()=>this.openMtask(tk.id),
+        statusDd:DCDD.render(this,'mtrow-'+tk.id,tk.status,['مكتمل','قيد التنفيذ','لم يبدأ','متأخر','مستمر'].map(s=>({v:s,label:tr(s)})),e=>this.setStatus('mtask',tk.id,e.target.value),{bg:b,color:f,weight:700,size:'sm',borderColor:'transparent',block:true}),
+        setStatus:e=>this.setStatus('mtask',tk.id,e.target.value)});};
+    const mtSupport=monthTasks.filter(mtNeedsSupport).map(decMtk);
+    const mq=(S.mtSearch||'').trim();
+    let mtFiltered=monthTasks.filter(tk=>{
+      if(S.mtStatus&&tk.status!==S.mtStatus)return false;
+      if(S.mtOwner&&tk.owner!==S.mtOwner)return false;
+      if(S.mtDept&&tk.dept!==S.mtDept)return false;
+      if(S.mtSupport&&!mtNeedsSupport(tk))return false;
+      if(mq&&!(tk.task.includes(mq)||tk.meeting.includes(mq)||tk.owner.includes(mq)))return false;
+      return true;});
+    const mtaskRows=mtFiltered.map(decMtk);
+    const mtShown=mtaskRows.slice(0,S.mtLimit);
+    const mtGroups=(()=>{const m=new Map();mtShown.forEach(r=>{const k=r.meeting+'|'+r.mDate+'|'+r.dept;if(!m.has(k))m.set(k,{key:k,meeting:r.meeting,dept:r.dept,mDate:r.mDate,tasks:[]});m.get(k).tasks.push(r);});
+      const span=7+(S.mtDetailed?5:0);
+      const GS={'مكتمل':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'قيد التنفيذ':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'متأخر':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)']};
+      return [...m.values()].map(g=>{const raw=g.tasks.map(x=>x.status);const st=raw.every(s=>s==='مكتمل')?'مكتمل':(raw.some(s=>s==='متأخر')?'متأخر':'قيد التنفيذ');const c=GS[st]||GS['قيد التنفيذ'];const done=g.tasks.filter(x=>x.status==='مكتمل').length;return Object.assign(g,{count:g.tasks.length,span:span,statusLabel:tr(st),stBg:c[0],stFg:c[1],progLabel:done+'/'+g.tasks.length,countLabel:(g.tasks.length===1?rl('مهمة واحدة','1 task'):(g.tasks.length+' '+rl('مهام','tasks')))});});})();
+    const mtSelDetail=(()=>{if(!S.selMtask)return null;const tk=this.find(this.mtasks,S.selMtask);if(!tk)return null;const d=decMtk(tk);d.hasNotesReal=!!(tk.notes&&tk.notes.trim());return d;})();
+    mtStatusOpts=[{v:'',label:t.allStatuses}].concat(['مكتمل','قيد التنفيذ','لم يبدأ','متأخر','مستمر'].map(s=>({v:s,label:tr(s)})));
+    mtOwnerOpts=[{v:'',label:rl('كل المسؤولين','All owners')}].concat([...new Set(monthTasks.map(tk=>tk.owner))].map(o=>({v:o,label:tr(o)})));
+    mtDeptOpts=[{v:'',label:rl('كل الجهات','All departments')}].concat([...new Set(monthTasks.map(tk=>tk.dept))].map(o=>({v:o,label:tr(o)})));
+    mtStatusSetOpts=['مكتمل','قيد التنفيذ','لم يبدأ','متأخر','مستمر'].map(s=>({v:s,label:tr(s)}));
+    mtView={title:rl('متابعة مهام محاضر الاجتماعات','Meeting-minutes tasks follow-up'),
+      nav:mtNav,showLatestBtn:curMonIdx>0,curMonthLabel:mtMonLabel(curMonth),tableTitle:rl('مهام المحاضر — مجمّعة حسب الاجتماع','Minute tasks — grouped by meeting'),monthCount:mtMonthsAll.length,isLatest:curMonIdx===0,
+      kpis:mtKpis,support:mtSupport,rows:mtaskRows,shown:mtShown,groups:mtGroups,hasMore:mtaskRows.length>S.mtLimit,remaining:mtaskRows.length-mtShown.length,shownCount:mtShown.length,totalRows:mtaskRows.length,showMore:()=>this.showMoreMt(),showMoreLabel:rl('عرض المزيد','Show more'),countLabel:rl('عرض '+mtShown.length+' من '+mtaskRows.length,'Showing '+mtShown.length+' of '+mtaskRows.length),detailed:S.mtDetailed,toggleDetailed:()=>this.toggleMtDetailed(),detailedLabel:S.mtDetailed?rl('عرض مختصر','Concise view'):rl('عرض مفصّل','Detailed view'),detailBtnStyle:'display:flex;align-items:center;gap:7px;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid '+(S.mtDetailed?'var(--c1f4a37,#1f4a37)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.mtDetailed?'var(--ce9f0ec,#e9f0ec)':'var(--cf7f8f6,#f7f8f6)')+';color:'+(S.mtDetailed?'var(--c1f4a37,#1f4a37)':'var(--c7d867f,#7d867f)'),sel:mtSelDetail,total:mtTotal,
+      mtSearch:S.mtSearch,mtStatus:S.mtStatus,mtOwner:S.mtOwner,mtDept:S.mtDept,mtSupportOn:S.mtSupport,
+      onSearch:e=>this.setState({mtSearch:e.target.value}),onStatus:e=>this.setState({mtStatus:e.target.value}),
+      onOwner:e=>this.setState({mtOwner:e.target.value}),onDept:e=>this.setState({mtDept:e.target.value}),
+      toggleSupport:()=>this.setState({mtSupport:!S.mtSupport}),
+      supportBtnStyle:'display:flex;align-items:center;gap:7px;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid '+(S.mtSupport?'var(--cc9a24b,#c9a24b)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.mtSupport?'var(--cfbf3df,#fbf3df)':'var(--cf7f8f6,#f7f8f6)')+';color:'+(S.mtSupport?'var(--c8a6a1f,#8a6a1f)':'var(--c7d867f,#7d867f)'),
+      clearFilters:()=>this.setState({mtSearch:'',mtStatus:'',mtOwner:'',mtDept:'',mtSupport:false}),
+      hasSupport:mtSupport.length>0,noResults:mtaskRows.length===0,
+      ddStatus:DCDD.render(this,'mtStatus',S.mtStatus,mtStatusOpts,e=>this.setState({mtStatus:e.target.value}),{size:'sm',minWidth:'118px'}),
+      ddOwner:DCDD.render(this,'mtOwner',S.mtOwner,mtOwnerOpts,e=>this.setState({mtOwner:e.target.value}),{size:'sm',minWidth:'120px'}),
+      ddDept:DCDD.render(this,'mtDept',S.mtDept,mtDeptOpts,e=>this.setState({mtDept:e.target.value}),{size:'sm',minWidth:'120px'}),
+      openMeeting:rl('مهام محاضر الاجتماعات','Meeting-minutes tasks')};
+    }
+    return {
+      isMeetings:P.page==='meetings', isMeetingDetail:P.page==='meetingDetail', isMtasks:P.page==='mtasks', t,
+      hasToast:!!S.toast, toast:S.toast, stop:e=>e.stopPropagation(), goMtasks:()=>P.nav('mtasks'),
+      meetings, meeting, meetingKpis,
+      mt:mtView, mtStatusOpts, mtOwnerOpts, mtDeptOpts, mtStatusSetOpts,
+      mtSelOpen:!!(mtView&&mtView.sel), mtSel:mtView?mtView.sel:null, closeMtask:()=>this.closeMtask(),
+      mtModalOpen:!!S.mtModal, mtDirDraft:(S.mtForm&&S.mtForm.text)||'', onMtDirInput:e=>this.setState({mtForm:{text:e.target.value}}), saveMtDir:()=>this.saveMtDirective(), closeMtModal:()=>this.setState({mtModal:null,mtForm:{}})
+    };
+  }
+}
+</script>
+</body>
+</html>

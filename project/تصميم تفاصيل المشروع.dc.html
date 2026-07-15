@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  a{color:#1f4a37}
+  a:hover{color:#2b5c44}
+  @keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+</style>
+</helmet>
+<div dir="rtl" style="font-family:'IBM Plex Sans Arabic',sans-serif;background:radial-gradient(64% 52% at 90% 4%,rgba(201,162,75,.22),transparent 60%),radial-gradient(58% 55% at 3% 26%,rgba(58,125,82,.22),transparent 58%),radial-gradient(75% 65% at 62% 104%,rgba(120,175,142,.20),transparent 60%),linear-gradient(160deg,#eff3ed,#e6ebe6);background-attachment:fixed;min-height:100vh;padding:26px 30px;color:#17211c">
+
+  <div style="max-width:1120px;margin:0 auto">
+    <div style="font-size:12px;color:#7d867f;margin-bottom:14px">المشاريع <span style="margin:0 6px">›</span> <span style="color:#2a332d;font-weight:600">تفاصيل المشروع</span> — <span style="color:#b0433b;font-weight:600">مسودة تصميم مقترح</span></div>
+
+    <!-- ===== APPROVAL BANNER ===== -->
+    <div style="background:linear-gradient(120deg,#1e4634,#2b5c44);border-radius:18px;padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;color:#fff;box-shadow:0 14px 34px -20px rgba(30,70,52,.55)">
+      <span style="width:44px;height:44px;flex:none;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:15px;font-weight:700">هذا المشروع بانتظار اعتماد رئيس القطاع</div>
+        <div style="font-size: 14px; color: #bcd2c3; margin-top: 2px">رفع الفريق حالة المشروع إلى «مكتمل» — يرجى مراجعة المشروع.</div>
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button onClick="{{ openConfirm }}" style="background:#fff;color:#1f4a37;border:none;border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer">اعتماد الاكتمال</button>
+        <button onClick="{{ openReturn }}" style="background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer">إرجاع إلى قيد التنفيذ</button>
+        <button style="background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 16px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer">تغيير إلى غير مكتمل</button>
+      </div>
+    </div>
+
+    <!-- ===== STICKY HEADER ===== -->
+    <div style="background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.65);border-bottom:none;border-radius:22px 22px 0 0;box-shadow:0 2px 6px rgba(23,40,32,.04);padding:22px 26px 0">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="min-width:0">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:#fbf0d6;color:#a9791f">بانتظار اعتماد رئيس القطاع</span>
+            <span style="font-size:11px;font-weight:600;border-radius:20px;padding:4px 11px;background:#f0f3ee;color:#3c4a42">أولوية متوسطة</span>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:20px;padding:4px 11px;background:#f7e6e4;color:#b0433b;margin-bottom:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>متأخر عن الموعد المحدد · تجاوز الانتهاء المتوقع بـ 12 يوماً</div>
+          <h1 style="margin:0 0 6px;font-size:23px;font-weight:700;line-height:1.35">برنامج تطوير الكفاءات القيادية</h1>
+          <div style="font-size:12.5px;color:#7d867f;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span>إدارة خدمات الموارد البشرية</span><span style="color:#cdd4cc">•</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:22px;height:22px;border-radius:50%;background:#e9f0ec;color:#2b5c44;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">سأ</span>سماح أبو شرخ</span>
+          </div>
+        </div>
+      </div>
+      <!-- PROGRESS BAR -->
+      <div style="margin-top:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:22px;font-weight:800;color:#1f4a37;letter-spacing:-.5px">100%</div>
+          <div style="font-size:12px;color:#9aa39b">نسبة الإنجاز</div>
+        </div>
+        <div style="height:12px;border-radius:20px;background:#eef0ec;overflow:hidden"><div style="height:100%;width:100%;border-radius:20px;background:linear-gradient(90deg,#1f4a37,#2e7d55)"></div></div>
+      </div>
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;margin-top:20px;overflow-x:auto">
+        <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="7">
+          <button onClick="{{ tb.select }}" style="{{ tb.style }}">{{ tb.label }}<sc-if value="{{ tb.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="{{ tb.badgeStyle }}">{{ tb.badge }}</span></sc-if></button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ===== TAB BODY ===== -->
+    <div style="background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15);border:1px solid rgba(255,255,255,.65);border-top:none;border-radius:0 0 22px 22px;box-shadow:0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px;min-height:420px">
+
+      <!-- OVERVIEW -->
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:fadeUp .16s ease">
+          <div style="background:#f9fbf8;border:1px solid #edf1ec;border-radius:16px;padding:18px 20px;margin-bottom:18px">
+            <p style="margin: 0; font-size: 14px; color: #3c4a42; line-height: 1.75">تصميم برنامج تطوير للكفاءات القيادية في القطاع، يشمل حصر الفئة المستهدفة، إعداد إطار البرنامج ومحتواه، اختيار مزوّد التدريب، ثم التنفيذ وقياس الأثر.</p>
+          </div>
+          <div style="border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.4);border-radius:16px;padding:4px 20px;margin-bottom:16px">
+            <sc-for list="{{ facts }}" as="f" hint-placeholder-count="8">
+              <div style="display:flex;align-items:center;gap:16px;padding:13px 0;border-bottom:1px solid rgba(23,40,32,.06)"><span style="flex:none;width:140px;font-size:12.5px;color:#8a938c">{{ f.k }}</span><span style="display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:{{ f.color }}">{{ f.v }}<sc-if value="{{ f.overdue }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;border-radius:20px;padding:3px 8px;background:#f7e6e4;color:#b0433b"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{ f.overdueLabel }}</span></sc-if></span></div>
+            </sc-for>
+          </div>
+          <!-- BUDGET CARD -->
+          <div style="background:#fbfaf6;border:1px solid #efe6cf;border-radius:16px;padding:18px 20px;margin-bottom:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:9px"><span style="width:30px;height:30px;flex:none;border-radius:9px;background:#f4ead0;color:#a9791f;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2.5"></rect><circle cx="12" cy="12" r="2.5"></circle></svg></span><h3 style="margin:0;font-size:14px;font-weight:700">ميزانية المشروع</h3></div>
+              <div style="text-align:end"><div style="font-size:19px;font-weight:800;color:#17211c;letter-spacing:-.5px">350,000 <span style="font-size:12px;font-weight:600;color:#9aa39b">د.إ</span></div><div style="font-size:10.5px;color:#9aa39b">إجمالي الميزانية</div></div>
+            </div>
+            <div style="height:10px;border-radius:20px;background:#eef0ec;overflow:hidden;display:flex;margin-bottom:12px"><div style="width:82%;height:100%;background:linear-gradient(90deg,#a9791f,#c9a24b)"></div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="background:#fff;border:1px solid #efe6cf;border-radius:11px;padding:12px 14px"><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#9aa39b;margin-bottom:5px"><span style="width:9px;height:9px;border-radius:3px;background:#a9791f"></span>المنصرف</div><div style="font-size:16px;font-weight:800;color:#a9791f">287,000 <span style="font-size:11px;font-weight:600;color:#c9b487">د.إ</span></div><div style="font-size:10.5px;color:#b0955a;margin-top:2px">82% من الميزانية</div></div>
+              <div style="background:#fff;border:1px solid #e2efe7;border-radius:11px;padding:12px 14px"><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#9aa39b;margin-bottom:5px"><span style="width:9px;height:9px;border-radius:3px;background:#2e7d55"></span>المتبقي</div><div style="font-size:16px;font-weight:800;color:#2e7d55">63,000 <span style="font-size:11px;font-weight:600;color:#8fc0a5">د.إ</span></div><div style="font-size:10.5px;color:#5b9a76;margin-top:2px">18% متاح</div></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px"><span style="width:6px;height:20px;border-radius:4px;background:#a9791f"></span><h3 style="margin:0;font-size:14px;font-weight:700">نطاق العمل</h3></div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ scope }}" as="s" hint-placeholder-count="4"><div style="display:flex;align-items:flex-start;gap:10px"><span style="width:7px;height:7px;flex:none;border-radius:50%;background:#a9791f;margin-top:7px"></span><span style="font-size:13px;color:#3c4a42;line-height:1.6">{{ s }}</span></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- TIMELINE / MILESTONES (GANTT) -->
+      <sc-if value="{{ isTimeline }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+            <h3 style="margin:0;font-size:15px;font-weight:700">الجدول الزمني / مراحل المشروع</h3>
+            <div style="display:flex;align-items:center;gap:16px;font-size:11px;color:#8a938c;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:9px;border-radius:3px;background:#3f8f4f"></span>على المسار</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:9px;border-radius:3px;background:#2f6aa8"></span>قيد التنفيذ</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:9px;border-radius:3px;background:#b0433b"></span>متأخرة</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:0;height:14px;border-inline-start:2px dashed #b0433b"></span>اليوم</span>
+            </div>
+          </div>
+          <p style="margin:0 0 18px;font-size:12px;color:#8a938c;line-height:1.7">توضّح الأشرطة المدة المخططة لكل مرحلة، وتوضّح التعبئة الداكنة نسبة الإنجاز. الخط المتقطع يشير إلى اليوم.</p>
+
+          <div style="overflow-x:auto;padding-bottom:6px">
+            <div style="min-width:720px">
+              <!-- month axis -->
+              <div style="display:grid;grid-template-columns:200px 1fr;gap:0;margin-bottom:10px">
+                <div></div>
+                <div style="display:flex;direction:rtl;border-bottom:1px solid #eef0ec;padding-bottom:6px">
+                  <sc-for list="{{ ganttMonths }}" as="mo" hint-placeholder-count="12"><div style="flex:1;text-align:center;font-size:10.5px;color:#9aa39b;white-space:nowrap">{{ mo }}</div></sc-for>
+                </div>
+              </div>
+              <!-- rows -->
+              <sc-for list="{{ milestones }}" as="m" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:200px 1fr;gap:0;align-items:center;padding:7px 0">
+                  <div style="padding-inline-start:14px;min-width:0">
+                    <div style="font-size:13px;font-weight:700;color:#17211c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.name }}</div>
+                    <div style="font-size:10.5px;color:#9aa39b;margin-top:2px">{{ m.start }} ← {{ m.end }} · {{ m.pct }}%</div>
+                  </div>
+                  <div style="position:relative;height:34px;direction:rtl;background:linear-gradient(90deg,#f6f7f4 1px,transparent 1px);background-size:8.333% 100%;border-radius:8px">
+                    <!-- today line -->
+                    <div style="position:absolute;top:-3px;bottom:-3px;right:{{ todayRight }};width:0;border-inline-start:2px dashed #b0433b;z-index:3"></div>
+                    <!-- planned bar -->
+                    <div style="position:absolute;top:6px;height:22px;right:{{m.barRight}};width:{{m.barWidth}};background:{{m.barBg}};border-radius:7px;overflow:hidden">
+                      <div style="position:absolute;top:0;bottom:0;right:0;width:{{m.pct}}%;background:{{m.barFill}}"></div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- notes for flagged milestones -->
+          <div style="margin-top:20px;display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ ganttFlags }}" as="m" hint-placeholder-count="2">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:{{m.bg}};border:1px solid {{m.border}};border-radius:11px;padding:11px 14px"><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:3px 9px;flex:none;background:{{m.stBg}};color:{{m.stFg}}">{{ m.status }}</span><div style="font-size:12px;color:#3c4a42;line-height:1.6"><strong style="color:#17211c">{{ m.name }}:</strong> {{ m.note }}</div></div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- TASKS -->
+      <sc-if value="{{ isTasks }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease;display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ tasks }}" as="tk" hint-placeholder-count="3">
+            <div style="background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-radius:14px;padding:15px 17px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px">
+                <div style="font-size:13.5px;font-weight:600;color:#17211c">{{ tk.title }}</div>
+                <span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{tk.stBg}};color:{{tk.stFg}}">{{ tk.status }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px;font-size:11.5px;color:#7d867f;flex-wrap:wrap;margin-bottom:11px">
+                <span>المسؤول: <strong style="color:#3c4a42;font-weight:600">{{ tk.owner }}</strong></span>
+                <span>الموعد: {{ tk.due }}</span>
+                <span>آخر تحديث: {{ tk.updated }}</span>
+                <span style="color:{{tk.prFg}};font-weight:700">{{ tk.priority }}</span>
+              </div>
+              <div style="display:flex;gap:7px;flex-wrap:wrap">
+                <button style="background:#e9f0ec;color:#1f4a37;border:none;border-radius:9px;padding:8px 13px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer">إضافة توجيه</button>
+                <button style="background:#f4f6f2;color:#3c4a42;border:1px solid #e2e6df;border-radius:9px;padding:8px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">طلب تحديث</button>
+                <button style="background:#f4f6f2;color:#3c4a42;border:1px solid #e2e6df;border-radius:9px;padding:8px 13px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer">تحديد موعد الإنجاز</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- UPDATES -->
+      <sc-if value="{{ isUpdates }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease;position:relative;padding-inline-start:22px">
+          <div style="position:absolute;inset-inline-start:5px;top:4px;bottom:4px;width:2px;background:#eef0ec"></div>
+          <sc-for list="{{ updates }}" as="u" hint-placeholder-count="3">
+            <div style="position:relative;padding-bottom:18px">
+              <div style="position:absolute;inset-inline-start:-21px;top:3px;width:11px;height:11px;border-radius:50%;background:#a9791f;border:2px solid #fff;box-shadow:0 0 0 2px #eef0ec"></div>
+              <div style="font-size:11px;color:#9aa39b;margin-bottom:3px">{{ u.date }} — {{ u.by }}</div>
+              <div style="font-size:13px;color:#2a332d;line-height:1.6">{{ u.text }}</div>
+              <sc-if value="{{ u.hasFile }}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-size:11px;color:#b0433b;background:#f7e6e4;border-radius:8px;padding:4px 9px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3v5h5"></path><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>{{ u.file }}</div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- RISKS -->
+      <sc-if value="{{ isRisks }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px">
+          <sc-for list="{{ risks }}" as="r" hint-placeholder-count="2">
+            <div style="background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-inline-start:4px solid {{r.sevFg}};border-radius:12px;padding:15px 17px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px"><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{r.sevBg}};color:{{r.sevFg}}">خطورة {{ r.sev }}</span><span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:4px 10px;background:#f0f3ee;color:#3c4a42">{{ r.status }}</span></div>
+              <div style="font-size:13.5px;font-weight:600;color:#17211c;line-height:1.5;margin-bottom:9px">{{ r.desc }}</div>
+              <div style="font-size:11.5px;color:#7d867f;line-height:1.7"><div>التأثير: {{ r.impact }}</div><div>المعالجة: {{ r.plan }}</div><div>المسؤول: {{ r.owner }}</div></div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- DIRECTIVES -->
+      <sc-if value="{{ isDirectives }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button onClick="{{ openDir }}" style="display:inline-flex;align-items:center;gap:6px;background:#1f4a37;color:#fff;border:none;border-radius:10px;padding:10px 15px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>إضافة توجيه جديد</button></div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <sc-for list="{{ directives }}" as="d" hint-placeholder-count="2">
+              <div style="background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-radius:14px;padding:15px 17px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px"><div style="font-size:11px;color:#9aa39b">{{ d.date }} — {{ d.by }}</div><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 10px;background:{{d.stBg}};color:{{d.stFg}}">{{ d.status }}</span></div>
+                <div style="font-size:13.5px;color:#2a332d;line-height:1.65">{{ d.text }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ATTACHMENTS -->
+      <sc-if value="{{ isFiles }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fadeUp .16s ease;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">
+          <sc-for list="{{ files }}" as="fl" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.7);border-radius:13px;padding:13px 15px"><span style="width:38px;height:38px;flex:none;border-radius:10px;background:{{fl.bg}};color:{{fl.fg}};display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 3v5h5"></path><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg></span><div style="min-width:0"><div style="font-size:12.5px;font-weight:600;color:#2a332d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ fl.name }}</div><div style="font-size:10.5px;color:#9aa39b">{{ fl.meta }}</div></div></div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+    </div>
+    <div style="text-align:center;font-size:11.5px;color:#9aa39b;margin-top:16px">مسودة تصميم — لم تُطبَّق بعد. الشريط الذهبي أعلى الصفحة يوضّح منطق «بانتظار اعتماد رئيس القطاع».</div>
+  </div>
+
+  <!-- ADD DIRECTIVE MODAL -->
+  <sc-if value="{{ dirModal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDir }}" style="position:fixed;inset:0;background:rgba(20,32,26,.42);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onClick="{{ stop }}" style="background:#fff;border-radius:20px;max-width:460px;width:100%;padding:24px;box-shadow:0 30px 60px -20px rgba(0,0,0,.4)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="width:34px;height:34px;flex:none;border-radius:10px;background:#e9f0ec;color:#1f4a37;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span><h3 style="margin:0;font-size:17px;font-weight:700">إضافة توجيه جديد</h3></div>
+        <p style="margin:0 0 15px;font-size:12.5px;color:#7d867f;line-height:1.6">اكتب توجيهك للفريق المسؤول عن المشروع. سيظهر التوجيه فوراً في سجل قرارات رئيس القطاع.</p>
+        <textarea value="{{ dirDraft }}" onInput="{{ onDirInput }}" placeholder="اكتب توجيهك للفريق..." style="width:100%;box-sizing:border-box;border:1px solid #e2e6df;background:#f7f8f6;border-radius:11px;padding:12px 14px;font-size:13px;font-family:inherit;min-height:110px;resize:vertical;line-height:1.7;margin-bottom:16px"></textarea>
+        <div style="display:flex;gap:10px"><button onClick="{{ saveDir }}" style="flex:1;background:#1f4a37;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">حفظ التوجيه</button><button onClick="{{ closeDir }}" style="flex:none;background:#f4f6f2;color:#3c4a42;border:1px solid #e2e6df;border-radius:11px;padding:12px 20px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">إلغاء</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- CONFIRM MODAL -->
+  <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeAll }}" style="position:fixed;inset:0;background:rgba(20,32,26,.42);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:#fff;border-radius:20px;max-width:400px;width:100%;padding:26px;text-align:center;box-shadow:0 30px 60px -20px rgba(0,0,0,.4)">
+        <span style="width:56px;height:56px;border-radius:16px;background:#e2f0e8;color:#2e7d55;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+        <h3 style="margin:0 0 8px;font-size:18px;font-weight:700">هل ترغب في اعتماد اكتمال هذا المشروع؟</h3>
+        <p style="margin:0 0 20px;font-size:13px;color:#7d867f;line-height:1.6">سيتم تحويل حالة المشروع إلى «مكتمل» بعد اعتمادك.</p>
+        <div style="display:flex;gap:10px"><button onClick="{{ closeAll }}" style="flex:1;background:#2e7d55;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">تأكيد الاعتماد</button><button onClick="{{ closeAll }}" style="flex:1;background:#f4f6f2;color:#3c4a42;border:1px solid #e2e6df;border-radius:11px;padding:12px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">إلغاء</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- RETURN MODAL -->
+  <sc-if value="{{ returnOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeAll }}" style="position:fixed;inset:0;background:rgba(20,32,26,.42);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:#fff;border-radius:20px;max-width:440px;width:100%;padding:24px;box-shadow:0 30px 60px -20px rgba(0,0,0,.4)">
+        <h3 style="margin:0 0 6px;font-size:17px;font-weight:700">إرجاع المشروع إلى قيد التنفيذ</h3>
+        <p style="margin:0 0 16px;font-size:12.5px;color:#7d867f;line-height:1.6">يرجى توضيح سبب الإرجاع وإضافة ملاحظتك.</p>
+        <label style="font-size:11.5px;color:#9aa39b;display:block;margin-bottom:5px">سبب الإرجاع</label>
+        <input placeholder="اكتب سبب الإرجاع..." style="width:100%;box-sizing:border-box;border:1px solid #e2e6df;background:#f7f8f6;border-radius:10px;padding:11px 13px;font-size:12.5px;font-family:inherit;margin-bottom:13px">
+        <label style="font-size:11.5px;color:#9aa39b;display:block;margin-bottom:5px">ملاحظة رئيس القطاع</label>
+        <textarea placeholder="اكتب ملاحظتك للفريق..." style="width:100%;box-sizing:border-box;border:1px solid #e2e6df;background:#f7f8f6;border-radius:10px;padding:11px 13px;font-size:12.5px;font-family:inherit;min-height:80px;resize:vertical;margin-bottom:16px"></textarea>
+        <div style="display:flex;gap:10px"><button onClick="{{ closeAll }}" style="flex:1;background:#b0433b;color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">إرجاع المشروع</button><button onClick="{{ closeAll }}" style="flex:1;background:#f4f6f2;color:#3c4a42;border:1px solid #e2e6df;border-radius:11px;padding:12px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">إلغاء</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab:'overview', confirmOpen:false, returnOpen:false, dirModal:false, dirDraft:'', dirList:[
+    {date:'2 يوليو 2026',by:'رئيس القطاع',text:'التأكد من إرفاق تقرير قياس الأثر قبل اعتماد الإغلاق.',status:'قيد التنفيذ',stBg:'#fbf0d6',stFg:'#a9791f'},
+    {date:'20 يونيو 2026',by:'رئيس القطاع',text:'إعطاء أولوية لترشيح المشاركين المتأخر.',status:'منفَّذ',stBg:'#e2f0e8',stFg:'#2e7d55'}
+  ] };
+  _pos(i){ return (i/12*100).toFixed(3)+'%'; }
+  saveDir(){ const t=(this.state.dirDraft||'').trim(); if(!t){ this.setState({dirModal:false}); return; }
+    const today='يوليو 2026';
+    this.setState({ dirList:[{date:today,by:'رئيس القطاع',text:t,status:'جديد',stBg:'#e6eef6',stFg:'#2f6aa8'}].concat(this.state.dirList), dirModal:false, dirDraft:'' }); }
+  renderVals(){
+    const tab=this.state.tab;
+    const on='display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border:none;background:transparent;border-bottom:3px solid #1f4a37;color:#1f4a37;font-weight:700;font-size:13px;font-family:inherit;padding:11px 15px;cursor:pointer';
+    const off='display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border:none;background:transparent;border-bottom:3px solid transparent;color:#7d867f;font-weight:600;font-size:13px;font-family:inherit;padding:11px 15px;cursor:pointer';
+    const badge=(active)=>'font-size:10px;font-weight:700;border-radius:20px;padding:1px 7px;background:'+(active?'#e9f0ec':'#f0f3ee')+';color:'+(active?'#1f4a37':'#8a938c');
+    const defs=[['overview','نظرة عامة'],['timeline','الجدول الزمني'],['tasks','المهام'],['updates','التحديثات'],['risks','المخاطر',2],['directives','قرارات رئيس القطاع',2],['files','المرفقات']];
+    const tabs=defs.map(d=>({label:d[1],hasBadge:d.length>2,badge:String(d[2]||''),badgeStyle:badge(tab===d[0]),style:tab===d[0]?on:off,select:()=>this.setState({tab:d[0]})}));
+    return {
+      tabs,
+      isOverview:tab==='overview',isTimeline:tab==='timeline',isTasks:tab==='tasks',isUpdates:tab==='updates',isRisks:tab==='risks',isDirectives:tab==='directives',isFiles:tab==='files',
+      stop:e=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
+      facts:[{k:'المرحلة الحالية للمشروع',v:'قياس الأثر'},{k:'تاريخ البداية',v:'أبريل 2026'},{k:'الانتهاء المتوقع',v:'يوليو 2026',color:'#b0433b',overdue:true,overdueLabel:'تجاوز الموعد بـ 12 يوماً'},{k:'آخر تحديث',v:'2 يوليو 2026'},{k:'الإجراء المطلوب',v:'اعتماد الاكتمال'}].map(f=>Object.assign({color:'#2a332d',overdue:false,overdueLabel:''},f)),
+      scope:['حصر الفئة المستهدفة من القيادات','إعداد إطار البرنامج ومحتواه التدريبي','اختيار مزود التدريب وترشيح المشاركين','تنفيذ البرنامج وقياس أثره'],
+ganttMonths:['ينا \'26','ديس \'25','نوف \'25','أكت \'25','سبت \'25','أغس \'25','يول \'25','يون \'25'].reverse().concat([]) && (function(){var m=['يون','يول','أغس','سبت','أكت','نوف','ديس','ينا','فبر','مار','أبر','مايو'];var y=['25','25','25','25','25','25','25','26','26','26','26','26'];return m.map(function(x,i){return x+' \''+y[i];});})(),
+      todayRight:(this._pos(9.4)),
+      milestones:(function(self){
+        const N=12;
+        const mk=(name,s,e,pct,kind,note)=>{
+          const pal={ok:['#e8f2ea','#3f8f4f','مكتملة','#e2f0e8','#2e7d55','#f6faf7','#e2efe7'],prog:['#e2ecf5','#2f6aa8','قيد التنفيذ','#e6eef6','#2f6aa8','#f5f8fc','#dbe6f2'],late:['#f6dedb','#b0433b','متأخرة','#f7e6e4','#b0433b','#fdf6f5','#f2ddda'],dec:['#f6ecd4','#a9791f','تحتاج قرار','#fbf0d6','#a9791f','#fdfaf2','#efe3c9']}[kind];
+          const mon=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+          const idxName=['يونيو 2025','يوليو 2025','أغسطس 2025','سبتمبر 2025','أكتوبر 2025','نوفمبر 2025','ديسمبر 2025','يناير 2026','فبراير 2026','مارس 2026','أبريل 2026','مايو 2026'];
+          return {name,start:idxName[s],end:idxName[e],status:pal[2],pct,note,
+            barBg:pal[0],barFill:pal[1],stBg:pal[3],stFg:pal[4],bg:pal[5],border:pal[6],
+            barRight:self._pos(s),barWidth:((e-s+1)/N*100).toFixed(3)+'%',flag:(kind==='late'||kind==='dec')};
+        };
+        return [
+          mk('الاكتشاف والمتطلبات',1,3,100,'ok',''),
+          mk('تصميم الحل والمعمارية',3,5,100,'ok',''),
+          mk('التطوير — المرحلة الأولى',5,8,70,'ok',''),
+          mk('التكامل والاختبار',8,10,40,'prog',''),
+          mk('التجربة والإطلاق',10,11,0,'dec','بانتظار اعتماد رئيس القطاع قبل الإطلاق.')
+        ];
+      })(this),
+      tasks:[
+        {title:'حصر الفئة المستهدفة',owner:'سماح أبو شرخ',status:'مكتمل',due:'20 أبريل 2026',updated:'21 أبريل',priority:'أولوية متوسطة',stBg:'#e2f0e8',stFg:'#2e7d55',prFg:'#a9791f'},
+        {title:'ترشيح المشاركين',owner:'فاطمه الرشيدى',status:'متأخر',due:'15 يونيو 2026',updated:'18 يونيو',priority:'أولوية عالية',stBg:'#f7e6e4',stFg:'#b0433b',prFg:'#b0433b'},
+        {title:'تنفيذ الجلسة التدريبية الأولى',owner:'سماح أبو شرخ',status:'قيد التنفيذ',due:'10 يوليو 2026',updated:'1 يوليو',priority:'أولوية متوسطة',stBg:'#fbf0d6',stFg:'#a9791f',prFg:'#a9791f'}
+      ],
+      updates:[
+        {date:'2 يوليو 2026',by:'سماح أبو شرخ',text:'رفع حالة المشروع إلى «مكتمل» بانتظار اعتماد رئيس القطاع.',hasFile:true,file:'تقرير الإغلاق.pdf'},
+        {date:'27 يونيو 2026',by:'سماح أبو شرخ',text:'الانتهاء من مراجعة عروض مزوّدي التدريب واختيار المزوّد.',hasFile:false},
+        {date:'12 يونيو 2026',by:'فاطمه الرشيدى',text:'إعداد إطار البرنامج ومحتواه التدريبي.',hasFile:false}
+      ],
+      risks:[
+        {sev:'عالية',sevBg:'#f7e6e4',sevFg:'#b0433b',status:'مفتوح',desc:'تأخر ترشيح المشاركين قد يؤخر بدء الجلسات.',impact:'تأجيل جدول التنفيذ أسبوعين',plan:'تصعيد الطلب للوحدات المعنية',owner:'فاطمه الرشيدى'},
+        {sev:'متوسطة',sevBg:'#fbf0d6',sevFg:'#a9791f',status:'قيد المعالجة',desc:'محدودية ميزانية التدريب الخارجي.',impact:'تقليص عدد الجلسات',plan:'التفاوض مع المزوّد على باقة مخفّضة',owner:'سماح أبو شرخ'}
+      ],
+      directives:this.state.dirList,
+      dirModal:this.state.dirModal,dirDraft:this.state.dirDraft,
+      openDir:()=>this.setState({dirModal:true,dirDraft:''}),
+      closeDir:()=>this.setState({dirModal:false}),
+      onDirInput:e=>this.setState({dirDraft:e.target.value}),
+      saveDir:()=>this.saveDir(),
+      files:[
+        {name:'مقترح البرنامج.pdf',meta:'PDF · 2.1MB',bg:'#f7e6e4',fg:'#b0433b'},
+        {name:'قائمة المشاركين.xlsx',meta:'Excel · 340KB',bg:'#e2f0e8',fg:'#2e7d55'},
+        {name:'تقرير الإغلاق.pdf',meta:'PDF · 1.4MB',bg:'#f7e6e4',fg:'#b0433b'},
+        {name:'محضر لجنة التدريب.pdf',meta:'PDF · 620KB',bg:'#f7e6e4',fg:'#b0433b'}
+      ],
+      confirmOpen:this.state.confirmOpen,returnOpen:this.state.returnOpen,
+      openConfirm:()=>this.setState({confirmOpen:true}),openReturn:()=>this.setState({returnOpen:true}),
+      closeAll:()=>this.setState({confirmOpen:false,returnOpen:false})
+    };
+  }
+}
+</script>
+</body>
+</html>

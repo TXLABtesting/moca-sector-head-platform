@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eceae4;font-family:'IBM Plex Sans Arabic',system-ui,sans-serif}
+.dv-turn{padding:44px 48px 40px;border-bottom:1px solid rgba(0,0,0,.08)}
+.dv-thd{display:flex;align-items:baseline;gap:12px;margin:0 0 8px}
+.dv-tid{font:600 11px ui-monospace,Menlo,monospace;padding:4px 8px;background:#16241b;color:#fff;border-radius:5px;text-decoration:none}
+.dv-tname{font:700 15px/1.3 'IBM Plex Sans Arabic',sans-serif;color:#16241b;direction:rtl}
+.dv-sub{margin:0 0 26px;font:400 13px/1.6 'IBM Plex Sans Arabic',sans-serif;color:rgba(0,0,0,.5);direction:rtl;max-width:760px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:11px;scroll-margin-top:16px}
+.dv-olabel{display:flex;align-items:center;gap:9px;font:500 12.5px/1.3 'IBM Plex Sans Arabic',sans-serif;color:rgba(0,0,0,.6);direction:rtl}
+.dv-oid{font:600 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:rgba(0,0,0,.09);color:#16241b;border-radius:6px;text-decoration:none}
+.dv-opt:target .dv-oid{background:#3a7d52;color:#fff}
+.dv-card{width:520px;height:560px;border-radius:20px;overflow:hidden;position:relative;box-shadow:0 24px 60px -22px rgba(20,40,28,.4)}
+.dv-next{margin:26px 0 0;font:400 12.5px/1.6 'IBM Plex Sans Arabic',sans-serif;color:rgba(0,0,0,.5);direction:rtl}
+.dv-next a{color:#3a7d52;text-decoration:none;font-weight:600}
+.mk{direction:rtl;width:100%;height:100%;padding:22px 22px 0;display:flex;flex-direction:column}
+.mkbrand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.mkava{width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:top}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">أربعة توجهات تصميم حديثة (2026) مطبّقة على لوحتك</span></div>
+  <p class="dv-sub">نفس المحتوى الحقيقي لرئيس القطاع، بأربعة أساليب بصرية سائدة حالياً على Dribbble وBehance وApple/Linear. اختر ما يعجبك (مثلاً «طبّق <a href="#1b">1b</a> على كل المنصة») أو امزج بينها.</p>
+  <div class="dv-opts">
+
+    <!-- 1a Bento -->
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a> بنتو جريد — بطاقات معيارية متفاوتة الحجم (أسلوب Apple / Linear)</div>
+      <div class="dv-card" style="background:#f3f1ea">
+        <div class="mk">
+          <div class="mkbrand"><img class="mkava" src="assets/team/chief.jpg" alt=""><div><div style="font:700 13px/1 'IBM Plex Sans Arabic';color:#16241b">فوزية الطاير</div><div style="font:400 10px/1.4 'IBM Plex Sans Arabic';color:#8a897f;margin-top:3px">رئيس قطاع الخدمات المركزية</div></div><div style="margin-inline-start:auto;font:600 10px 'IBM Plex Sans Arabic';color:#8a897f">3 يوليو 2026</div></div>
+          <div style="display:grid;grid-template-columns:1.6fr 1fr;grid-template-rows:auto auto auto;gap:12px;flex:1">
+            <div style="grid-row:span 2;background:linear-gradient(150deg,#1c3a28,#2f5c3f);border-radius:18px;padding:18px;color:#fff;display:flex;flex-direction:column">
+              <div style="font:600 10px 'IBM Plex Sans Arabic';color:#c9b878;letter-spacing:.5px">يحتاج قرارك الآن</div>
+              <div style="font:700 22px/1.35 'IBM Plex Sans Arabic';margin-top:12px">لديك <span style="color:#e6cf8a">2 مشاريع</span> و<span style="color:#e6cf8a">2 اجتماعات</span> بانتظار اعتمادك</div>
+              <div style="margin-top:auto;display:flex;gap:7px;flex-wrap:wrap">
+                <span style="background:rgba(230,207,138,.22);color:#e6cf8a;font:600 10px 'IBM Plex Sans Arabic';padding:6px 11px;border-radius:20px">عاجل · 3</span>
+                <span style="background:rgba(255,255,255,.12);color:#fff;font:600 10px 'IBM Plex Sans Arabic';padding:6px 11px;border-radius:20px">اليوم · 2</span>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:18px;padding:15px;display:flex;flex-direction:column;justify-content:center">
+              <div style="font:700 26px/1 'IBM Plex Sans Arabic';color:#c0392b">5</div>
+              <div style="font:500 10px 'IBM Plex Sans Arabic';color:#8a897f;margin-top:6px">مهام متأخرة</div>
+            </div>
+            <div style="background:#fff;border-radius:18px;padding:15px;display:flex;flex-direction:column;justify-content:center">
+              <div style="font:700 26px/1 'IBM Plex Sans Arabic';color:#16241b">11</div>
+              <div style="font:500 10px 'IBM Plex Sans Arabic';color:#8a897f;margin-top:6px">إجمالي المشاريع</div>
+            </div>
+            <div style="grid-column:span 2;background:#fff;border-radius:18px;padding:15px 16px">
+              <div style="font:600 10px 'IBM Plex Sans Arabic';color:#8a897f;margin-bottom:11px">أولوية قصوى — مشروع متأخر</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="width:8px;height:8px;border-radius:50%;background:#c0392b;flex:none"></span>
+                <div style="flex:1"><div style="font:600 12px 'IBM Plex Sans Arabic';color:#16241b">إعادة هيكلة وحدات التعلّم المستمر</div><div style="font:400 10px 'IBM Plex Sans Arabic';color:#8a897f;margin-top:3px">سماح أبو شرخ · استحقاق 10 يوليو</div></div>
+                <span style="background:#16241b;color:#fff;font:600 10px 'IBM Plex Sans Arabic';padding:8px 14px;border-radius:10px">طلب متابعة</span>
+              </div>
+            </div>
+          </div>
+          <div style="height:22px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1b Dark command center -->
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a> مركز قيادة داكن — Dark mode ناضج بلمسات ذهبية/نعناعية</div>
+      <div class="dv-card" style="background:#12161b">
+        <div class="mk">
+          <div class="mkbrand"><img class="mkava" src="assets/team/chief.jpg" alt=""><div><div style="font:700 13px/1 'IBM Plex Sans Arabic';color:#f2f3f0">فوزية الطاير</div><div style="font:400 10px/1.4 'IBM Plex Sans Arabic';color:#7d8590;margin-top:3px">رئيس قطاع الخدمات المركزية</div></div><div style="margin-inline-start:auto;font:600 10px 'IBM Plex Sans Arabic';color:#7d8590">3 يوليو 2026</div></div>
+          <div style="background:linear-gradient(135deg,rgba(110,231,183,.08),rgba(201,184,120,.06));border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;backdrop-filter:blur(6px)">
+            <div style="font:600 10px 'IBM Plex Sans Arabic';color:#6ee7b7;letter-spacing:.5px">أولويات تحتاج تدخلك</div>
+            <div style="font:700 19px/1.4 'IBM Plex Sans Arabic';color:#f2f3f0;margin-top:10px">2 مشاريع و2 اجتماعات بانتظار قرارك هذا الأسبوع</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-top:13px">
+            <div style="background:#1a1f26;border:1px solid rgba(255,255,255,.06);border-radius:15px;padding:14px"><div style="font:700 22px/1 'IBM Plex Sans Arabic';color:#e6cf8a">5</div><div style="font:500 9px 'IBM Plex Sans Arabic';color:#7d8590;margin-top:6px">يحتاج قرارك</div></div>
+            <div style="background:#1a1f26;border:1px solid rgba(255,255,255,.06);border-radius:15px;padding:14px"><div style="font:700 22px/1 'IBM Plex Sans Arabic';color:#f0736a">5</div><div style="font:500 9px 'IBM Plex Sans Arabic';color:#7d8590;margin-top:6px">متأخر</div></div>
+            <div style="background:#1a1f26;border:1px solid rgba(255,255,255,.06);border-radius:15px;padding:14px"><div style="font:700 22px/1 'IBM Plex Sans Arabic';color:#6ee7b7">2</div><div style="font:500 9px 'IBM Plex Sans Arabic';color:#7d8590;margin-top:6px">اجتماعات</div></div>
+          </div>
+          <div style="background:#1a1f26;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;margin-top:13px;flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:13px"><span style="font:600 11px 'IBM Plex Sans Arabic';color:#c9cdd3">اجتماع بانتظار الاعتماد</span><span style="background:rgba(240,115,106,.16);color:#f0736a;font:600 9px 'IBM Plex Sans Arabic';padding:4px 9px;border-radius:14px">عاجل</span></div>
+            <div style="font:600 13px 'IBM Plex Sans Arabic';color:#f2f3f0">الهيكل التنظيمي والشواغر المتاحة</div>
+            <div style="font:400 10px 'IBM Plex Sans Arabic';color:#7d8590;margin-top:5px">6 يوليو 2026 · 10:00 ص · بناءً على طلب محمد الفرهان</div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <span style="flex:1;text-align:center;background:#6ee7b7;color:#0d2318;font:600 11px 'IBM Plex Sans Arabic';padding:9px;border-radius:10px">اعتماد</span>
+              <span style="flex:1;text-align:center;background:rgba(255,255,255,.07);color:#c9cdd3;font:600 11px 'IBM Plex Sans Arabic';padding:9px;border-radius:10px">اقتراح موعد</span>
+            </div>
+          </div>
+          <div style="height:22px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1c Glass / aurora -->
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a> زجاجي راقٍ — طبقات شفافة فوق تدرّج شفقي (Glassmorphism)</div>
+      <div class="dv-card" style="background:radial-gradient(120% 90% at 85% 0%,#bfe3cc 0%,#e9e3d4 45%,#d7e2dd 100%)">
+        <div style="position:absolute;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(201,184,120,.6),transparent 70%);top:-40px;left:-30px;filter:blur(10px)"></div>
+        <div style="position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(58,125,82,.4),transparent 70%);bottom:20px;right:-40px;filter:blur(12px)"></div>
+        <div class="mk" style="position:relative">
+          <div class="mkbrand"><img class="mkava" src="assets/team/chief.jpg" alt=""><div><div style="font:700 13px/1 'IBM Plex Sans Arabic';color:#183024">فوزية الطاير</div><div style="font:400 10px/1.4 'IBM Plex Sans Arabic';color:#4a5a4e;margin-top:3px">رئيس قطاع الخدمات المركزية</div></div></div>
+          <div style="background:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.6);border-radius:20px;padding:18px;backdrop-filter:blur(16px);box-shadow:0 8px 30px -10px rgba(30,60,40,.25)">
+            <div style="font:600 10px 'IBM Plex Sans Arabic';color:#3a7d52;letter-spacing:.5px">أولويات تحتاج تدخلك</div>
+            <div style="font:700 19px/1.4 'IBM Plex Sans Arabic';color:#183024;margin-top:10px">2 مشاريع و2 اجتماعات بانتظار اعتمادك</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:13px">
+            <div style="background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.6);border-radius:16px;padding:15px;backdrop-filter:blur(12px)"><div style="font:700 24px/1 'IBM Plex Sans Arabic';color:#b8452f">5</div><div style="font:500 10px 'IBM Plex Sans Arabic';color:#4a5a4e;margin-top:6px">مهام متأخرة</div></div>
+            <div style="background:rgba(255,255,255,.42);border:1px solid rgba(255,255,255,.6);border-radius:16px;padding:15px;backdrop-filter:blur(12px)"><div style="font:700 24px/1 'IBM Plex Sans Arabic';color:#183024">11</div><div style="font:500 10px 'IBM Plex Sans Arabic';color:#4a5a4e;margin-top:6px">إجمالي المشاريع</div></div>
+          </div>
+          <div style="background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.65);border-radius:18px;padding:16px;margin-top:13px;flex:1;backdrop-filter:blur(14px)">
+            <div style="font:600 10px 'IBM Plex Sans Arabic';color:#4a5a4e;margin-bottom:12px">آخر التحديثات من الفريق</div>
+            <div style="display:flex;flex-direction:column;gap:11px">
+              <div style="display:flex;align-items:center;gap:9px"><img class="mkava" style="width:26px;height:26px" src="assets/team/samah.jpg" alt=""><div style="flex:1;font:600 11px 'IBM Plex Sans Arabic';color:#183024">سماح أبو شرخ</div><span style="width:7px;height:7px;border-radius:50%;background:#b8452f"></span></div>
+              <div style="display:flex;align-items:center;gap:9px"><img class="mkava" style="width:26px;height:26px" src="assets/team/fatma.jpg" alt=""><div style="flex:1;font:600 11px 'IBM Plex Sans Arabic';color:#183024">فاطمة الرشيدي</div><span style="width:7px;height:7px;border-radius:50%;background:#3a7d52"></span></div>
+              <div style="display:flex;align-items:center;gap:9px"><img class="mkava" style="width:26px;height:26px" src="assets/team/hagar.jpg" alt=""><div style="flex:1;font:600 11px 'IBM Plex Sans Arabic';color:#183024">هاجر هلول</div><span style="width:7px;height:7px;border-radius:50%;background:#3a7d52"></span></div>
+            </div>
+          </div>
+          <div style="height:22px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1d Editorial minimal -->
+    <div class="dv-opt" id="1d">
+      <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a> تحريري بسيط — تايبوغرافي كبير ومساحات بيضاء واسعة</div>
+      <div class="dv-card" style="background:#f7f5ef">
+        <div class="mk" style="padding:26px 26px 0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+            <div style="font:600 11px 'IBM Plex Sans Arabic';color:#a09d92;letter-spacing:1px">لوحة رئيس القطاع</div>
+            <img class="mkava" src="assets/team/chief.jpg" alt="">
+          </div>
+          <div style="font:500 13px 'IBM Plex Sans Arabic';color:#a09d92">مساء الخير، فوزية</div>
+          <div style="font:700 30px/1.3 'Reem Kufi','IBM Plex Sans Arabic';color:#1a1a17;margin-top:8px;letter-spacing:-.5px">أربعة قرارات<br>تنتظر توقيعك اليوم.</div>
+          <div style="height:1px;background:rgba(0,0,0,.09);margin:22px 0"></div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;align-items:baseline;gap:14px;padding:13px 0;border-bottom:1px solid rgba(0,0,0,.07)"><span style="font:700 15px 'Reem Kufi';color:#c9a24b;width:24px">01</span><div style="flex:1"><div style="font:600 13px 'IBM Plex Sans Arabic';color:#1a1a17">الهيكل التنظيمي والشواغر</div><div style="font:400 10px 'IBM Plex Sans Arabic';color:#a09d92;margin-top:2px">اجتماع · عاجل</div></div><span style="font:500 11px 'IBM Plex Sans Arabic';color:#b8452f">اليوم</span></div>
+            <div style="display:flex;align-items:baseline;gap:14px;padding:13px 0;border-bottom:1px solid rgba(0,0,0,.07)"><span style="font:700 15px 'Reem Kufi';color:#c9a24b;width:24px">02</span><div style="flex:1"><div style="font:600 13px 'IBM Plex Sans Arabic';color:#1a1a17">إعادة هيكلة وحدات التعلّم</div><div style="font:400 10px 'IBM Plex Sans Arabic';color:#a09d92;margin-top:2px">مشروع متأخر · سماح أبو شرخ</div></div><span style="font:500 11px 'IBM Plex Sans Arabic';color:#b8452f">10 يوليو</span></div>
+            <div style="display:flex;align-items:baseline;gap:14px;padding:13px 0;border-bottom:1px solid rgba(0,0,0,.07)"><span style="font:700 15px 'Reem Kufi';color:#c9a24b;width:24px">03</span><div style="flex:1"><div style="font:600 13px 'IBM Plex Sans Arabic';color:#1a1a17">طلب ترشيح ممثلين للجنة التميّز</div><div style="font:400 10px 'IBM Plex Sans Arabic';color:#a09d92;margin-top:2px">مستند · فاطمة الرشيدي</div></div><span style="font:500 11px 'IBM Plex Sans Arabic';color:#a09d92">هذا الأسبوع</span></div>
+          </div>
+          <div style="margin-top:auto;display:flex;gap:26px;padding:18px 0">
+            <div><div style="font:700 22px 'Reem Kufi';color:#1a1a17">5</div><div style="font:400 9px 'IBM Plex Sans Arabic';color:#a09d92">متأخر</div></div>
+            <div><div style="font:700 22px 'Reem Kufi';color:#1a1a17">11</div><div style="font:400 9px 'IBM Plex Sans Arabic';color:#a09d92">مشاريع</div></div>
+            <div><div style="font:700 22px 'Reem Kufi';color:#1a1a17">8</div><div style="font:400 9px 'IBM Plex Sans Arabic';color:#a09d92">صادر ووارد</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">جرّب: «طبّق <a href="#1a">1a</a> على كل المنصة» · «أريد <a href="#1b">1b</a> لكن بخلفية أفتح» · «امزج بنتو <a href="#1a">1a</a> مع تايبوغرافي <a href="#1d">1d</a>» · «أرني توجهات إضافية»</p>
+</section>
+</x-dc>
+</body>
+</html>

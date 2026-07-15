@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+<script src="./dc-shared.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+@keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+@keyframes ovBg{from{opacity:0}to{opacity:1}}
+@keyframes ovCard{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:900px){ div:has(> .trow){overflow-x:auto!important} .trow{min-width:860px} }
+@media(max-width:1024px){ .rg2{grid-template-columns:1fr!important} }
+.fbtn{display:none}
+/*__mob__*/
+@media(max-width:640px){
+  .rg2,.rg3,.rg4,.rg5,.ov-stats,.lv-kpis,.lv-cat,.lv-cards{grid-template-columns:1fr!important}
+  table thead{display:none!important}
+  table tr{display:block!important;margin-bottom:10px;border:1px solid var(--ceef0ec,#eef0ec);border-radius:12px;padding:4px 10px;background:#fff}
+  table td{display:flex!important;justify-content:space-between;gap:12px;border:none!important;padding:7px 2px!important;white-space:normal!important;max-width:none!important;text-align:start}
+  .trow{grid-template-columns:1fr!important;min-width:0!important;gap:5px!important}
+  div:has(> table){overflow-x:visible!important}
+  .cal-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+  .fbtn{display:inline-flex!important;align-items:center;gap:8px;cursor:pointer;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.7);border-radius:14px;box-shadow:0 8px 24px -14px rgba(30,60,40,.25);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:11px 16px;font-size:13px;font-weight:600;color:var(--c1e4634,#1e4634);margin-bottom:14px;user-select:none}
+  .fbar{display:none!important}
+  .fcb:checked ~ .fbar{display:flex!important;flex-direction:column;align-items:stretch;gap:10px!important}
+  .fcb:checked ~ .fbtn .fchev{transform:rotate(180deg)}
+  .fbar > *{width:100%!important;min-width:0!important;flex:none!important}
+}
+</style>
+</helmet>
+<div style="min-height:1px">
+      <sc-if value="{{ isCorr }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:fadeUp .16s ease">
+          <input type="checkbox" id="fcb-corr" class="fcb" style="display:none">
+          <label for="fcb-corr" class="fbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="10" y1="17" x2="14" y2="17"></line></svg><span>الفلاتر</span><svg class="fchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-inline-start:auto;transition:transform .2s"><path d="m6 9 6 6 6-6"></path></svg></label>
+          <div class="fbar" style="background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.65);border-radius:22px;box-shadow:0 10px 36px -12px rgba(30,60,40,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div style="position:relative;display:flex;align-items:center;flex:1;min-width:200px">
+              <svg style="position:absolute;inset-inline-start:12px" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.9"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.2-3.2"></path></svg>
+              <input value="{{ cSearch }}" onInput="{{ setCSearch }}" placeholder="{{ t.corrSearchPh }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:9px;padding:9px 12px;padding-inline-start:40px;font-size:13px;outline:none">
+            </div>
+            <button onClick="{{ toggleDirOut }}" style="{{ dirOutStyle }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0-5 5m5-5 5 5"></path></svg>{{ outLabel }}</button>
+            <button onClick="{{ toggleDirIn }}" style="{{ dirInStyle }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m0 0 5-5m-5 5-5-5"></path></svg>{{ inLabel }}</button>
+            <span>{{ ddCStatus }}</span>
+            <sc-if value="{{ canAdd }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onAddDoc }}" style="display:flex;align-items:center;gap:6px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:9px;padding:9px 15px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>صادر / وارد جديد</button></sc-if>
+          </div>
+          <div style="font-size:12.5px;color:var(--c8a938c,#8a938c);margin-bottom:12px">{{ corrCountLabel }}</div>
+          <div style="background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.65);border-radius:22px;box-shadow:0 10px 36px -12px rgba(30,60,40,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);overflow:hidden">
+            <div class="trow" style="display:grid;grid-template-columns:0.8fr 2.2fr 1.4fr 0.9fr 1.1fr 1.1fr 1fr;gap:12px;padding:13px 20px;background:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.5);font-size:11.5px;font-weight:600;color:var(--c7d867f,#7d867f)">
+              <div onClick="{{ toggleCSort }}" style="cursor:pointer;display:flex;align-items:center;gap:5px;user-select:none" title="{{ t.thSortDate }}"><span>{{ t.thDate }}</span><span style="font-size:12px;color:var(--c1f8a5b,#1f8a5b);font-weight:800">{{ dateSortArrow }}</span></div><div>{{ t.thDoc }}</div><div>{{ t.thEntity }}</div><div>{{ t.thType }}</div><div>{{ t.dSender }}</div><div>{{ t.dRecipient }}</div><div>{{ t.thCurStatus }}</div>
+            </div>
+            <sc-for list="{{ filteredCorr }}" as="c" hint-placeholder-count="8">
+              <div onClick="{{ c.open }}" class="trow" style="display:grid;grid-template-columns:0.8fr 2.2fr 1.4fr 0.9fr 1.1fr 1.1fr 1fr;gap:12px;padding:14px 20px;border-bottom:1px solid var(--cf2f4f0,#f2f4f0);align-items:center;cursor:pointer">
+                <div style="font-size:12px;color:var(--c8a938c,#8a938c)">{{ c.date }}</div>
+                <div style="min-width:0"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="font-size:9.5px;font-weight:700;border-radius:5px;padding:2px 7px;background:{{c.dirBg}};color:{{c.dirFg}}">{{ c.dir }}</span><sc-if value="{{ c.needsAction }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:600;color:var(--cb0433b,#b0433b)">● {{ t.needsActionTag }}</span></sc-if></div><div style="font-size:13px;font-weight:500;color:var(--c2a332d,#2a332d);line-height:1.4">{{ c.name }}</div></div>
+                <div style="font-size:12px;color:var(--c3c4a42,#3c4a42);line-height:1.4">{{ c.entity }}</div>
+                <div style="font-size:11.5px;color:var(--c5b6b62,#5b6b62)">{{ c.type }}</div>
+                <div style="font-size:12px;color:var(--c3c4a42,#3c4a42);line-height:1.4">{{ c.sender }}</div>
+                <div style="font-size:12px;color:var(--c3c4a42,#3c4a42);line-height:1.4">{{ c.recipient }}</div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:4px 10px;background:{{c._bg}};color:{{c._fg}}">{{ c.status }}</span><sc-if value="{{ canEdit }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.edit }}" title="تعديل" style="flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);color:var(--c3c4a42,#3c4a42);cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg></button></sc-if></div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ noCorr }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;padding:44px;color:var(--c9aa39b,#9aa39b);font-size:14px">{{ t.noCorr }}</div></sc-if>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isDoc }}" hint-placeholder-val="{{ false }}">
+        <div class="rg2" style="animation:fadeUp .16s ease;display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start">
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:24px 26px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <span style="font-size:10.5px;font-weight:700;border-radius:6px;padding:5px 11px;background:{{doc.dirBg}};color:{{doc.dirFg}}">{{ doc.dir }}</span>
+              <span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:5px 11px;background:{{doc._bg}};color:{{doc._fg}}">{{ doc.status }}</span>
+              <span style="font-size:10.5px;font-weight:600;border-radius:20px;padding:5px 11px;background:{{doc.prBg}};color:{{doc.prFg}}">{{ t.priority }} {{ doc.priority }}</span>
+            </div>
+            <h2 style="margin:0 0 20px;font-size:20px;font-weight:600;line-height:1.5">{{ doc.name }}</h2>
+            <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px;flex-wrap:wrap;margin:-8px 0 20px"><button onClick="{{ doc.edit }}" style="display:flex;align-items:center;gap:6px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path></svg>تعديل المستند / تحديث الحالة</button></div></sc-if>
+            <div class="rg2" style="display:grid;grid-template-columns:1fr 1fr;gap:18px 24px">
+              <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.thEntity }}</div><div style="font-size:13.5px;color:var(--c2a332d,#2a332d)">{{ doc.entity }}</div></div>
+              <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.dDocType }}</div><div style="font-size:13.5px;color:var(--c2a332d,#2a332d)">{{ doc.type }}</div></div>
+              <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.dSender }}</div><div style="font-size:13.5px;color:var(--c2a332d,#2a332d)">{{ doc.sender }}</div></div>
+              <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.dRecipient }}</div><div style="font-size:13.5px;color:var(--c2a332d,#2a332d)">{{ doc.recipient }}</div></div>
+              <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.thDate }}</div><div style="font-size:13.5px;color:var(--c2a332d,#2a332d)">{{ doc.date }}</div></div>
+              <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.dRecvDate }}</div><div style="font-size:13.5px;color:var(--c2a332d,#2a332d)">{{ doc.recvDate }}</div></div>
+            </div>
+            <div style="margin-top:22px;padding-top:20px;border-top:1px solid var(--ceef0ec,#eef0ec)">
+              <div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:5px">{{ t.requiredAction }}</div>
+              <div style="font-size:13.5px;color:var(--c2a332d,#2a332d);line-height:1.6;margin-bottom:16px">{{ doc.action }}</div>
+              <div style="display:flex;gap:20px;flex-wrap:wrap">
+                <div><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.followupOwner }}</div><div style="font-size:13px;font-weight:600;color:var(--c2a332d,#2a332d)">{{ doc.followup }}</div></div>
+                <div style="flex:1;min-width:180px"><div style="font-size:11px;color:var(--c9aa39b,#9aa39b);margin-bottom:6px">{{ t.thCurStatus }}</div>
+                  <span style="display:inline-block;font-size:11.5px;font-weight:600;border-radius:20px;padding:6px 14px;background:{{doc._bg}};color:{{doc._fg}}">{{ doc.status }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:var(--cffffff,#ffffff);border:none;border-radius:24px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);padding:20px">
+              <h3 style="margin:0 0 12px;font-size:14px;font-weight:600">{{ t.attachment }}</h3>
+              <div style="display:flex;align-items:center;gap:10px;background:var(--cf7f8f6,#f7f8f6);border-radius:11px;padding:13px 14px">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b0433b" stroke-width="1.6"><path d="M14 3v5h5"></path><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                <div style="min-width:0"><div style="font-size:12.5px;font-weight:600;color:var(--c2a332d,#2a332d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ doc.attachment }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ t.clickView }}</div></div>
+              </div>
+            </div>
+            <div style="background:var(--ce9f0ec,#e9f0ec);border:1px solid var(--ccfe0d5,#cfe0d5);border-radius:16px;padding:18px 20px">
+              <h3 style="margin:0 0 9px;font-size:14px;font-weight:600;color:var(--c1e4634,#1e4634)">{{ t.chairmanNotes }}</h3>
+              <p style="margin:0 0 12px;font-size:12.5px;color:var(--c284c3a,#284c3a);line-height:1.7">{{ doc.notes }}</p>
+              <sc-if value="{{ canNote }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:8px">
+                <input value="{{ docNote }}" onInput="{{ onDocNoteInput }}" placeholder="{{ t.docNotePh }}" style="flex:1;min-width:0;border:1px solid var(--ccfe0d5,#cfe0d5);background:var(--cffffff,#ffffff);border-radius:9px;padding:8px 11px;font-size:12px;outline:none">
+                <button onClick="{{ addDocNote }}" style="background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:9px;padding:8px 15px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">{{ t.addNoteBtn }}</button>
+              </div>
+              </sc-if>
+            </div>
+            <div style="background:var(--cf7f8f6,#f7f8f6);border:1px solid var(--cebeee9,#ebeee9);border-radius:14px;padding:13px 16px;display:flex;align-items:center;gap:10px;color:var(--c7d867f,#7d867f);font-size:12px;line-height:1.5">
+              <svg width="17" height="17" style="flex:none" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+              <span>{{ t.editByOwnerLbl }}: <strong style="color:var(--c3c4a42,#3c4a42);font-weight:600">{{ doc.followup }}</strong></span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(23,33,28,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="background:var(--cffffff,#ffffff);border-radius:18px;width:640px;max-width:100%;max-height:90vh;overflow-y:auto;animation:ovCard .25s ease">
+        <div style="padding:20px 26px;border-bottom:1px solid var(--ceef0ec,#eef0ec);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--cffffff,#ffffff);border-radius:18px 18px 0 0">
+          <h2 style="margin:0;font-size:17px;font-weight:600">{{ modalTitle }}</h2>
+          <button onClick="{{ closeModal }}" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);cursor:pointer;color:var(--c7d867f,#7d867f);font-size:16px">✕</button>
+        </div>
+        <div style="padding:24px 26px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="grid-column:1/3"><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fName }}</label><input value="{{ form.name }}" onInput="{{ formInput.name }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none"></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fEntity }}</label><input value="{{ form.entity }}" onInput="{{ formInput.entity }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none"></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fCat }}</label><select value="{{ form.dir }}" onChange="{{ formInput.dir }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer"><sc-for list="{{ cDirOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fType }}</label><select value="{{ form.type }}" onChange="{{ formInput.type }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer"><sc-for list="{{ mTypeOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fDate }}</label><input value="{{ form.date }}" onInput="{{ formInput.date }}" placeholder="{{ t.fDatePh }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none"></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fSender }}</label><input value="{{ form.sender }}" onInput="{{ formInput.sender }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none"></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fRecipient }}</label><input value="{{ form.recipient }}" onInput="{{ formInput.recipient }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none"></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fFollowup }}</label><select value="{{ form.followup }}" onChange="{{ formInput.followup }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer"><sc-for list="{{ mFollowupOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fStatus }}</label><select value="{{ form.status }}" onChange="{{ formInput.status }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer"><sc-for list="{{ corrStatusOpts }}" as="o" hint-placeholder-count="9"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+          <div><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fPriority }}</label><select value="{{ form.priority }}" onChange="{{ formInput.priority }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer"><sc-for list="{{ mPriorityOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+          <div style="grid-column:1/3"><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fAction }}</label><input value="{{ form.action }}" onInput="{{ formInput.action }}" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none"></div>
+          <div style="grid-column:1/3"><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.fAttach }}</label><div style="border:1px dashed var(--ccdd3ca,#cdd3ca);border-radius:10px;padding:18px;text-align:center;color:var(--c9aa39b,#9aa39b);font-size:12.5px;background:var(--cf9faf8,#f9faf8)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b0b8af" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><path d="M12 15V3m0 0-4 4m4-4 4 4"></path><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"></path></svg><div>{{ t.dropFile }}</div></div></div>
+          <div style="grid-column:1/3"><label style="font-size:12px;color:var(--c5b6b62,#5b6b62);font-weight:500;display:block;margin-bottom:6px">{{ t.chairmanNotes }}</label><textarea value="{{ form.notes }}" onInput="{{ formInput.notes }}" rows="2" style="width:100%;border:1px solid var(--ce2e6df,#e2e6df);border-radius:9px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea></div>
+        </div>
+        <div style="padding:16px 26px;border-top:1px solid var(--ceef0ec,#eef0ec);display:flex;justify-content:flex-start;gap:10px;position:sticky;bottom:0;background:var(--cffffff,#ffffff);border-radius:0 0 18px 18px">
+          <button onClick="{{ saveDoc }}" style="background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer">{{ t.saveDoc }}</button>
+          <button onClick="{{ closeModal }}" style="background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c5b6b62,#5b6b62);border-radius:10px;padding:11px 20px;font-size:13px;font-weight:500;cursor:pointer">{{ t.cancel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===================== REQ-MEETING DETAIL POPUP ===================== -->
+  <sc-if value="{{ rmPopupOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeRmPopup }}" style="position:fixed;inset:0;background:rgba(23,33,28,.4);z-index:95;display:flex;justify-content:flex-start;animation:ovBg .2s ease">
+      <div onClick="{{ stop }}" style="width:400px;max-width:92%;height:100%;background:var(--cffffff,#ffffff);box-shadow:-8px 0 40px rgba(23,33,28,.18);display:flex;flex-direction:column;animation:slideInX .28s ease;overflow-y:auto">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--ceef0ec,#eef0ec);display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1"><span style="font-size:10.5px;font-weight:700;border-radius:20px;padding:4px 11px;background:{{rmPopup._bg}};color:{{rmPopup._fg}}">{{ rmPopup.statusLabel }}</span><h2 style="margin:10px 0 0;font-size:17px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.5">{{ rmPopup.subject }}</h2></div>
+          <button onClick="{{ closeRmPopup }}" style="width:32px;height:32px;flex:none;border-radius:9px;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);cursor:pointer;color:var(--c7d867f,#7d867f);font-size:15px">✕</button>
+        </div>
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px;flex:1">
+          <div style="display:flex;gap:11px;align-items:flex-start"><span style="width:32px;height:32px;flex:none;border-radius:9px;background:var(--ce9f0ec,#e9f0ec);color:var(--c1f4a37,#1f4a37);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3.3"></circle><path d="M22 20v-2a4 4 0 0 0-3-3.8"></path></svg></span><div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:2px">{{ t.rm_attendees }}</div><div style="font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.5">{{ rmPopup.attendees }}</div></div></div>
+          <div style="display:flex;gap:11px;align-items:flex-start"><span style="width:32px;height:32px;flex:none;border-radius:9px;background:var(--ce6eef6,#e6eef6);color:var(--c3a6ea5,#3a6ea5);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="m4.5 7.5 6 4c.9.6 2.1.6 3 0l6-4"></path></svg></span><div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:2px">{{ t.rm_basis }}</div><div style="font-size:13px;color:var(--c2a332d,#2a332d);line-height:1.5">{{ rmPopup.basis }}</div></div></div>
+          <div style="display:flex;gap:11px;align-items:flex-start"><span style="width:32px;height:32px;flex:none;border-radius:9px;background:var(--cfbf0d6,#fbf0d6);color:var(--ca9791f,#a9791f);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg></span><div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:2px">{{ t.rm_proposed }}</div><div style="font-size:13.5px;color:var(--c1f4a37,#1f4a37);font-weight:700;line-height:1.5">{{ rmPopup.proposed }}</div></div></div>
+          <sc-if value="{{ rmPopup.hasNew }}" hint-placeholder-val="{{ false }}"><div style="background:var(--ce6eef6,#e6eef6);border-radius:11px;padding:11px 13px"><div style="font-size:10.5px;color:var(--c2f6aa8,#2f6aa8);font-weight:600;margin-bottom:3px">{{ t.rm_newProposed }}</div><div style="font-size:13px;color:var(--c17211c,#17211c);font-weight:600">{{ rmPopup.newDate }} · {{ rmPopup.newTime }}</div></div></sc-if>
+          <div style="background:var(--cf7f9f6,#f7f9f6);border-radius:11px;padding:12px 14px"><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-bottom:4px">{{ t.rm_notes }}</div><div style="font-size:12.5px;color:var(--c3c4a42,#3c4a42);line-height:1.6">{{ rmPopup.notes }}</div></div>
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid var(--ceef0ec,#eef0ec);display:flex;flex-direction:column;gap:9px">
+          <sc-if value="{{ rmPopup.isPending }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ rmPopup.approve }}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--c1f8a5b,#1f8a5b);color:#fff;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:600;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ t.rm_approve }}</button>
+          </sc-if>
+          <sc-if value="{{ rmPopup.isApproved }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:9px;background:var(--ce2f0e8,#e2f0e8);border-radius:11px;padding:11px 14px;color:var(--c1f7a4d,#1f7a4d);font-size:12.5px;font-weight:600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ t.rm_alreadyApproved }}</div>
+            <button onClick="{{ rmPopup.outlook }}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--ceef3f9,#eef3f9);color:var(--c0f6cbd,#0f6cbd);border:1px solid var(--cd7e5f3,#d7e5f3);border-radius:11px;padding:11px;font-size:12.5px;font-weight:600;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect><path d="M3 9h18M8 3v3M16 3v3"></path></svg>{{ t.rm_addOutlook }}</button>
+          </sc-if>
+          <sc-if value="{{ rmPopup.isCancelled }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:9px;background:var(--cf3f2f0,#f3f2f0);border-radius:11px;padding:11px 14px;color:var(--c8a8078,#8a8078);font-size:12.5px;font-weight:600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>{{ t.rm_alreadyCancelled }}</div>
+          </sc-if>
+          <sc-if value="{{ rmPopup.notCancelled }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:9px">
+            <button onClick="{{ rmPopup.propose }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--ceef3f6,#eef3f6);color:var(--c2f6aa8,#2f6aa8);border:1px solid var(--cd8e4ee,#d8e4ee);border-radius:11px;padding:11px;font-size:12.5px;font-weight:600;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path></svg>{{ t.rm_propose }}</button>
+            <button onClick="{{ rmPopup.cancel }}" style="flex:none;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--cfaf0ef,#faf0ef);color:var(--cb0433b,#b0433b);border:1px solid var(--cf0dcd9,#f0dcd9);border-radius:11px;padding:11px 15px;font-size:12.5px;font-weight:600;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>{{ t.rm_cancel }}</button>
+          </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":"100%","height":700}}'>
+class Component extends DCLogic {
+  correspondence=window.__DATA.correspondence; members=window.__DATA.members;
+  state={cSearch:'',cStatus:'',cDir:'',cSort:'desc',cNeeds:'',modal:null,form:{},docNote:'',openDD:null,ddRect:null,lang:(this.props&&this.props.lang)||'ar'};
+  find(arr,id){return arr.find(x=>x.id===id);}
+  componentDidMount(){ DCDD.install(this); if(this.props.lang&&this.props.lang!==this.state.lang) this.setState({lang:this.props.lang}); }
+  componentDidUpdate(prev){ if(prev.lang!==this.props.lang) this.setState({lang:this.props.lang}); }
+  componentWillUnmount(){ DCDD.uninstall(this); }
+  openAdd(){this.setState({modal:'add',form:{name:'',entity:'',dir:'صادر',type:'رسالة',date:'',sender:'',recipient:'',followup:'موزة المرزوقي',status:'قيد المتابعة',priority:'متوسطة',action:'',notes:''}});}
+  openEdit(){const d=this.find(this.correspondence,this.props.selDoc);this.setState({modal:'edit',form:Object.assign({},d)});}
+  closeModal(){this.setState({modal:null});}
+  saveDoc(){
+    const f=this.state.form;
+    if(this.state.modal==='add'){
+      const id='c'+Date.now();
+      this.correspondence.unshift(Object.assign({id,recvDate:f.date||'—',needsAction:f.status!=='مكتمل'&&f.status!=='مغلق',attachment:f.attachment||'مرفق.pdf',action:f.action||'—',notes:f.notes||'—'},f));
+    }else{
+      const d=this.find(this.correspondence,this.props.selDoc);if(d)Object.assign(d,f);
+    }
+    this.setState({modal:null});this.forceUpdate();
+  }
+  addDocNote(){const t=(this.state.docNote||'').trim();if(!t)return;const d=this.find(this.correspondence,this.props.selDoc);if(d)d.notes=t;this.setState({docNote:''});this.forceUpdate();}
+  renderVals(){
+    const S=this.state; const P=this.props||{};
+    const canNote=P.canNote!==undefined?!!P.canNote:true;
+    LANG=S.lang; const L=S.lang==='en'?1:0;
+    const rl=(a,e)=>L?e:a;
+    const t={}; for(const k in UITEXT) t[k]=UITEXT[k][L];
+    const opt=arr=>arr.map(v=>({v,label:tr(v)}));
+    const statusLabel=s=>tr(s);
+        const parseDate=d=>{const p=String(d||'').trim().split(/\s+/);const day=parseInt(p[0])||0;const mi=AR_MONTHS.indexOf(p[1]);const yr=parseInt(p[2])||0;return yr*10000+(mi<0?0:(mi+1))*100+day;};
+    let fc=this.correspondence.filter(c=>{if(S.cNeeds&&!c.needsAction)return false;if(S.cStatus&&c.status!==S.cStatus)return false;if(S.cDir&&c.dir!==S.cDir)return false;if(S.cSearch&&!(c.name.includes(S.cSearch)||c.entity.includes(S.cSearch)))return false;return true;});
+    const decC=c=>{const[b,f]=CS[c.status]||['#eee','#555'];const pr=PR[c.priority];return Object.assign({},c,{edit:(e)=>{if(e&&e.stopPropagation)e.stopPropagation();if(P.onEdit)P.onEdit(c.id);},name:tr(c.name),entity:tr(c.entity),type:tr(c.type),sender:tr(c.sender),recipient:tr(c.recipient),action:tr(c.action),notes:tr(c.notes),followup:tr(c.followup),attachment:tr(c.attachment),status:statusLabel(c.status),dir:tr(c.dir),priority:tr(c.priority),date:dateLoc(c.date),recvDate:dateLoc(c.recvDate),_bg:b,_fg:f,prBg:pr[0],prFg:pr[1],dirBg:c.dir==='صادر'?'var(--ce6eef6,#e6eef6)':'var(--cfbf0d6,#fbf0d6)',dirFg:c.dir==='صادر'?'var(--c3a6ea5,#3a6ea5)':'var(--ca9791f,#a9791f)',onStatus:e=>this.setStatus('corr',c.id,e.target.value),open:()=>P.nav('docDetail',{selDoc:c.id})});};
+    if(S.cSort==='asc')fc=fc.slice().sort((a,b)=>parseDate(a.date)-parseDate(b.date));
+    else if(S.cSort==='desc')fc=fc.slice().sort((a,b)=>parseDate(b.date)-parseDate(a.date));
+    const filteredCorr=fc.map(decC);
+    let doc=null;if(P.selDoc){const d=this.find(this.correspondence,P.selDoc);if(d)doc=decC(d);}
+    if(!this._formInput){const setForm=(k)=>(e)=>{this.setState({form:Object.assign({},this.state.form,{[k]:e.target.value})});};const fi={};['name','entity','dir','type','date','sender','recipient','followup','status','priority','action','notes'].forEach(k=>fi[k]=setForm(k));this._formInput=fi;}
+    const formInput=this._formInput;
+    const corrStatuses=['قيد المتابعة','بانتظار رد','بانتظار اعتماد','تم الإرسال','تم الاستلام','مكتمل','مغلق'];
+    const ddCStatus=DCDD.render(this,'cStatus',S.cStatus,[{v:'',label:t.allStatuses}].concat(opt(corrStatuses)),e=>this.setState({cStatus:e.target.value}),{size:'sm',minWidth:'150px'});
+    return {
+      isCorr:P.page==='correspondence', isDoc:P.page==='docDetail',
+      t, filteredCorr, canEdit:(P.canEdit!==undefined?!!P.canEdit:false), canAdd:(P.canAdd!==undefined?!!P.canAdd:false), onAddDoc:()=>{if(P.onAdd)P.onAdd();}, corrCount:filteredCorr.length, corrCountLabel:arPlural(filteredCorr.length,{one:'مستند واحد',two:'مستندان',few:'مستندات',many:'مستنداً'}), noCorr:filteredCorr.length===0,
+      cSearch:S.cSearch, setCSearch:e=>this.setState({cSearch:e.target.value}),
+      ddCStatus, outLabel:tr('صادر'), inLabel:tr('وارد'),
+      toggleDirOut:()=>this.setState({cDir:S.cDir==='صادر'?'':'صادر'}),
+      toggleDirIn:()=>this.setState({cDir:S.cDir==='وارد'?'':'وارد'}),
+      dirOutStyle:S.cDir==='صادر'?'display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--c1f4a37,#1f4a37);background:var(--c1f4a37,#1f4a37);color:#fff':'display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c5b6b62,#5b6b62)',
+      dirInStyle:S.cDir==='وارد'?'display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--ca9791f,#a9791f);background:var(--ca9791f,#a9791f);color:#fff':'display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c5b6b62,#5b6b62)',
+      dateSortArrow:S.cSort==='asc'?'↑':S.cSort==='desc'?'↓':'⇅',
+      toggleCSort:()=>this.setState({cSort:S.cSort==='asc'?'desc':'asc'}),
+      doc, docNote:S.docNote, canNote, onDocNoteInput:e=>this.setState({docNote:e.target.value}), addDocNote:()=>this.addDocNote(),
+      modalOpen:!!S.modal, modalTitle:S.modal==='add'?t.mAddTitle:t.mEditTitle, closeModal:()=>this.closeModal(), stop:e=>e.stopPropagation(), saveDoc:()=>this.saveDoc(), form:S.form, formInput,
+      cDirOpts:[{v:'',label:t.allDir}].concat(opt(['صادر','وارد'])),
+      corrStatusOpts:opt(corrStatuses),
+      mTypeOpts:opt(['رسالة','قرار','قرار وزاري','مذكرة داخلية','تعميم']),
+      mFollowupOpts:this.members.map(m=>({v:m.name,label:tr(m.name)})),
+      mPriorityOpts:opt(['عالية','متوسطة','منخفضة'])
+    };
+  }
+}
+</script>
+</body>
+</html>

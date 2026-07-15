@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./data.js"></script>
+<script src="./support.js"></script>
+<script src="./dc-shared.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+@keyframes fadeUp{from{opacity:.45}to{opacity:1}}
+@media(max-width:900px){ div:has(> .trow){overflow-x:auto!important} .trow{min-width:860px} }
+/*__mob__*/
+@media(max-width:640px){
+  .rg2,.rg3,.rg4,.rg5,.ov-stats,.lv-kpis,.lv-cat,.lv-cards{grid-template-columns:1fr!important}
+  table thead{display:none!important}
+  table tr{display:block!important;margin-bottom:10px;border:1px solid var(--ceef0ec,#eef0ec);border-radius:12px;padding:4px 10px;background:#fff}
+  table td{display:flex!important;justify-content:space-between;gap:12px;border:none!important;padding:7px 2px!important;white-space:normal!important;max-width:none!important;text-align:start}
+  .trow{grid-template-columns:1fr!important;min-width:0!important;gap:5px!important}
+  div:has(> table){overflow-x:visible!important}
+  .cal-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+}
+
+.fbtn{display:none}
+@media(max-width:640px){.fbtn{display:inline-flex!important;align-items:center;gap:8px;cursor:pointer;background:#fff;border:1px solid #eef1ec;border-radius:14px;box-shadow:0 2px 6px rgba(23,40,32,.05);padding:11px 16px;font-size:13px;font-weight:600;color:#1e4634;margin-bottom:14px;user-select:none}.mfbar{display:none!important}.fcb:checked ~ .mfbar{display:flex!important;flex-direction:column!important;align-items:stretch!important}.fcb:checked ~ .fbtn .fchev{transform:rotate(180deg)}.mfbar>*{width:100%!important;min-width:0!important;flex:none!important}.mfbar [data-dd] button,.mfbar [data-dd]{width:100%!important}}
+</style>
+</helmet>
+<div style="animation:fadeUp .16s ease">
+          <!-- KPI summary -->
+          
+
+          <!-- filters -->
+          <input type="checkbox" id="fcb-officetasks-1" class="fcb" style="display:none"><label for="fcb-officetasks-1" class="fbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="10" y1="17" x2="14" y2="17"></line></svg><span>الفلاتر</span><svg class="fchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-inline-start:auto;transition:transform .2s"><path d="m6 9 6 6 6-6"></path></svg></label><div class="mfbar" style="background:var(--cffffff,#ffffff);border:none;border-radius:16px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14);padding:14px 16px;margin-bottom:18px;display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+            <div style="position:relative;flex:1;min-width:180px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" stroke-width="2" style="position:absolute;inset-inline-start:11px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ ot.oSearch }}" onInput="{{ ot.onSearch }}" placeholder="{{ t.ot_search }}" style="width:100%;box-sizing:border-box;border:1px solid var(--ce2e6df,#e2e6df);background:var(--cf7f8f6,#f7f8f6);border-radius:9px;padding:9px 12px;padding-inline-start:34px;font-size:12.5px;font-family:inherit"></div>
+            <span>{{ ot.ddOwner }}</span>
+            <span>{{ ot.ddStatus }}</span>
+            <button onClick="{{ ot.toggleLate }}" style="{{ ot.lateBtnStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>{{ t.ot_onlyLate }}</button>
+            <button onClick="{{ ot.toggleNoDue }}" style="{{ ot.noDueBtnStyle }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ t.ot_onlyNoDue }}</button>
+            <button onClick="{{ ot.clearFilters }}" style="border:1px solid var(--ce2e6df,#e2e6df);background:var(--cffffff,#ffffff);color:var(--c7d867f,#7d867f);border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer">{{ t.ot_clear }}</button>
+          </div>
+
+          <!-- view toggle -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;background:var(--cffffff,#ffffff);border-radius:12px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14);padding:6px;width:fit-content">
+            <button onClick="{{ setOBoard }}" style="{{ oTabBoard }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1.5"></rect><rect x="14" y="3" width="7" height="11" rx="1.5"></rect></svg>{{ t.ot_viewBoard }}</button>
+            <button onClick="{{ setOTimeline }}" style="{{ oTabTimeline }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h15M9 18h12"></path><circle cx="3.5" cy="12" r="1"></circle><circle cx="6.5" cy="18" r="1"></circle></svg>{{ t.ot_viewTimeline }}</button>
+            <button onClick="{{ setOTable }}" style="{{ oTabTable }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 9h18M3 14h18M9 4v16"></path></svg>{{ t.ot_viewTable }}</button>
+          </div>
+
+          <!-- BOARD VIEW -->
+          <sc-if value="{{ oIsBoard }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;align-items:flex-start">
+              <sc-for list="{{ oColumns }}" as="c" hint-placeholder-count="6">
+                <div style="flex:none;width:288px;background:var(--cf4f6f2,#f4f6f2);border-radius:16px;padding:12px 12px 6px">
+                  <div style="display:flex;align-items:center;gap:8px;padding:2px 4px 12px">
+                    <span style="width:9px;height:9px;border-radius:50%;background:{{c.dot}};flex:none"></span>
+                    <span style="font-size:13px;font-weight:700;color:var(--c2a332d,#2a332d)">{{ c.label }}</span>
+                    <span style="font-size:11px;font-weight:700;color:var(--c7d867f,#7d867f);background:var(--ce7ebe3,#e7ebe3);border-radius:20px;padding:2px 9px;margin-inline-start:auto">{{ c.count }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <sc-for list="{{ c.tasks }}" as="a" hint-placeholder-count="0">
+                      <div style="background:var(--cffffff,#ffffff);border:1px solid var(--cedf0ea,#edf0ea);border-radius:14px;box-shadow:0 1px 3px rgba(23,40,32,.05);padding:13px 14px;display:flex;flex-direction:column">
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+                          <span style="font-size:9.5px;font-weight:600;border-radius:20px;padding:3px 9px;background:{{a.prBg}};color:{{a.prFg}}">{{ a.prLabel }}</span>
+                          <span style="font-size:9.5px;font-weight:600;border-radius:20px;padding:3px 9px;background:var(--ceef3f0,#eef3f0);color:var(--c2b5c44,#2b5c44);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px">{{ a.dept }}</span>
+                        </div>
+                        <div onClick="{{ a.open }}" style="font-size:13.5px;font-weight:700;color:var(--c17211c,#17211c);line-height:1.45;margin-bottom:10px;cursor:pointer">{{ a.title }}</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><span style="font-size:10.5px;color:var(--c9aa39b,#9aa39b)">{{ t.progress }}</span><span style="font-size:12px;font-weight:700;color:var(--c17211c,#17211c)">{{ a.prog }}%</span></div>
+                        <div style="height:5px;border-radius:4px;background:var(--ceef0ec,#eef0ec);overflow:hidden;margin-bottom:11px"><div style="height:100%;border-radius:4px;background:{{a.accent}};width:{{a.prog}}%"></div></div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10.5px;color:var(--c8a938c,#8a938c);padding-bottom:10px">
+                          <span style="display:flex;align-items:center;gap:5px;min-width:0"><span style="width:20px;height:20px;flex:none;border-radius:50%;overflow:hidden"><sc-if value="{{ a.hasImg }}" hint-placeholder-val="{{ true }}"><img src="{{ a.imgSrc }}" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block"></sc-if><sc-if value="{{ a.noImg }}" hint-placeholder-val="{{ false }}"><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;background:{{a.ownerBg}};color:{{a.ownerFg}}">{{ a.ownerInitials }}</span></sc-if></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.owner }}</span></span>
+                          <span style="flex:none;display:flex;align-items:center;gap:4px;color:{{a.dueColor}};font-weight:600"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ a.dueLabel }}</span>
+                        </div>
+                        <sc-if value="{{ a.notDone }}" hint-placeholder-val="{{ true }}">
+                          <div style="display:flex;gap:6px;border-top:1px solid var(--cf2f4f0,#f2f4f0);padding-top:9px">
+                            <button onClick="{{ a.open }}" title="{{ t.pv_openBtn }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:8px;padding:7px;font-size:10.5px;font-weight:700;font-family:inherit;cursor:pointer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>{{ t.pv_openBtn }}</button>
+                            <button onClick="{{ a.requestUpdate }}" title="{{ t.ot_requestUpdate }}" style="width:32px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--cf4f6f2,#f4f6f2);color:var(--c5b6b62,#5b6b62);border:1px solid var(--ce6eae4,#e6eae4);border-radius:8px;padding:7px;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg></button>
+                            <button onClick="{{ a.addDirective }}" title="{{ t.ot_addDirective }}" style="width:32px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--cfbf3df,#fbf3df);color:var(--ca9791f,#a9791f);border:1px solid var(--cf0e4c4,#f0e4c4);border-radius:8px;padding:7px;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ a.isDone }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex;align-items:center;gap:6px;border-top:1px solid var(--cf2f4f0,#f2f4f0);padding-top:8px;font-size:10.5px;font-weight:600;color:var(--c2e7d55,#2e7d55)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>{{ t.ot_doneNote }}</div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ c.isEmpty }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;padding:18px 8px;color:var(--cb3bbb2,#b3bbb2);font-size:11px">{{ t.ot_emptyCol }}</div></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- TIMELINE VIEW -->
+          <sc-if value="{{ oIsTimeline }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <sc-for list="{{ oTimeline }}" as="g" hint-placeholder-count="4">
+                <div style="background:var(--cffffff,#ffffff);border-radius:16px;overflow:hidden;box-shadow:0 2px 6px rgba(23,40,32,.04),0 14px 34px -18px rgba(23,40,32,.16)">
+                  <div style="padding:13px 18px;background:{{g.bg}};display:flex;align-items:center;justify-content:space-between;border-inline-start:4px solid {{g.accent}}">
+                    <span style="font-size:13.5px;font-weight:700;color:var(--c17211c,#17211c)">{{ g.label }}</span>
+                    <span style="min-width:24px;text-align:center;font-size:11.5px;font-weight:700;color:{{g.accent}};background:var(--cffffff,#ffffff);border-radius:20px;padding:3px 10px">{{ g.count }}</span>
+                  </div>
+                  <div style="padding:6px 18px">
+                    <sc-for list="{{ g.tasks }}" as="a" hint-placeholder-count="0">
+                      <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--cf2f4f0,#f2f4f0)">
+                        <div onClick="{{ a.open }}" style="flex:1;min-width:0;cursor:pointer"><div style="font-size:12.5px;font-weight:600;color:var(--c17211c,#17211c);line-height:1.4">{{ a.title }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-top:2px">{{ a.dept }}</div></div>
+                        <div style="display:flex;align-items:center;gap:6px;flex:none"><span style="width:24px;height:24px;flex:none;border-radius:50%;overflow:hidden"><sc-if value="{{ a.hasImg }}" hint-placeholder-val="{{ true }}"><img src="{{ a.imgSrc }}" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block"></sc-if><sc-if value="{{ a.noImg }}" hint-placeholder-val="{{ false }}"><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;background:{{a.ownerBg}};color:{{a.ownerFg}}">{{ a.ownerInitials }}</span></sc-if></span><span style="font-size:11px;color:var(--c5b6b62,#5b6b62);white-space:nowrap">{{ a.owner }}</span></div>
+                        <span style="flex:none;font-size:9.5px;font-weight:700;border-radius:20px;padding:3px 9px;background:{{a._bg}};color:{{a._fg}}">{{ a.statusLabel }}</span>
+                        <div style="flex:none;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:{{a.dueColor}};min-width:96px;justify-content:flex-end"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ a.dueLabel }}</div>
+                        <button onClick="{{ a.setDeadline }}" style="flex:none;display:flex;align-items:center;gap:5px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:600;cursor:pointer">{{ t.ot_setDeadline }}</button>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ g.isEmpty }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;padding:16px;color:var(--cb3bbb2,#b3bbb2);font-size:11.5px">{{ t.ot_emptyCol }}</div></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+              <div style="text-align:center;font-size:11.5px;color:var(--c9aa39b,#9aa39b)">{{ oDoneCount }} {{ t.ot_doneNote }}</div>
+            </div>
+          </sc-if>
+
+          <!-- TABLE VIEW -->
+          <sc-if value="{{ oIsTable }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--cffffff,#ffffff);border:none;border-radius:22px;box-shadow:0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13);overflow:hidden">
+            <div class="trow" style="display:grid;grid-template-columns:2.6fr 1.2fr 1.1fr 1.1fr 1fr 1.4fr;gap:12px;padding:13px 20px;background:var(--cf7f9f6,#f7f9f6);border-bottom:1px solid var(--ceef1ec,#eef1ec);font-size:11.5px;font-weight:600;color:var(--c7d867f,#7d867f)">
+              <div>{{ t.ot_task }}</div><div>{{ t.ot_owner }}</div><div>{{ t.ot_status }}</div><div>{{ t.ot_due }}</div><div>{{ t.ot_lastUpdate }}</div><div></div>
+            </div>
+            <sc-for list="{{ ot.rows }}" as="a" hint-placeholder-count="10">
+              <div class="trow" style="display:grid;grid-template-columns:2.6fr 1.2fr 1.1fr 1.1fr 1fr 1.4fr;gap:12px;padding:13px 20px;border-bottom:1px solid var(--cf2f4f0,#f2f4f0);align-items:center">
+                <div onClick="{{ a.open }}" style="cursor:pointer"><div style="font-size:13px;font-weight:600;color:var(--c17211c,#17211c);line-height:1.4">{{ a.title }}</div><div style="font-size:10.5px;color:var(--c9aa39b,#9aa39b);margin-top:2px">{{ a.dept }}</div></div>
+                <div style="display:flex;align-items:center;gap:7px"><span style="width:26px;height:26px;flex:none;border-radius:50%;overflow:hidden"><sc-if value="{{ a.hasImg }}" hint-placeholder-val="{{ true }}"><img src="{{ a.imgSrc }}" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block"></sc-if><sc-if value="{{ a.noImg }}" hint-placeholder-val="{{ false }}"><span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;background:{{a.ownerBg}};color:{{a.ownerFg}}">{{ a.ownerInitials }}</span></sc-if></span><span style="font-size:11.5px;color:var(--c3c4a42,#3c4a42)">{{ a.owner }}</span></div>
+                <div>{{ a.statusDd }}</div>
+                <div style="font-size:12px;font-weight:600;color:{{a.dueColor}}">{{ a.dueLabel }}</div>
+                <div style="font-size:11.5px;color:var(--c8a938c,#8a938c)">{{ a.lastUpdate }}</div>
+                <div style="display:flex;gap:6px;justify-content:flex-end"><button onClick="{{ a.setDeadline }}" style="display:flex;align-items:center;gap:5px;background:var(--c1e4634,#1e4634);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:11px;font-weight:600;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5"></rect><path d="M8 3v4M16 3v4M3.5 10.5h17"></path></svg>{{ t.ot_setDeadline }}</button><button onClick="{{ a.open }}" style="background:var(--cf2f4f0,#f2f4f0);border:1px solid var(--ce2e6df,#e2e6df);color:var(--c3c4a42,#3c4a42);border-radius:8px;padding:7px 10px;font-size:11px;font-weight:600;cursor:pointer">{{ t.ot_details }}</button></div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ ot.noResults }}" hint-placeholder-val="{{ false }}"><div style="text-align:center;padding:40px;color:var(--c9aa39b,#9aa39b);font-size:13px">{{ t.ot_noResults }}</div></sc-if>
+          </div>
+          </sc-if>
+        </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":"100%","height":700}}'>
+class Component extends DCLogic {
+  members=window.__DATA.members; otasks=window.__DATA.otasks;
+  state={oSearch:'',oStatus:'',oOwner:'',oLate:false,oNoDue:false,oViewMode:'board',openDD:null,ddRect:null,lang:(this.props&&this.props.lang)||'ar'};
+  memIndex(name){return this.members.findIndex(m=>m.name===name);}
+  av(name){const i=this.memIndex(name);return AV[(i>=0?i:0)%AV.length];}
+  find(arr,id){return arr.find(x=>x.id===id);}
+  componentDidMount(){ DCDD.install(this); if(this.props.lang&&this.props.lang!==this.state.lang) this.setState({lang:this.props.lang}); }
+  componentDidUpdate(prev){ if(prev.lang!==this.props.lang) this.setState({lang:this.props.lang}); }
+  componentWillUnmount(){ DCDD.uninstall(this); }
+  renderVals(){
+    const S=this.state; const P=this.props||{};
+    LANG=S.lang; const L=S.lang==='en'?1:0;
+    const rl=(a,e)=>L?e:a;
+    const t={}; for(const k in UITEXT) t[k]=UITEXT[k][L];
+    const OTS={'لم يبدأ':['var(--ceceae6,#eceae6)','var(--c8a8078,#8a8078)'],'قيد التنفيذ':['var(--cfbf0d6,#fbf0d6)','var(--ca9791f,#a9791f)'],'بانتظار اعتماد':['var(--ce6eef6,#e6eef6)','var(--c3a6ea5,#3a6ea5)'],'يحتاج توجيه':['var(--cf7ece0,#f7ece0)','var(--cc26a2b,#c26a2b)'],'مكتمل':['var(--ce2f0e8,#e2f0e8)','var(--c2e7d55,#2e7d55)'],'متأخر':['var(--cf7e6e4,#f7e6e4)','var(--cb0433b,#b0433b)']};
+    const oNoDue=tk=>!tk.due||!String(tk.due).trim();
+    const oNeedsAttn=tk=>tk.status!=='مكتمل'&&(tk.status==='متأخر'||tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||oNoDue(tk));
+    const oTotal=this.otasks.length;
+    const oProg=this.otasks.filter(tk=>tk.status==='قيد التنفيذ').length;
+    const oLateN=this.otasks.filter(tk=>tk.status==='متأخر').length;
+    const oNeedDir=this.otasks.filter(tk=>tk.status==='يحتاج توجيه').length;
+    const oNoDueN=this.otasks.filter(tk=>oNoDue(tk)&&tk.status!=='مكتمل').length;
+    const oDone=this.otasks.filter(tk=>tk.status==='مكتمل').length;
+    const oKpis=[
+      {label:rl('إجمالي المهام','Total tasks'),value:String(oTotal),accent:'var(--c3a6ea5,#3a6ea5)'},
+      {label:rl('قيد التنفيذ','In progress'),value:String(oProg),accent:'var(--ca9791f,#a9791f)'},
+      {label:rl('المتأخرة','Overdue'),value:String(oLateN),accent:'var(--cb0433b,#b0433b)'},
+      {label:rl('تحتاج توجيه','Need direction'),value:String(oNeedDir),accent:'var(--cc26a2b,#c26a2b)'},
+      {label:rl('بدون موعد نهائي','No deadline'),value:String(oNoDueN),accent:'var(--c7a4d94,#7a4d94)'},
+      {label:rl('المكتملة','Completed'),value:String(oDone),accent:'var(--c2e7d55,#2e7d55)'}
+    ];
+    const decOt=tk=>{const[b,f]=OTS[tk.status]||['#eee','#555'];const[ob,of]=this.av(tk.owner);const nd=oNoDue(tk);const otimg=memberImg(tk.owner);return Object.assign({},tk,{title:tr(tk.title),desc:tr(tk.desc),dept:tr(tk.dept),owner:tr(tk.owner),ownerInitials:initials(tk.owner),ownerBg:ob,ownerFg:of,imgSrc:otimg||'',hasImg:!!otimg,noImg:!otimg,statusLabel:tr(tk.status),lastUpdate:tk.lastUpdate?dateLoc(tk.lastUpdate):'—',dueLabel:nd?rl('لم يُحدَّد','Not set'):dateLoc(tk.due),noDue:nd,dueColor:nd?'var(--cb0433b,#b0433b)':'var(--c2e7d55,#2e7d55)',notes:tk.notes?tr(tk.notes):'—',dirCount:(tk.directives||[]).length,reviewedBg:tk.reviewed?'var(--ce2f0e8,#e2f0e8)':'var(--cf2f4f0,#f2f4f0)',_bg:b,_fg:f,accent:f,prog:({'لم يبدأ':6,'يحتاج توجيه':35,'متأخر':45,'قيد التنفيذ':60,'بانتظار اعتماد':80,'مكتمل':100}[tk.status]||30),needsAttn:oNeedsAttn(tk),isDone:tk.status==='مكتمل',notDone:tk.status!=='مكتمل',
+      prLabel:tk.status==='متأخر'?rl('عالية','High'):((tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||nd)&&tk.status!=='مكتمل'?rl('متوسطة','Medium'):rl('منخفضة','Low')),
+      prBg:tk.status==='متأخر'?'var(--cfaf0ef,#faf0ef)':((tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||nd)&&tk.status!=='مكتمل'?'var(--cfbf7ee,#fbf7ee)':'var(--cf0f2ee,#f0f2ee)'),
+      prFg:tk.status==='متأخر'?'var(--cb0433b,#b0433b)':((tk.status==='يحتاج توجيه'||tk.status==='بانتظار اعتماد'||nd)&&tk.status!=='مكتمل'?'var(--ca9791f,#a9791f)':'var(--c8a938c,#8a938c)'),
+      open:()=>P.onOpenTask(tk.id),setDeadline:()=>P.onOpenOModal('deadline',tk.id),addDirective:()=>P.onOpenOModal('directive',tk.id),requestUpdate:()=>P.reqUpdate(tk.id),markComplete:()=>P.markComplete(tk.id),statusDd:DCDD.render(this,'otrow-'+tk.id,tk.status,['لم يبدأ','قيد التنفيذ','بانتظار اعتماد','يحتاج توجيه','متأخر','مكتمل'].map(s=>({v:s,label:tr(s)})),e=>P.setStatus(tk.id,e.target.value),{bg:b,color:f,weight:700,size:'sm',borderColor:'transparent',block:true}),setStatus:e=>P.setStatus(tk.id,e.target.value)});};
+    const oq=(S.oSearch||'').trim();
+    let oFiltered=this.otasks.filter(tk=>{
+      if(S.oStatus&&tk.status!==S.oStatus)return false;
+      if(S.oOwner&&tk.owner!==S.oOwner)return false;
+      if(S.oLate&&tk.status!=='متأخر')return false;
+      if(S.oNoDue&&!(oNoDue(tk)&&tk.status!=='مكتمل'))return false;
+      if(oq&&!(tk.title.includes(oq)||tk.desc.includes(oq)||tk.owner.includes(oq)))return false;
+      return true;});
+    const otaskRows=oFiltered.map(decOt);
+    // ---- Kanban board columns ----
+    const oColDefs=[
+      {key:'nodue',label:rl('بدون موعد نهائي','No deadline'),accent:'var(--c7a4d94,#7a4d94)',hi:true,dot:'var(--c7a4d94,#7a4d94)',match:r=>r.status!=='مكتمل'&&r.noDue},
+      {key:'inprogress',label:rl('قيد التنفيذ','In progress'),accent:'var(--ca9791f,#a9791f)',dot:'var(--ca9791f,#a9791f)',match:r=>(r.status==='قيد التنفيذ'||r.status==='يحتاج توجيه'||r.status==='بانتظار اعتماد')&&!r.noDue},
+      {key:'late',label:rl('متأخر','Overdue'),accent:'var(--cb0433b,#b0433b)',hi:true,dot:'var(--cb0433b,#b0433b)',match:r=>r.status==='متأخر'&&!r.noDue},
+      {key:'notstarted',label:rl('لم يبدأ','Not started'),accent:'var(--c9aa39b,#9aa39b)',dot:'var(--c9aa39b,#9aa39b)',match:r=>r.status==='لم يبدأ'&&!r.noDue},
+      {key:'done',label:rl('مكتمل','Completed'),accent:'var(--c2e7d55,#2e7d55)',dot:'var(--c2e7d55,#2e7d55)',match:r=>r.status==='مكتمل'}
+    ];
+    const oColumns=oColDefs.map(c=>{const list=otaskRows.filter(c.match);return {key:c.key,label:c.label,accent:c.accent,dot:c.dot,hi:!!c.hi,count:list.length,tasks:list,headBg:c.hi?(c.key==='late'?'var(--cfaf0ef,#faf0ef)':'var(--cf6f1fa,#f6f1fa)'):'var(--cf4f6f2,#f4f6f2)',colBg:c.hi?(c.key==='late'?'var(--cfdf7f6,#fdf7f6)':'var(--cfaf7fc,#faf7fc)'):'var(--cf7f9f6,#f7f9f6)',isEmpty:list.length===0,emptyLabel:rl('لا مهام','No tasks')};});
+    // ---- Timeline buckets ----
+    const AR_MON_IDX={'يناير':0,'فبراير':1,'مارس':2,'أبريل':3,'مايو':4,'يونيو':5,'يوليو':6,'أغسطس':7,'سبتمبر':8,'أكتوبر':9,'نوفمبر':10,'ديسمبر':11};
+    const parseAr=s=>{if(!s)return null;const m=String(s).trim().split(/\s+/);if(m.length<3)return null;const d=parseInt(m[0],10);const mo=AR_MON_IDX[m[1]];const y=parseInt(m[2],10);if(isNaN(d)||mo==null||isNaN(y))return null;return new Date(y,mo,d);};
+    const TODAY=new Date(2026,6,5);const WEEKEND=new Date(2026,6,12);
+    const tlDefs=[
+      {key:'overdue',label:rl('مهام متأخرة','Overdue tasks'),accent:'var(--cb0433b,#b0433b)',bg:'var(--cfaf0ef,#faf0ef)'},
+      {key:'week',label:rl('مستحقة هذا الأسبوع','Due this week'),accent:'var(--ca9791f,#a9791f)',bg:'var(--cfbf7ee,#fbf7ee)'},
+      {key:'upcoming',label:rl('مهام قادمة','Upcoming tasks'),accent:'var(--c3a6ea5,#3a6ea5)',bg:'var(--ceef3f9,#eef3f9)'},
+      {key:'nodue',label:rl('بدون موعد نهائي','No deadline'),accent:'var(--c7a4d94,#7a4d94)',bg:'var(--cf6f1fa,#f6f1fa)'}
+    ];
+    const tlBucket=r=>{if(r.status==='مكتمل')return null;if(r.status==='متأخر')return 'overdue';if(r.noDue)return 'nodue';const d=parseAr(r.due);if(!d)return 'upcoming';if(d<TODAY)return 'overdue';if(d<=WEEKEND)return 'week';return 'upcoming';};
+    const oTimeline=tlDefs.map(g=>{const list=otaskRows.filter(r=>tlBucket(r)===g.key);return {key:g.key,label:g.label,accent:g.accent,bg:g.bg,count:list.length,tasks:list,isEmpty:list.length===0};});
+    const oDoneCount=otaskRows.filter(r=>r.status==='مكتمل').length;
+    const oStatusList=['لم يبدأ','قيد التنفيذ','بانتظار اعتماد','يحتاج توجيه','مكتمل','متأخر'];
+    const oStatusOpts=[{v:'',label:t.allStatuses}].concat(oStatusList.map(s=>({v:s,label:tr(s)})));
+    const oStatusSetOpts=oStatusList.map(s=>({v:s,label:tr(s)}));
+    const oOwnerOpts=[{v:'',label:rl('كل المسؤولين','All owners')}].concat([...new Set(this.otasks.map(tk=>tk.owner))].map(o=>({v:o,label:tr(o)})));
+    const oSelDetail=(()=>{if(!S.selOtask)return null;const tk=this.find(this.otasks,S.selOtask);if(!tk)return null;const d=decOt(tk);d.directivesList=(tk.directives||[]).map(x=>({text:tr(x.text),date:dateLoc(x.date)}));d.hasDirectives=(tk.directives||[]).length>0;d.noDirectives=(tk.directives||[]).length===0;return d;})();
+    const oview={kpis:oKpis,rows:otaskRows,total:oTotal,noResults:otaskRows.length===0,
+      oSearch:S.oSearch,oStatus:S.oStatus,oOwner:S.oOwner,oLate:S.oLate,oNoDue:S.oNoDue,
+      onSearch:e=>this.setState({oSearch:e.target.value}),onStatus:e=>this.setState({oStatus:e.target.value}),onOwner:e=>this.setState({oOwner:e.target.value}),
+      toggleLate:()=>this.setState({oLate:!S.oLate}),toggleNoDue:()=>this.setState({oNoDue:!S.oNoDue}),
+      lateBtnStyle:'display:flex;align-items:center;gap:6px;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid '+(S.oLate?'var(--cb0433b,#b0433b)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.oLate?'var(--cfaf0ef,#faf0ef)':'var(--cf7f8f6,#f7f8f6)')+';color:'+(S.oLate?'var(--cb0433b,#b0433b)':'var(--c7d867f,#7d867f)'),
+      noDueBtnStyle:'display:flex;align-items:center;gap:6px;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid '+(S.oNoDue?'var(--c7a4d94,#7a4d94)':'var(--ce2e6df,#e2e6df)')+';background:'+(S.oNoDue?'var(--cf3ecf6,#f3ecf6)':'var(--cf7f8f6,#f7f8f6)')+';color:'+(S.oNoDue?'var(--c7a4d94,#7a4d94)':'var(--c7d867f,#7d867f)'),
+      clearFilters:()=>this.setState({oSearch:'',oStatus:'',oOwner:'',oLate:false,oNoDue:false}),
+      goOtasks:()=>null};
+    oview.ddOwner=DCDD.render(this,'oOwner',S.oOwner,oOwnerOpts,e=>this.setState({oOwner:e.target.value}),{size:'sm',minWidth:'120px'});
+    oview.ddStatus=DCDD.render(this,'oStatus',S.oStatus,oStatusOpts,e=>this.setState({oStatus:e.target.value}),{size:'sm',minWidth:'118px'});
+    const vm=S.oViewMode;
+    const tab=on=>on?"display:flex;align-items:center;gap:6px;border:none;border-radius:9px;padding:8px 15px;font-size:12.5px;font-weight:700;cursor:pointer;background:var(--c1e4634,#1e4634);color:#fff":"display:flex;align-items:center;gap:6px;border:none;border-radius:9px;padding:8px 15px;font-size:12.5px;font-weight:600;cursor:pointer;background:transparent;color:var(--c5b6b62,#5b6b62)";
+    return { t, ot:oview, oColumns, oTimeline, oDoneCount:String(oDoneCount),
+      oIsBoard:vm==='board', oIsTimeline:vm==='timeline', oIsTable:vm==='table',
+      setOBoard:()=>this.setState({oViewMode:'board'}), setOTimeline:()=>this.setState({oViewMode:'timeline'}), setOTable:()=>this.setState({oViewMode:'table'}),
+      oTabBoard:tab(vm==='board'), oTabTimeline:tab(vm==='timeline'), oTabTable:tab(vm==='table') };
+  }
+}
+</script>
+</body>
+</html>

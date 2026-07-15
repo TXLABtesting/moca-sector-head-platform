@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;direction:rtl;background:#eef1ec;color:#17211c}
+  .col{display:flex;flex-direction:column;gap:16px;width:320px}
+  .badge{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:#17211c;color:#fff;font-weight:700;font-size:13px}
+  .miniLbl{font-size:11px;color:#8a938c;letter-spacing:.03em}
+  .num{font-size:30px;font-weight:700;line-height:1;color:#17211c}
+  .prjTitle{font-size:14px;font-weight:600;color:#17211c;line-height:1.5}
+  .metaRow{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:#8a938c}
+  .chip{font-size:10.5px;font-weight:600;border-radius:20px;padding:4px 10px}
+</style>
+</helmet>
+
+<div style="min-width:1560px;padding:56px 60px 90px;background:radial-gradient(60% 50% at 88% 4%,rgba(201,162,75,.14),transparent 60%),radial-gradient(55% 55% at 4% 20%,rgba(58,125,82,.12),transparent 58%),#eef1ec">
+
+  <div style="max-width:900px;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#c9a24b;margin-bottom:10px">توجهات تصميم البطاقات · 2026</div>
+    <h1 style="margin:0 0 12px;font-size:32px;font-weight:700;letter-spacing:-.01em">اختر شكل البطاقات</h1>
+    <p style="margin:0;font-size:15px;color:#5c665f;line-height:1.7;max-width:720px">أربعة أنماط حديثة مطبّقة على محتواك الحقيقي (مؤشر · بطاقة مشروع · بطاقة قرار). أشِر للنمط الذي تريده في المحادثة — مثلاً «طبّق <strong>2a</strong> على كل المنصة».</p>
+  </div>
+
+  <div style="display:flex;gap:28px;flex-wrap:wrap;padding-top:28px">
+
+    <!-- ================= 3a — Gradient Ring ================= -->
+    <div id="3a" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">3a</span>
+        <div><div style="font-size:15px;font-weight:700">إطار متدرّج</div><div class="miniLbl">Gradient Ring · لمسة راقية</div></div>
+      </div>
+      <div style="border-radius:18px;padding:1.5px;background:linear-gradient(135deg,#2e7d55,#c9a24b)">
+        <div style="background:#fff;border-radius:16.5px;padding:18px 18px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><span class="miniLbl">يحتاج قرارك</span><span style="width:9px;height:9px;border-radius:50%;background:#c9a24b"></span></div>
+          <div class="num">2</div>
+          <div class="miniLbl" style="margin-top:6px">بندان بانتظار اعتمادك</div>
+        </div>
+      </div>
+      <div style="border-radius:18px;padding:1.5px;background:linear-gradient(135deg,#2e7d55,#c9a24b)">
+        <div style="background:#fff;border-radius:16.5px;padding:18px">
+          <div style="display:flex;gap:7px;margin-bottom:11px"><span class="chip" style="background:#eef4f0;color:#2e7d55">قيد التنفيذ</span></div>
+          <div class="prjTitle" style="margin-bottom:14px">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div>
+          <div class="metaRow"><span>محمد الشرهان</span><span style="color:#3c4a42;font-weight:600">6 يوليو</span></div>
+        </div>
+      </div>
+      <div style="border-radius:18px;padding:1.5px;background:linear-gradient(135deg,#2e7d55,#c9a24b)">
+        <div style="background:#fff;border-radius:16.5px;padding:18px">
+          <div class="prjTitle" style="margin-bottom:14px">اجتماع لجنة التميز المؤسسي — بانتظار الاعتماد</div>
+          <button style="width:100%;background:linear-gradient(135deg,#1f4a37,#2e7d55);color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">اعتماد</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 3b — Tinted Header ================= -->
+    <div id="3b" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">3b</span>
+        <div><div style="font-size:15px;font-weight:700">ترويسة ملوّنة</div><div class="miniLbl">Tinted Header · تصنيف واضح</div></div>
+      </div>
+      <div style="background:#fff;border-radius:16px;box-shadow:0 8px 22px -14px rgba(30,55,40,.28);overflow:hidden">
+        <div style="background:#f4ecd8;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:11px;font-weight:600;color:#a07d24">يحتاج قرارك</span><span style="width:8px;height:8px;border-radius:50%;background:#c9a24b"></span></div>
+        <div style="padding:16px"><div class="num">2</div><div class="miniLbl" style="margin-top:6px">بندان بانتظار اعتمادك</div></div>
+      </div>
+      <div style="background:#fff;border-radius:16px;box-shadow:0 8px 22px -14px rgba(30,55,40,.28);overflow:hidden">
+        <div style="background:#eef4f0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:11px;font-weight:600;color:#2e7d55">قيد التنفيذ</span><span class="miniLbl">6 يوليو</span></div>
+        <div style="padding:16px"><div class="prjTitle" style="margin-bottom:12px">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div><div class="metaRow"><span>محمد الشرهان</span></div></div>
+      </div>
+      <div style="background:#fff;border-radius:16px;box-shadow:0 8px 22px -14px rgba(30,55,40,.28);overflow:hidden">
+        <div style="background:#f7e9e7;padding:10px 16px"><span style="font-size:11px;font-weight:600;color:#b0433b">بانتظار الاعتماد</span></div>
+        <div style="padding:16px"><div class="prjTitle" style="margin-bottom:14px">اجتماع لجنة التميز المؤسسي</div><button style="width:100%;background:#1f4a37;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">اعتماد</button></div>
+      </div>
+    </div>
+
+    <!-- ================= 3c — Editorial Borderless ================= -->
+    <div id="3c" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">3c</span>
+        <div><div style="font-size:15px;font-weight:700">تحريري بلا صناديق</div><div class="miniLbl">Editorial · أقصى بساطة</div></div>
+      </div>
+      <div style="background:#fff;border-radius:18px;padding:6px 22px;box-shadow:0 8px 22px -16px rgba(30,55,40,.25)">
+        <div style="padding:18px 0;border-bottom:1px solid #eef1ec">
+          <div class="miniLbl" style="margin-bottom:8px">يحتاج قرارك</div>
+          <div style="display:flex;align-items:baseline;gap:10px"><span class="num">2</span><span class="miniLbl">بندان بانتظار اعتمادك</span></div>
+        </div>
+        <div style="padding:18px 0;border-bottom:1px solid #eef1ec">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:7px;height:7px;border-radius:50%;background:#2e7d55"></span><span class="miniLbl">قيد التنفيذ · محمد الشرهان</span></div>
+          <div class="prjTitle">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div>
+        </div>
+        <div style="padding:18px 0;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div><div class="miniLbl" style="margin-bottom:6px">بانتظار الاعتماد</div><div class="prjTitle">اجتماع لجنة التميز المؤسسي</div></div>
+          <button style="flex-shrink:0;background:none;color:#1f4a37;border:1px solid #1f4a37;border-radius:9px;padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer">اعتماد</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 3d — Pastel Token ================= -->
+    <div id="3d" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">3d</span>
+        <div><div style="font-size:15px;font-weight:700">باستيل بأيقونة</div><div class="miniLbl">Pastel Token · دافئ وسهل</div></div>
+      </div>
+      <div style="background:#f3f0e6;border-radius:20px;padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><span style="width:46px;height:46px;border-radius:14px;background:#e5d8b3;color:#8a6a1e;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="miniLbl">يحتاج قرارك</span></div>
+        <div class="num">2</div><div class="miniLbl" style="margin-top:6px">بندان بانتظار اعتمادك</div>
+      </div>
+      <div style="background:#e9f1ea;border-radius:20px;padding:20px">
+        <div style="display:flex;gap:7px;margin-bottom:12px"><span class="chip" style="background:#fff;color:#2e7d55">قيد التنفيذ</span></div>
+        <div class="prjTitle" style="margin-bottom:14px">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div>
+        <div class="metaRow"><span>محمد الشرهان</span><span style="color:#3c4a42;font-weight:600">6 يوليو</span></div>
+      </div>
+      <div style="background:#f6ece9;border-radius:20px;padding:20px">
+        <div class="prjTitle" style="margin-bottom:14px">اجتماع لجنة التميز المؤسسي — بانتظار الاعتماد</div>
+        <button style="width:100%;background:#b0433b;color:#fff;border:none;border-radius:13px;padding:12px;font-size:13px;font-weight:600;cursor:pointer">اعتماد</button>
+      </div>
+    </div>
+
+    <!-- ================= 2a — Minimal Outline ================= -->
+    <div id="2a" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">2a</span>
+        <div><div style="font-size:15px;font-weight:700">حدّي بسيط</div><div class="miniLbl">Minimal Outline · هادئ ورسمي</div></div>
+      </div>
+      <!-- KPI -->
+      <div style="background:#fff;border:1px solid #e4e8e2;border-radius:14px;padding:18px 18px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <span class="miniLbl">يحتاج قرارك</span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#c9a24b"></span>
+        </div>
+        <div class="num">2</div>
+        <div class="miniLbl" style="margin-top:6px">بندان بانتظار اعتمادك</div>
+      </div>
+      <!-- Project -->
+      <div style="background:#fff;border:1px solid #e4e8e2;border-radius:14px;padding:18px">
+        <div style="display:flex;gap:7px;margin-bottom:11px"><span class="chip" style="background:#eef4f0;color:#2e7d55">قيد التنفيذ</span></div>
+        <div class="prjTitle" style="margin-bottom:14px">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div>
+        <div style="height:1px;background:#eef1ec;margin-bottom:12px"></div>
+        <div class="metaRow"><span>محمد الشرهان</span><span style="color:#3c4a42;font-weight:600">6 يوليو</span></div>
+      </div>
+      <!-- Decision -->
+      <div style="background:#fff;border:1px solid #e4e8e2;border-radius:14px;padding:18px">
+        <div class="prjTitle" style="margin-bottom:14px">اجتماع لجنة التميز المؤسسي — بانتظار الاعتماد</div>
+        <button style="width:100%;background:#17211c;color:#fff;border:none;border-radius:9px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">اعتماد</button>
+      </div>
+    </div>
+
+    <!-- ================= 2b — Soft Elevated ================= -->
+    <div id="2b" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">2b</span>
+        <div><div style="font-size:15px;font-weight:700">ناعم مرتفع</div><div class="miniLbl">Soft Elevated · ودود وعصري</div></div>
+      </div>
+      <div style="background:#fff;border-radius:26px;box-shadow:0 18px 44px -20px rgba(30,55,40,.35);padding:22px 22px 20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <span style="width:44px;height:44px;border-radius:14px;background:#f4ecd8;color:#b78d2e;display:flex;align-items:center;justify-content:center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 4 7-4V8"/></svg></span>
+          <span class="miniLbl">يحتاج قرارك</span>
+        </div>
+        <div class="num">2</div>
+        <div class="miniLbl" style="margin-top:6px">بندان بانتظار اعتمادك</div>
+      </div>
+      <div style="background:#fff;border-radius:26px;box-shadow:0 18px 44px -20px rgba(30,55,40,.35);padding:22px">
+        <div style="display:flex;gap:7px;margin-bottom:12px"><span class="chip" style="background:#eef4f0;color:#2e7d55">قيد التنفيذ</span></div>
+        <div class="prjTitle" style="margin-bottom:16px">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div>
+        <div class="metaRow"><span>محمد الشرهان</span><span style="color:#3c4a42;font-weight:600">6 يوليو</span></div>
+      </div>
+      <div style="background:#fff;border-radius:26px;box-shadow:0 18px 44px -20px rgba(30,55,40,.35);padding:22px">
+        <div class="prjTitle" style="margin-bottom:16px">اجتماع لجنة التميز المؤسسي — بانتظار الاعتماد</div>
+        <button style="width:100%;background:#1f8a5b;color:#fff;border:none;border-radius:13px;padding:12px;font-size:13px;font-weight:600;cursor:pointer">اعتماد</button>
+      </div>
+    </div>
+
+    <!-- ================= 2c — Accent Data ================= -->
+    <div id="2c" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">2c</span>
+        <div><div style="font-size:15px;font-weight:700">بيانات بحافة لونية</div><div class="miniLbl">Accent Data · أولوية القرار</div></div>
+      </div>
+      <div style="position:relative;background:#fff;border-radius:16px;box-shadow:0 6px 20px -12px rgba(30,55,40,.2);padding:18px 18px 16px 18px;overflow:hidden">
+        <span style="position:absolute;inset-block:0;inset-inline-start:0;width:5px;background:#c9a24b"></span>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between">
+          <div><span class="miniLbl">يحتاج قرارك</span><div class="num" style="margin-top:8px">2</div></div>
+          <span style="display:flex;align-items:flex-end;gap:3px;height:34px">
+            <span style="width:6px;height:40%;background:#dbe6de;border-radius:2px"></span>
+            <span style="width:6px;height:65%;background:#cfe0d5;border-radius:2px"></span>
+            <span style="width:6px;height:50%;background:#dbe6de;border-radius:2px"></span>
+            <span style="width:6px;height:100%;background:#1f8a5b;border-radius:2px"></span>
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:12px"><span style="font-size:11px;font-weight:700;color:#b0433b">▲ +1</span><span class="miniLbl">مقارنة بالأسبوع الماضي</span></div>
+      </div>
+      <div style="position:relative;background:#fff;border-radius:16px;box-shadow:0 6px 20px -12px rgba(30,55,40,.2);padding:18px 18px 18px 18px;overflow:hidden">
+        <span style="position:absolute;inset-block:0;inset-inline-start:0;width:5px;background:#2e7d55"></span>
+        <div style="display:flex;gap:7px;margin-bottom:11px"><span class="chip" style="background:#eef4f0;color:#2e7d55">قيد التنفيذ</span><span class="chip" style="background:#f7f8f6;color:#8a938c">72%</span></div>
+        <div class="prjTitle" style="margin-bottom:12px">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div>
+        <div style="height:6px;background:#eef1ec;border-radius:20px;overflow:hidden;margin-bottom:12px"><span style="display:block;width:72%;height:100%;background:linear-gradient(90deg,#2e7d55,#4aa877)"></span></div>
+        <div class="metaRow"><span>محمد الشرهان</span><span style="color:#3c4a42;font-weight:600">6 يوليو</span></div>
+      </div>
+      <div style="position:relative;background:#fff;border-radius:16px;box-shadow:0 6px 20px -12px rgba(30,55,40,.2);padding:18px;overflow:hidden">
+        <span style="position:absolute;inset-block:0;inset-inline-start:0;width:5px;background:#b0433b"></span>
+        <div class="prjTitle" style="margin-bottom:14px">اجتماع لجنة التميز المؤسسي — بانتظار الاعتماد</div>
+        <button style="width:100%;background:#1f4a37;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">اعتماد</button>
+      </div>
+    </div>
+
+    <!-- ================= 2d — Dark Contrast ================= -->
+    <div id="2d" class="col">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:2px">
+        <span class="badge">2d</span>
+        <div><div style="font-size:15px;font-weight:700">داكن متباين</div><div class="miniLbl">Dark Contrast · فخم وبارز</div></div>
+      </div>
+      <div style="background:linear-gradient(150deg,#183a2b,#0f2419);border-radius:20px;box-shadow:0 20px 44px -22px rgba(15,36,25,.7);padding:22px;color:#eaf1ec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <span style="font-size:11px;color:#9db3a6">يحتاج قرارك</span>
+          <span style="width:9px;height:9px;border-radius:50%;background:#e8c874"></span>
+        </div>
+        <div style="font-size:30px;font-weight:700;line-height:1;color:#fff">2</div>
+        <div style="font-size:11px;color:#9db3a6;margin-top:6px">بندان بانتظار اعتمادك</div>
+      </div>
+      <div style="background:linear-gradient(150deg,#183a2b,#0f2419);border-radius:20px;box-shadow:0 20px 44px -22px rgba(15,36,25,.7);padding:22px;color:#eaf1ec">
+        <div style="display:flex;gap:7px;margin-bottom:12px"><span class="chip" style="background:rgba(232,200,116,.16);color:#e8c874">قيد التنفيذ</span></div>
+        <div style="font-size:14px;font-weight:600;color:#fff;line-height:1.5;margin-bottom:16px">الهيكل التنظيمي للوزارة والشواغر المتاحة بين الجهات</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:#9db3a6"><span>محمد الشرهان</span><span style="color:#e8c874;font-weight:600">6 يوليو</span></div>
+      </div>
+      <div style="background:linear-gradient(150deg,#183a2b,#0f2419);border-radius:20px;box-shadow:0 20px 44px -22px rgba(15,36,25,.7);padding:22px;color:#eaf1ec">
+        <div style="font-size:14px;font-weight:600;color:#fff;line-height:1.5;margin-bottom:16px">اجتماع لجنة التميز المؤسسي — بانتظار الاعتماد</div>
+        <button style="width:100%;background:#e8c874;color:#1a2e22;border:none;border-radius:11px;padding:12px;font-size:13px;font-weight:700;cursor:pointer">اعتماد</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
