@@ -27,8 +27,10 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   // prototype's headerCanCreate): visible whenever the current user can add or
   // edit in this section — the main in-section entry point for the office team.
   const headerSection = NAV_SECTION[page];
+  // pages that carry their own in-page add/edit controls
+  const hasInlineAdd = page === 'projects' || page === 'projectDetail';
   const headerCanCreate = cu.type !== 'chair' && !!headerSection && page !== 'dashboard'
-    && headerSection !== 'permissions'
+    && headerSection !== 'permissions' && !hasInlineAdd
     && (can(cu, headerSection, 'add') || can(cu, headerSection, 'edit'));
   const headerKind = headerSection ? sectionFormKind(headerSection) : 'generic';
   const headerCreateLabel = headerKind === 'finance' ? rl('تقرير جديد', 'New report')

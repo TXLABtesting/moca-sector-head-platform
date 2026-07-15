@@ -57,7 +57,12 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
         let r: any;
         if (editId) {
           r = coll.get(d).find((x: any) => x.id === editId);
-          if (r) { const nn = coll.make({ ...f }, cu.name); const keep = r.id, mlog = r._mlog; Object.keys(nn).forEach((k) => { if (k !== 'id') r[k] = nn[k]; }); r.id = keep; r._mlog = mlog; }
+          if (r) {
+            const nn = coll.make({ ...f }, cu.name);
+            // never reset composite parts the form doesn't edit (timeline, tasks, scope…)
+            const KEEP = new Set(['id', 'timeline', 'tasks', 'scope', 'attachments', 'directives', 'members', 'decisions', 'meetings', 'actions', 'keyPoints', 'no', 'stage']);
+            Object.keys(nn).forEach((k) => { if (!KEEP.has(k)) r[k] = nn[k]; });
+          }
         } else {
           r = coll.make({ ...f }, cu.name); r._mowner = cu.id; coll.get(d).unshift(r);
         }

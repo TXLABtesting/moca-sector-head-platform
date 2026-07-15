@@ -9,6 +9,9 @@ import { Icon } from '../../components/Icon';
 import { UNITS } from '../../shared/constants';
 import type { Project } from '../../data/types';
 import { psColors, prColors, accentOf, unitOf, dueColor } from './projShared';
+import { useCurrentUser } from '../../store/useCurrentUser';
+import { can } from '../../domain/permissions';
+import { ProjectEditModal } from './ProjectEditModal';
 
 export function ProjectsList() {
   const projects = useStore((s) => s.data).projects;
@@ -16,6 +19,9 @@ export function ProjectsList() {
   const { goto } = useNav();
   const { showToast } = useToast();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const cu = useCurrentUser();
+  const canAdd = cu.type !== 'chair' && (can(cu, 'projects', 'add') || can(cu, 'projects', 'edit'));
+  const [addOpen, setAddOpen] = useState(false);
 
   const [fSearch, setSearch] = useState('');
   const [fUnit, setFUnit] = useState('');
@@ -81,7 +87,14 @@ export function ProjectsList() {
           <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{t('projectsTitle')}</h1>
           <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{t('projectsSub')}</p>
         </div>
+        {canAdd && (
+          <button type="button" onClick={() => setAddOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.55)', flex: 'none' }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            {rl('إضافة مشروع', 'Add project')}
+          </button>
+        )}
       </div>
+      {addOpen && <ProjectEditModal project={null} onClose={() => setAddOpen(false)} />}
 
       {/* STAT CARDS */}
       <div className="ov-stats rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 26 }}>

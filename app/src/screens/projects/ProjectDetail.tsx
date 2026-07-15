@@ -9,6 +9,7 @@ import { Fade, Avatar, Modal } from '../../components/ui';
 import { parseAr } from '../../shared/helpers';
 import type { Project } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
+import { ProjectEditModal } from './ProjectEditModal';
 
 const TODAY_STORE = '2 يوليو 2026';
 
@@ -30,6 +31,10 @@ export function ProjectDetail() {
   const p = projects.find((x) => x.id === id);
 
   const [pdTab, setPdTab] = useState<'overview' | 'timeline' | 'updates' | 'risks' | 'directives' | 'files'>('overview');
+  const [editOpen, setEditOpen] = useState(false);
+  const [updOpen, setUpdOpen] = useState(false);
+  const [updDraft, setUpdDraft] = useState('');
+  const [attachDraft, setAttachDraft] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [reopenMode, setReopenMode] = useState(false);
@@ -249,10 +254,15 @@ export function ProjectDetail() {
             </span>
           )}
           {canEdit && (
-            <button type="button" onClick={openEnd} style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f4f6f2', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 9, padding: '6px 12px', fontSize: 11.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-              {rl('تعديل تاريخ النهاية', 'Edit end date')}
-            </button>
+            <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 7 }}>
+              <button type="button" onClick={() => setEditOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '7px 14px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                {rl('تعديل المشروع', 'Edit project')}
+              </button>
+              <button type="button" onClick={openEnd} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f4f6f2', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 9, padding: '6px 12px', fontSize: 11.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>
+                {rl('تعديل تاريخ النهاية', 'Edit end date')}
+              </button>
+            </span>
           )}
         </div>
         <h1 style={{ margin: '0 0 6px', fontSize: 23, fontWeight: 700, lineHeight: 1.35, color: '#17211c' }}>{tr(p.name)}</h1>
@@ -261,8 +271,8 @@ export function ProjectDetail() {
           <span>{rl('قطاع الخدمات المركزية', 'Central Services Sector')}</span>
           <span style={{ color: '#cdd4cc' }}>•</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <Avatar name="موزة المرزوقي" size={22} />
-            {tr('موزة المرزوقي')}
+            <Avatar name={p.owner} size={22} />
+            {tr(p.owner)}
           </span>
         </div>
         <div style={{ marginTop: 18 }}>
@@ -364,7 +374,15 @@ export function ProjectDetail() {
         {pdTab === 'timeline' && <TimelineTab p={p} en={en} rl={rl} tr={tr} t={t} />}
 
         {pdTab === 'updates' && (
-          <div style={{ animation: 'fadeUp .16s ease', position: 'relative', paddingInlineStart: 22 }}>
+          <div style={{ animation: 'fadeUp .16s ease' }}>
+            {canEdit && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
+                <button type="button" onClick={() => { setUpdDraft(''); setUpdOpen(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة تحديث', 'Add update')}
+                </button>
+              </div>
+            )}
+            <div style={{ position: 'relative', paddingInlineStart: 22 }}>
             <div style={{ position: 'absolute', insetInlineStart: 5, top: 4, bottom: 4, width: 2, background: '#eef0ec' }} />
             {timeline.map((u, i) => (
               <div key={i} style={{ position: 'relative', paddingBottom: 18 }}>
@@ -374,6 +392,7 @@ export function ProjectDetail() {
               </div>
             ))}
             {timeline.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>{t('up_empty')}</div>}
+            </div>
           </div>
         )}
 
@@ -387,7 +406,7 @@ export function ProjectDetail() {
                     <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: '#f0f3ee', color: '#3c4a42' }}>{highRisk ? rl('مفتوح', 'Open') : rl('قيد المعالجة', 'Mitigating')}</span>
                   </div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: '#17211c', lineHeight: 1.5, marginBottom: 9 }}>{tr(p.risks || '')}</div>
-                  <div style={{ fontSize: 11.5, color: '#7d867f' }}>{t('pd_respons')}: {tr('موزة المرزوقي')}</div>
+                  <div style={{ fontSize: 11.5, color: '#7d867f' }}>{t('pd_respons')}: {tr(p.owner)}</div>
                 </div>
               </div>
             ) : (
@@ -429,6 +448,14 @@ export function ProjectDetail() {
 
         {pdTab === 'files' && (
           <div style={{ animation: 'fadeUp .16s ease' }}>
+            {canEdit && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                <input value={attachDraft} onChange={(e) => setAttachDraft(e.target.value)} placeholder={rl('اسم المرفق (مثال: خطة المشروع.pdf)', 'Attachment name (e.g. plan.pdf)')} style={{ flex: 1, minWidth: 200, border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none' }} />
+                <button type="button" onClick={() => { const v = attachDraft.trim(); if (!v) return; mutate((d) => { const pr = d.projects.find((x) => x.id === id); if (pr) (pr.attachments = pr.attachments || []).push(v); }); setAttachDraft(''); showToast(rl('تمت إضافة المرفق', 'Attachment added')); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة مرفق', 'Add attachment')}
+                </button>
+              </div>
+            )}
             {attachments.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 12 }}>
                 {attachments.map((fn, i) => {
@@ -453,6 +480,25 @@ export function ProjectDetail() {
           </div>
         )}
       </div>
+
+      {/* FULL EDIT MODAL (all project components) */}
+      {editOpen && <ProjectEditModal project={p} onClose={() => setEditOpen(false)} />}
+
+      {/* ADD UPDATE MODAL */}
+      <Modal open={updOpen} onClose={() => setUpdOpen(false)} width={480}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 16.5, fontWeight: 700, color: '#17211c' }}>{rl('إضافة تحديث للمشروع', 'Add a project update')}</h3>
+        <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{tr(p.name)}</p>
+        <textarea value={updDraft} onChange={(e) => setUpdDraft(e.target.value)} rows={4} autoFocus placeholder={rl('اكتب التحديث…', 'Write the update…')}
+          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 11, padding: '11px 13px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none', resize: 'vertical' }} />
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+          <button type="button" onClick={() => setUpdOpen(false)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+          <button type="button" onClick={() => {
+            const v = updDraft.trim(); if (!v) return;
+            mutate((d) => { const pr = d.projects.find((x) => x.id === id); if (pr) { (pr.timeline = pr.timeline || []).unshift({ text: v, by: cu.name, date: 'اليوم' }); pr.lastDate = 'اليوم'; } });
+            setUpdOpen(false); showToast(rl('أُضيف التحديث إلى سجل المشروع', 'Update added to the project log'));
+          }} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إضافة التحديث', 'Add update')}</button>
+        </div>
+      </Modal>
 
       {/* CONFIRM MODAL */}
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} width={400}>
