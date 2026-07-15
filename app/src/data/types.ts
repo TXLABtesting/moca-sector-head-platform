@@ -292,6 +292,7 @@ export interface CommitteeTask {
   owner: string;
   status: string;
   due: string;
+  prog?: number;
   needFollow?: boolean;
   needsFollow?: boolean;
 }
@@ -303,6 +304,8 @@ export interface CommitteeMeeting {
   minutes: boolean;
   points: string;
   tasks: CommitteeTask[];
+  absent?: string[];
+  attachments?: string[];
 }
 export interface CommitteeScores {
   outputs: number;

@@ -7,6 +7,10 @@ import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { useToast } from '../components/Toast';
 import { initials, memberImg, asset } from '../shared/helpers';
+import { ownedBy } from './member/workflow';
+import { Dropdown } from '../components/Dropdown';
+import { DateField } from '../components/DateField';
+import { FileUploadField } from '../components/FileUploadField';
 import type { Committee, CommitteeMeeting, CommitteeTask, CommitteeDecision } from '../data/types';
 import { SectionAddButton } from '../components/SectionAddButton';
 
@@ -58,6 +62,18 @@ export function Committees() {
   const canApprove = can(cu, 'committees', 'approve');
   const { showToast } = useToast();
 
+  // Committee Management Officer: full list + add/edit/send.
+  // Committee Coordinator: only committees assigned as rapporteur, with
+  // meeting/minutes/tasks management inside them.
+  const isChair = cu.type === 'chair';
+  const manage = !isChair && (can(cu, 'committees', 'add') || can(cu, 'committees', 'edit'));
+  const assigned = committees.filter((c) => ownedBy(c.rapporteur || '', cu.name));
+  const coordinator = !isChair && !manage && assigned.length > 0;
+  const visible = coordinator ? assigned : committees;
+  const coordOf = (c: Committee) => !isChair && (manage || ownedBy(c.rapporteur || '', cu.name));
+  const [cForm, setCForm] = useState<{ id: string | null } | null>(null);
+  const [mForm, setMForm] = useState<{ cid: string; no: string | null } | null>(null);
+
   const [selId, setSelId] = useState<string | null>(null);
   const { params } = useNav();
   useEffect(() => {
@@ -75,10 +91,34 @@ export function Committees() {
   return (
     <Fade>
       <div style={{ fontFamily: "'IBM Plex Sans Arabic',sans-serif", color: '#17211c' }}>
-        {!cur && <SectionAddButton section="committees" title={rl('اللجان وفرق العمل', 'Committees & work teams')} desc={rl('متابعة اللجان وقراراتها واجتماعاتها', 'Committees, their decisions and meetings')} />}
-        {!cur && <ListView committees={committees} rl={rl} tr={tr} dl={dl} openC={openC} />}
+        {!cur && (
+          <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+              <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{rl('اللجان وفرق العمل', 'Committees & work teams')}</h1>
+              <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>
+                {coordinator
+                  ? rl('اللجان المسندة إليك كمقرر — إدارة الاجتماعات والمحاضر والمهام وإرسالها للمراجعة', 'Committees assigned to you as rapporteur — manage meetings, minutes and tasks')
+                  : rl('متابعة اللجان وقراراتها واجتماعاتها', 'Committees, their decisions and meetings')}
+              </p>
+            </div>
+            {manage && (
+              <div className="page-head-action" style={{ flex: 'none' }}>
+                <button onClick={() => setCForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                  {rl('إضافة لجنة', 'New committee')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {!cur && <ListView committees={visible} rl={rl} tr={tr} dl={dl} openC={openC} />}
         {cur && (
           <DetailView
+            canManage={manage}
+            canCoord={coordOf(cur)}
+            onEditCommittee={() => setCForm({ id: cur.id })}
+            onAddMeeting={() => setMForm({ cid: cur.id, no: null })}
+            onEditMeeting={(no: string) => setMForm({ cid: cur.id, no })}
             c={cur} tab={tab} setTab={setTab} onBack={toList}
             canApprove={canApprove} showToast={showToast}
             rl={rl} tr={tr} dl={dl} onPreview={setPreview}
@@ -116,6 +156,8 @@ export function Committees() {
           </>
         )}
       </Modal>
+      {cForm && <CommitteeFormModal committeeId={cForm.id} onClose={() => setCForm(null)} />}
+      {mForm && <CommitteeMeetingModal cid={mForm.cid} meetingNo={mForm.no} onClose={() => setMForm(null)} />}
     </Fade>
   );
 }
@@ -206,12 +248,17 @@ function ListView({ committees, rl, tr, dl, openC }: {
 }
 
 /* ================= DETAIL ================= */
-function DetailView({ c, tab, setTab, onBack, canApprove, showToast, rl, tr, dl, onPreview }: {
+function DetailView({ c, tab, setTab, onBack, canApprove, canManage, canCoord, onEditCommittee, onAddMeeting, onEditMeeting, showToast, rl, tr, dl, onPreview }: {
   c: Committee;
   tab: 'summary' | 'meetings' | 'decisions' | 'members';
   setTab: (t: 'summary' | 'meetings' | 'decisions' | 'members') => void;
   onBack: () => void;
   canApprove: boolean;
+  canManage: boolean;
+  canCoord: boolean;
+  onEditCommittee: () => void;
+  onAddMeeting: () => void;
+  onEditMeeting: (no: string) => void;
   showToast: (m: string) => void;
   rl: (a: string, b: string) => string;
   tr: (s: string) => string;
@@ -239,7 +286,15 @@ function DetailView({ c, tab, setTab, onBack, canApprove, showToast, rl, tr, dl,
           <h1 style={{ margin: '0 0 6px', fontSize: 21, fontWeight: 800, lineHeight: 1.4, color: '#17211c' }}>{tr(c.name)}</h1>
           <div style={{ fontSize: 12.5, color: '#7d867f' }}>{rl('الرئيس', 'Chair')}: {tr(c.chair)} · {rl('المقرر', 'Rapporteur')}: {tr(c.rapporteur)}</div>
         </div>
-        <Badge bg={stBg} fg={stFg} style={{ flex: 'none', fontSize: 11, padding: '6px 14px' }}>{tr(c.status)}</Badge>
+        <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Badge bg={stBg} fg={stFg} style={{ fontSize: 11, padding: '6px 14px' }}>{tr(c.status)}</Badge>
+          {canManage && (
+            <button onClick={onEditCommittee} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+              {rl('تعديل اللجنة', 'Edit committee')}
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 6, background: '#f2f4f0', borderRadius: 12, padding: 4, marginBottom: 18, flexWrap: 'wrap', width: 'fit-content' }}>
@@ -252,7 +307,7 @@ function DetailView({ c, tab, setTab, onBack, canApprove, showToast, rl, tr, dl,
       </div>
 
       {tab === 'summary' && <SummaryTab c={c} rl={rl} tr={tr} dl={dl} />}
-      {tab === 'meetings' && <MeetingsTab c={c} canApprove={canApprove} showToast={showToast} rl={rl} tr={tr} dl={dl} />}
+      {tab === 'meetings' && <MeetingsTab c={c} canApprove={canApprove} canCoord={canCoord} onAddMeeting={onAddMeeting} onEditMeeting={onEditMeeting} showToast={showToast} rl={rl} tr={tr} dl={dl} />}
       {tab === 'decisions' && <DecisionsTab c={c} rl={rl} tr={tr} dl={dl} onPreview={onPreview} />}
       {tab === 'members' && <MembersTab c={c} rl={rl} tr={tr} />}
     </div>
@@ -350,24 +405,39 @@ function SummaryTab({ c, rl, tr, dl }: {
 }
 
 /* ---- meetings + tasks tab ---- */
-function MeetingsTab({ c, canApprove, showToast, rl, tr, dl }: {
+function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, showToast, rl, tr, dl }: {
   c: Committee;
   canApprove: boolean;
+  canCoord: boolean;
+  onAddMeeting: () => void;
+  onEditMeeting: (no: string) => void;
   showToast: (m: string) => void;
   rl: (a: string, b: string) => string;
   tr: (s: string) => string;
   dl: (s: string) => string;
 }) {
   const meetings = c.meetings || [];
+  const addBtn = canCoord ? (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+      <button onClick={onAddMeeting} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+        {rl('إضافة اجتماع جديد', 'New meeting')}
+      </button>
+    </div>
+  ) : null;
   if (meetings.length === 0) {
     return (
-      <div style={{ background: '#fff', border: '1px dashed #d8dedb', borderRadius: 16, padding: 34, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>
-        {rl('لا توجد اجتماعات مسجّلة لهذه اللجنة بعد.', 'No meetings recorded for this committee yet.')}
+      <div>
+        {addBtn}
+        <div style={{ background: '#fff', border: '1px dashed #d8dedb', borderRadius: 16, padding: 34, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>
+          {rl('لا توجد اجتماعات مسجّلة لهذه اللجنة بعد.', 'No meetings recorded for this committee yet.')}
+        </div>
       </div>
     );
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {addBtn}
       {meetings.map((m: CommitteeMeeting, mi) => (
         <div key={mi} style={{ border: '1px solid #e6ece7', borderRadius: 15, overflow: 'hidden', background: '#fff', boxShadow: '0 1px 2px rgba(23,40,32,.04)' }}>
           <div style={{ background: '#f3f7f3', padding: '14px 16px', borderBottom: '1px solid #e6ece7' }}>
@@ -376,8 +446,27 @@ function MeetingsTab({ c, canApprove, showToast, rl, tr, dl }: {
               <span style={{ fontSize: 11.5, color: '#5b6b62' }}>
                 {rl('الحضور', 'Attendance')}: {m.present} {rl('من', 'of')} {m.total} · {m.minutes ? rl('يوجد محضر', 'Minutes available') : rl('لا يوجد محضر', 'No minutes')} · {(m.tasks || []).length} {rl('مهام ناتجة', 'resulting tasks')}
               </span>
+              {canCoord && (
+                <button onClick={() => onEditMeeting(m.no)} style={{ marginInlineStart: 'auto', flex: 'none', display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 8, padding: '6px 11px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                  {rl('المحضر / تعديل', 'Minutes / edit')}
+                </button>
+              )}
             </div>
             <div style={{ fontSize: 12.5, color: '#3c4a42', lineHeight: 1.65 }}>{tr(m.points)}</div>
+            {!!(m.absent && m.absent.length) && (
+              <div style={{ marginTop: 8, fontSize: 11, color: '#b0433b' }}>{rl('الغياب: ', 'Absent: ')}{m.absent.map((n) => tr(n)).join('، ')}</div>
+            )}
+            {!!(m.attachments && m.attachments.length) && (
+              <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {m.attachments.map((a, ai) => (
+                  <span key={ai} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1px solid #e6ece7', borderRadius: 8, padding: '4px 9px', fontSize: 10.5, color: '#3c4a42' }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    {a}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             {(m.tasks || []).map((t: CommitteeTask, ti) => {
@@ -389,6 +478,9 @@ function MeetingsTab({ c, canApprove, showToast, rl, tr, dl }: {
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c', lineHeight: 1.5 }}>{tr(t.title)}</div>
                     <div style={{ fontSize: 11, color: '#9aa39b', marginTop: 3 }}>{rl('المسؤول', 'Owner')}: {tr(t.owner)} · {rl('الإنجاز', 'Due')}: {dl(t.due)}</div>
                   </div>
+                  {typeof t.prog === 'number' && (
+                    <span style={{ flex: 'none', fontSize: 10.5, fontWeight: 800, color: '#1f4a37', background: '#e9f0ec', borderRadius: 20, padding: '4px 10px' }}>{t.prog}%</span>
+                  )}
                   <Badge bg={tsBg} fg={tsFg} style={{ flex: 'none', fontSize: 10, padding: '4px 10px' }}>{tr(t.status)}</Badge>
                   {canApprove && (
                     <div style={{ flex: 'none', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -471,5 +563,223 @@ function MembersTab({ c, rl, tr }: {
         })}
       </div>
     </Card>
+  );
+}
+
+/* ================= COMMITTEE FORM (Management Officer) =================
+   Full committee editor: info, coordinator, frequency, status, members and
+   the formation/update decision (with upload). Saves to the SAME record the
+   Sector Head sees; can send the update for chair review. */
+function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | null; onClose: () => void }) {
+  const { lang, tr } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const cu = useCurrentUser();
+  const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+
+  const existing = committeeId ? data.committees.find((c) => c.id === committeeId) : null;
+  const [f, setF] = useState<Record<string, string>>(() => existing ? {
+    name: existing.name, chair: existing.chair, rapporteur: existing.rapporteur,
+    purpose: existing.purpose || '', freq: existing.freq || '', status: existing.status || '',
+    cat: existing.cat || '', reqMeetings: String(existing.reqMeetings ?? ''),
+    decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
+  } : {
+    name: '', chair: 'رئيس القطاع', rapporteur: cu.name, purpose: '', freq: 'شهرية',
+    status: 'نشطة', cat: 'لجنة دائمة', reqMeetings: '12', decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
+  });
+  const [members, setMembers] = useState<string[]>(() => (existing?.members ? [...existing.members] : []));
+  const [decFiles, setDecFiles] = useState<string[]>([]);
+  const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+
+  const peopleOpts = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]));
+  const freqOpts = Array.from(new Set(['أسبوعية', 'نصف شهرية', 'شهرية', 'ربع سنوية', ...(f.freq ? [f.freq] : [])]));
+  const statusOpts = Array.from(new Set([...data.committees.map((c) => c.status), 'نشطة', ...(f.status ? [f.status] : [])])).filter(Boolean);
+
+  const save = (send: boolean) => {
+    const name = (f.name || '').trim();
+    if (!name) { showToast(rl('يرجى إدخال اسم اللجنة', 'Please enter the committee name')); return; }
+    mutate((d) => {
+      let c: Committee & { _mowner?: string; _mrev?: boolean; _mret?: string; _mlog?: unknown[] };
+      if (existing) c = d.committees.find((x) => x.id === committeeId)! as never;
+      else {
+        c = { id: 'cm' + Math.floor(Math.random() * 1e9), name: '', chair: '', rapporteur: '', purpose: '', freq: '',
+          reqMeetings: 0, actualMeetings: 0, created: '2026', reformed: '', status: 'نشطة', cat: '', hasWorkPlan: false,
+          absent: [], scores: { outputs: 0, minutes: 0, meetings: 0, teamwork: 0 }, statement: '', improvements: [],
+          recommendation: '', members: [], decisions: [], meetings: [] };
+        d.committees.unshift(c);
+        c._mowner = cu.id;
+      }
+      if (!c) return;
+      c.name = name; c.chair = (f.chair || '').trim() || 'رئيس القطاع'; c.rapporteur = f.rapporteur || cu.name;
+      c.purpose = (f.purpose || '').trim(); c.freq = f.freq; c.status = f.status; c.cat = (f.cat || '').trim();
+      c.reqMeetings = parseInt(f.reqMeetings, 10) || 0;
+      c.members = members;
+      if ((f.decNum || '').trim() || decFiles.length) {
+        c.decisions = [{ num: (f.decNum || '').trim() || String((c.decisions || []).length + 1), year: (f.decYear || '2026').trim(), kind: f.decKind || 'قرار تشكيل', img: decFiles[0] }, ...(c.decisions || [])];
+      }
+      if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? rl('تحديث بيانات اللجنة', 'Committee updated') : rl('إنشاء اللجنة', 'Committee created')), sent: !!send, by: cu.name });
+    });
+    showToast(send ? rl('أُرسلت تحديثات اللجنة لرئيس القطاع للمراجعة', 'Committee updates sent for Sector Head review') : rl('تم حفظ بيانات اللجنة', 'Committee saved'));
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+  const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
+
+  return (
+    <Modal open onClose={onClose} width={640}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? rl('تعديل اللجنة', 'Edit committee') : rl('لجنة جديدة', 'New committee')}</h3>
+      <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{rl('تُحفظ التعديلات في نفس السجل الذي يراه رئيس القطاع.', 'Saved to the same record the Sector Head sees.')}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('اسم اللجنة', 'Committee name')}</Label><input value={f.name} onChange={setI('name')} style={inputStyle} /></div>
+        <div><Label>{rl('رئيس اللجنة', 'Committee chair')}</Label><input value={f.chair} onChange={setI('chair')} style={inputStyle} /></div>
+        <div><Label>{rl('المقرر / المنسق', 'Rapporteur / coordinator')}</Label><Dropdown value={f.rapporteur} options={peopleOpts.map((n) => ({ v: n, label: tr(n) }))} onChange={set('rapporteur')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('دورية الاجتماعات', 'Meeting frequency')}</Label><Dropdown value={f.freq} options={freqOpts.map((v) => ({ v, label: tr(v) }))} onChange={set('freq')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={statusOpts.map((v) => ({ v, label: tr(v) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('التصنيف', 'Category')}</Label><input value={f.cat} onChange={setI('cat')} style={inputStyle} /></div>
+        <div><Label>{rl('الاجتماعات المطلوبة سنوياً', 'Required meetings / year')}</Label><input value={f.reqMeetings} onChange={setI('reqMeetings')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الغرض / المهام', 'Purpose')}</Label><textarea value={f.purpose} onChange={setI('purpose')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الأعضاء', 'Members')}</Label>
+          <Dropdown value="" options={peopleOpts.filter((n) => !members.includes(n)).map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => { if (v) setMembers((p) => [...p, v]); }} opt={{ block: true, size: 'sm', placeholder: rl('اختر عضوًا لإضافته…', 'Pick a member to add…') }} />
+          {members.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
+              {members.map((n) => (
+                <span key={n} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #1e4634', background: '#eef5f0', color: '#1e4634', borderRadius: 20, padding: '4px 9px', fontSize: 11.5, fontWeight: 700 }}>
+                  {tr(n)}
+                  <button type="button" onClick={() => setMembers((p) => p.filter((x) => x !== n))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}>✕</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ gridColumn: '1 / -1', border: '1px dashed #d8dedb', borderRadius: 12, padding: '12px 14px' }}>
+          <Label>{rl('قرار التشكيل / التحديث (اختياري)', 'Formation / update decision (optional)')}</Label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <input value={f.decNum} onChange={setI('decNum')} placeholder={rl('رقم القرار', 'Decision No.')} style={inputStyle} />
+            <input value={f.decYear} onChange={setI('decYear')} placeholder={rl('السنة', 'Year')} style={inputStyle} />
+            <Dropdown value={f.decKind} options={['قرار تشكيل', 'قرار تحديث', 'قرار إعادة تشكيل'].map((v) => ({ v, label: tr(v) }))} onChange={set('decKind')} opt={{ block: true, size: 'sm' }} />
+          </div>
+          <FileUploadField multiple={false} files={decFiles} onChange={setDecFiles} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
+        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع', 'Send to Sector Head')}</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ================= COMMITTEE MEETING FORM (Coordinator) =================
+   Meeting lifecycle inside an assigned committee: date, attendance and
+   absences, minutes points, resulting tasks with status and completion %,
+   attachments — and sending the update for Sector Head review. */
+function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meetingNo: string | null; onClose: () => void }) {
+  const { lang, tr } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const cu = useCurrentUser();
+  const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+
+  const committee = data.committees.find((c) => c.id === cid);
+  const existing = meetingNo && committee ? (committee.meetings || []).find((m) => m.no === meetingNo) : null;
+  const memberPool = Array.from(new Set([...(committee?.members || []), ...data.members.map((m) => m.name)]));
+
+  const [f, setF] = useState<Record<string, string>>(() => existing ? {
+    date: existing.date, present: String(existing.present), total: String(existing.total), points: existing.points || '',
+  } : {
+    date: '', present: '', total: String((committee?.members || []).length || ''), points: '',
+  });
+  const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
+  const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
+  const [tasks, setTasks] = useState<CommitteeTask[]>(() => (existing?.tasks ? existing.tasks.map((t) => ({ ...t })) : []));
+  const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const setTask = (i: number, k: keyof CommitteeTask, v: string | number) => setTasks((p) => p.map((t, x) => (x === i ? { ...t, [k]: v } : t)));
+
+  const TSTAT = ['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر'];
+
+  const save = (send: boolean) => {
+    if (!f.date) { showToast(rl('يرجى اختيار تاريخ الاجتماع', 'Please pick the meeting date')); return; }
+    const cleanTasks = tasks.filter((t) => (t.title || '').trim());
+    mutate((d) => {
+      const c = d.committees.find((x) => x.id === cid) as (Committee & { _mowner?: string; _mrev?: boolean; _mret?: string; _mlog?: unknown[] }) | undefined;
+      if (!c) return;
+      c.meetings = c.meetings || [];
+      let m = meetingNo ? c.meetings.find((x) => x.no === meetingNo) : undefined;
+      if (!m) {
+        m = { no: String(c.meetings.length + 1), date: '', present: 0, total: 0, minutes: false, points: '', tasks: [] };
+        c.meetings.unshift(m);
+      }
+      m.date = f.date; m.present = parseInt(f.present, 10) || 0; m.total = parseInt(f.total, 10) || (c.members || []).length;
+      m.points = (f.points || '').trim(); m.minutes = !!(m.points || atts.length);
+      m.absent = absent; m.attachments = atts; m.tasks = cleanTasks;
+      c.actualMeetings = c.meetings.length;
+      if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.points || '').slice(0, 80), sent: !!send, by: cu.name });
+    });
+    showToast(send ? rl('أُرسل محضر الاجتماع لرئيس القطاع للمراجعة', 'Meeting minutes sent for Sector Head review') : rl('تم حفظ الاجتماع والمحضر', 'Meeting & minutes saved'));
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+  const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
+
+  return (
+    <Modal open onClose={onClose} width={680}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>
+        {existing ? rl('محضر الاجتماع رقم ', 'Meeting minutes No. ') + existing.no : rl('اجتماع جديد', 'New meeting')}
+      </h3>
+      <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{committee ? tr(committee.name) : ''}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <div><Label>{rl('تاريخ الاجتماع', 'Meeting date')}</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
+        <div><Label>{rl('عدد الحضور', 'Present')}</Label><input value={f.present} onChange={setI('present')} style={inputStyle} /></div>
+        <div><Label>{rl('إجمالي الأعضاء', 'Total members')}</Label><input value={f.total} onChange={setI('total')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الغياب (اختر من الأعضاء)', 'Absences (pick from members)')}</Label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {(committee?.members || []).map((n) => {
+              const on = absent.includes(n);
+              return (
+                <button type="button" key={n} onClick={() => setAbsent((p) => (on ? p.filter((x) => x !== n) : [...p, n]))} style={{ border: '1.5px solid ' + (on ? '#b0433b' : '#e2e6df'), background: on ? '#fdf3f2' : '#fff', color: on ? '#b0433b' : '#5b6b62', borderRadius: 20, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  {tr(n)}{on ? ' ✕' : ''}
+                </button>
+              );
+            })}
+            {(committee?.members || []).length === 0 && <span style={{ fontSize: 11.5, color: '#9aa39b' }}>{rl('لا يوجد أعضاء مسجّلون لهذه اللجنة', 'No members recorded for this committee')}</span>}
+          </div>
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المحضر / أبرز النقاط والقرارات', 'Minutes / key points & decisions')}</Label><textarea value={f.points} onChange={setI('points')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('المهام الناتجة عن الاجتماع', 'Tasks resulting from the meeting')}</Label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tasks.map((t, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 64px 28px', gap: 8, alignItems: 'center' }}>
+                <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('المهمة', 'Task')} style={inputStyle} />
+                <Dropdown value={t.owner} options={memberPool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setTask(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: rl('المسؤول', 'Owner') }} />
+                <Dropdown value={t.status} options={TSTAT.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setTask(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
+                <DateField value={t.due} onChange={(v) => setTask(i, 'due', v)} />
+                <input value={String(t.prog ?? '')} onChange={(e) => setTask(i, 'prog', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} placeholder="%" style={{ ...inputStyle, textAlign: 'center', padding: '10px 6px' }} />
+                <button type="button" onClick={() => setTasks((p) => p.filter((_, x) => x !== i))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 14 }}>✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setTasks((p) => [...p, { title: '', owner: committee?.rapporteur || cu.name, status: 'قيد التنفيذ', due: '', prog: 0 }])} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة مهمة', 'Add task')}
+            </button>
+          </div>
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المحضر والمرفقات (رفع ملفات)', 'Minutes & attachments (upload)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
+        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع', 'Send to Sector Head')}</button>
+      </div>
+    </Modal>
   );
 }

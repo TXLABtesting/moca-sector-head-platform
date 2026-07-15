@@ -1,4 +1,4 @@
-import { type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Fade, Badge } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { useI18n } from '../i18n/i18n';
@@ -10,6 +10,7 @@ import { PS, AS } from '../shared/constants';
 import { initials } from '../shared/helpers';
 import { MinuteTasks } from './meetings/MinuteTasks';
 import { SectionAddButton } from '../components/SectionAddButton';
+import { MemberForm } from './member/MemberForm';
 
 const DETAIL_CARD: CSSProperties = {
   background: '#ffffff', border: 'none', borderRadius: 24,
@@ -108,12 +109,15 @@ function MinutesList() {
 
 // ------------------------------------------------------------------ meeting detail
 function MeetingDetail() {
-  const { t, tr, dl } = useI18n();
+  const { t, tr, dl, lang } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const { params } = useNav();
   const data = useStore((s) => s.data);
   const mutate = useStore((s) => s.mutate);
   const cu = useCurrentUser();
   const canStatus = can(cu, 'minutes', 'status');
+  const canEditMin = cu.type !== 'chair' && can(cu, 'minutes', 'edit');
+  const [editOpen, setEditOpen] = useState(false);
 
   const mt = data.meetings.find((m) => m.id === params.selMeeting);
   if (!mt) {
@@ -135,6 +139,13 @@ function MeetingDetail() {
           <div style={{ ...DETAIL_CARD, padding: '22px 24px' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 600 }}>{tr(mt.title)}</h2>
             <div style={{ fontSize: 12.5, color: '#8a938c', marginBottom: 16 }}>{dl(mt.date)} · {t('ownerShort')} {tr(mt.owner)}</div>
+            {canEditMin && (
+              <button onClick={() => setEditOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 15px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 16 }}>
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                {rl('تعديل المحضر', 'Edit minutes')}
+              </button>
+            )}
+            {editOpen && <MemberForm open onClose={() => setEditOpen(false)} section="minutes" editId={mt.id} />}
             <div style={{ fontSize: 11, color: '#9aa39b', marginBottom: 6 }}>{t('meetingSummary')}</div>
             <p style={{ margin: 0, fontSize: 13.5, color: '#3c4a42', lineHeight: 1.7 }}>{tr(mt.summary)}</p>
           </div>
