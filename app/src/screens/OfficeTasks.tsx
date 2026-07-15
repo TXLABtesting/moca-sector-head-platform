@@ -1,9 +1,11 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Fade, Avatar, Modal, Drawer } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
+import { FileUploadField } from '../components/FileUploadField';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
+import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { useToast } from '../components/Toast';
@@ -27,7 +29,7 @@ const PROG: Record<string, number> = {
   'قيد التنفيذ': 60, 'بانتظار اعتماد': 80, 'مكتمل': 100,
 };
 
-const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'يحتاج توجيه', 'مكتمل', 'متأخر'];
+const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
 
 /** Prototype "today" anchors: TODAY = 5 Jul 2026, WEEKEND = 12 Jul 2026. */
 const TODAY = new Date(2026, 6, 5);
@@ -76,6 +78,11 @@ export function OfficeTasks() {
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selOtask, setSelOtask] = useState<string | null>(null);
+  const { params } = useNav();
+  useEffect(() => {
+    const t = params.selOtask as string | undefined;
+    if (t) setSelOtask(t);
+  }, [params.selOtask]);
   const [oModal, setOModal] = useState<OModal>(null);
   const [dlDate, setDlDate] = useState('');
   const [dlNote, setDlNote] = useState('');
@@ -562,6 +569,18 @@ function TaskDetail({ task, canEdit, onClose, onEditDeadline, onAddDirective, on
           <span style={{ fontSize: 11.5, color: '#8a938c' }}>{tr(task.dept)}</span>
           <span style={{ marginInlineStart: 'auto', fontSize: 10.5, fontWeight: 700, borderRadius: 20, padding: '4px 11px', background: bg, color: fg }}>{tr(task.status)}</span>
         </div>
+        {task.participants && task.participants.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: '#8a938c', marginBottom: 6 }}>{tr('المشاركون')}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {task.participants.map((n, i) => (
+                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #e6eae4', borderRadius: 20, padding: '4px 10px 4px 6px', fontSize: 11, fontWeight: 600, color: '#3c4a42' }}>
+                  <Avatar name={n} size={20} />{tr(n)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* body */}
@@ -656,9 +675,15 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
   });
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
+  const [parts, setParts] = useState<string[]>(() => (existing?.participants ? [...existing.participants] : []));
 
-  const ownerNames = Array.from(new Set([...data.members.map((m) => m.name), ...(f.owner ? [f.owner] : [])]));
-  const STATUSES = ['لم يبدأ', 'قيد التنفيذ', 'يحتاج توجيه', 'متأخر', 'مكتمل'];
+  // creator is automatically the primary owner — no manual selection
+  const primaryOwner = existing ? existing.owner : cu.name;
+  const partOptions = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]))
+    .filter((n) => n !== primaryOwner);
+  const togglePart = (n: string) => setParts((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p, n]));
+  const STATUSES = ['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'];
 
   const save = (send: boolean) => {
     const title = (f.title || '').trim();
@@ -672,9 +697,9 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
         r._mowner = cu.id;
       }
       if (!r) return;
-      r.title = title; r.label = f.label; r.dept = f.dept; r.owner = f.owner;
+      r.title = title; r.label = f.label; r.dept = f.dept; r.owner = primaryOwner; r.participants = parts;
       r.status = f.status; r.start = f.start; r.end = f.end; r.due = f.end;
-      r.desc = f.desc; r.lastUpdate = rl('اليوم', 'Today');
+      r.desc = f.desc; r.lastUpdate = rl('اليوم', 'Today'); r.attachments = atts;
       if (send) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       const log = (r._mlog as unknown[] | undefined) || [];
       log.unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : f.status, sent: !!send, by: cu.name });
@@ -693,10 +718,33 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
         <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
-        <div><Label>{rl('المسؤول', 'Owner')}</Label><Dropdown value={f.owner} options={ownerNames.map((n) => ({ v: n, label: tr(n) }))} onChange={set('owner')} opt={{ block: true, size: 'sm' }} /></div>
+        <div>
+          <Label>{rl('المسؤول الرئيسي', 'Primary owner')}</Label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #e2e6df', background: '#f2f4f0', borderRadius: 10, padding: '7px 12px' }}>
+            <Avatar name={primaryOwner} size={22} />
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#17211c' }}>{tr(primaryOwner)}</span>
+            {!existing && <span style={{ fontSize: 10, color: '#9aa39b' }}>{rl('(أنت — تلقائياً)', '(you — automatic)')}</span>}
+          </div>
+        </div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('المشاركون في المهمة (اختياري)', 'Participants (optional)')}</Label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {partOptions.map((n) => {
+              const on = parts.includes(n);
+              return (
+                <button type="button" key={n} onClick={() => togglePart(n)} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid ' + (on ? '#1e4634' : '#e2e6df'), background: on ? '#eef5f0' : '#fff', color: on ? '#1e4634' : '#5b6b62', borderRadius: 20, padding: '5px 11px 5px 7px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <Avatar name={n} size={20} />
+                  {tr(n)}
+                  {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
         <div><Label>{rl('الموعد النهائي (فارغ = بدون موعد)', 'Deadline (empty = none)')}</Label><DateField value={f.end} onChange={set('end')} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المرفقات', 'Attachments')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الوصف', 'Description')}</Label><textarea value={f.desc} onChange={setI('desc')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>

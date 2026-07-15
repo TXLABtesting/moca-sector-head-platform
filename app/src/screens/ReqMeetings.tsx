@@ -1,6 +1,7 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store/store';
+import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
@@ -8,6 +9,7 @@ import { useToast } from '../components/Toast';
 import { Dropdown } from '../components/Dropdown';
 import { Fade, Modal } from '../components/ui';
 import { DateField } from '../components/DateField';
+import { FileUploadField } from '../components/FileUploadField';
 import {
   parseProposed, timeRange, timeLabel, ymdKey, outlookUrl,
   type ProposedParts,
@@ -79,6 +81,11 @@ export function ReqMeetings() {
   const [form, setForm] = useState({ date: '', time: '', timeEnd: '', note: '' });
 
   const closePopup = () => { setPopupId(null); setPopupEdit(false); };
+  const { params } = useNav();
+  useEffect(() => {
+    const t = params.selMeeting as string | undefined;
+    if (t) { setPopupId(t); setPopupEdit(false); }
+  }, [params.selMeeting]);
 
   // ---- actions (persisted via mutate) ----
   function approveMeeting(id: string) {
@@ -652,7 +659,6 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
     return { subject: '', attendees: '', basis: '', date: '', from: '10:00 ص', to: '11:00 ص', location: '', link: '', note: '' };
   });
   const [agenda, setAgenda] = useState<string[]>(() => (existing?.agenda ? [...existing.agenda] : []));
-  const [fileName, setFileName] = useState('');
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
 
@@ -664,13 +670,6 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
     }
     return out;
   })();
-
-  const addFile = () => {
-    const n = fileName.trim();
-    if (!n) return;
-    setAgenda((p) => [...p, n]);
-    setFileName('');
-  };
 
   const save = (send: boolean) => {
     const subject = (f.subject || '').trim();
@@ -716,21 +715,7 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
         <div><Label>{rl('رابط الاجتماع الافتراضي (اختياري)', 'Online meeting link (optional)')}</Label><input value={f.link} onChange={setI('link')} placeholder="https://teams.microsoft.com/…" dir="ltr" style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('جدول الأعمال والمرفقات', 'Agenda & attachments')}</Label>
-          {agenda.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
-              {agenda.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 9, padding: '7px 11px', fontSize: 12, color: '#2a332d' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg>
-                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a}</span>
-                  <button onClick={() => setAgenda((p) => p.filter((_, x) => x !== i))} style={{ flex: 'none', width: 22, height: 22, border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 }}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={fileName} onChange={(e) => setFileName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addFile(); }} placeholder={rl('اسم الملف — مثال: جدول الأعمال.pdf', 'File name — e.g. agenda.pdf')} style={{ ...inputStyle, flex: 1 }} />
-            <button onClick={addFile} style={{ flex: 'none', background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 10, padding: '10px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('رفع', 'Upload')}</button>
-          </div>
+          <FileUploadField files={agenda} onChange={setAgenda} />
         </div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('ملاحظات', 'Notes')}</Label><textarea value={f.note} onChange={setI('note')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>

@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react';
-import { Fade, Drawer, Avatar, Badge } from '../components/ui';
+import { Fade, Drawer, Avatar, Badge, Modal } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { useToast } from '../components/Toast';
@@ -9,7 +9,7 @@ import { can } from '../domain/permissions';
 import { useI18n } from '../i18n/i18n';
 import { parseAr } from '../shared/helpers';
 import type { Leave, LeaveCat } from '../data/types';
-import { SectionAddButton } from '../components/SectionAddButton';
+import { FileUploadField } from '../components/FileUploadField';
 
 const DAY = 86400000;
 const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -35,6 +35,14 @@ const BARC: Record<string, string> = {
 };
 
 const activeForConflict = (lv: Leave) => lv.status === 'معتمدة' || lv.status === 'بانتظار الاعتماد';
+const TODAY = new Date(2026, 6, 12);
+/** phase -> [pill bg, pill fg] */
+const PHC: Record<string, [string, string]> = {
+  'قادمة': ['#eef3f6', '#2f6aa8'],
+  'جارية': ['#e2f0e8', '#2e7d55'],
+  'منتهية': ['#eceae6', '#8a8078'],
+  'ملغاة': ['#f0eeeb', '#9a8a86'],
+};
 
 interface Parsed { lv: Leave; s: Date; e: Date }
 
@@ -51,6 +59,8 @@ export function TeamLeaves() {
   const canApprove = can(cu, 'leaves', 'approve');
   const canNote = can(cu, 'leaves', 'note');
   const canReview = can(cu, 'leaves', 'review');
+  // Leave planners manage records end-to-end; official approval stays with the chair.
+  const canManage = cu.type !== 'chair' && (can(cu, 'leaves', 'add') || can(cu, 'leaves', 'edit'));
 
   // ---- state
   const [view, setView] = useState<'timeline' | 'table'>('timeline');
@@ -65,6 +75,9 @@ export function TeamLeaves() {
   const [editingDates, setEditingDates] = useState(false);
   const [editStart, setEditStart] = useState('');
   const [editEnd, setEditEnd] = useState('');
+  const [fPhase, setFPhase] = useState('');
+  const [lvForm, setLvForm] = useState(false);
+  const [lvEdit, setLvEdit] = useState(false);
 
   const CATL: Record<LeaveCat, string> = {
     manager: rl('مدراء الوحدات التنظيمية', 'Unit managers'),
@@ -116,12 +129,23 @@ export function TeamLeaves() {
     return +p.s <= mEnd && mStart <= +p.e;
   };
 
+  // ---- phase (upcoming / ongoing / completed / cancelled)
+  const phaseOf = (lv: Leave): string => {
+    if (lv.status === 'ملغاة' || lv.status === 'مرفوضة') return 'ملغاة';
+    const p = pmap[lv.id];
+    if (!p) return '';
+    if (+p.e < +TODAY) return 'منتهية';
+    if (+p.s > +TODAY) return 'قادمة';
+    return 'جارية';
+  };
+
   // ---- filter
   const q = search.trim();
   const match = (lv: Leave): boolean => {
     if (fCat && lv.cat !== fCat) return false;
     if (fStatus && lv.status !== fStatus) return false;
     if (fType && lv.type !== fType) return false;
+    if (fPhase && phaseOf(lv) !== fPhase) return false;
     if (q && !(lv.person.includes(q) || lv.role.includes(q) || lv.dept.includes(q))) return false;
     if (onlyConflict && !(conflictWith[lv.id] && conflictWith[lv.id].length)) return false;
     if (fMonth) { const p = pmap[lv.id]; if (!p || !monthInRange(p)) return false; }
@@ -176,8 +200,11 @@ export function TeamLeaves() {
   const dec = (lv: Leave) => {
     const [bg, fg] = STC[lv.status] || STC['مخططة'];
     const cw = conflictWith[lv.id] || [];
+    const ph = phaseOf(lv);
+    const [phBg, phFg] = PHC[ph] || ['#eef1ec', '#6d7973'];
     return {
       lv,
+      phase: ph, phaseLabel: ph ? tr(ph) : '', phBg, phFg,
       bg, fg,
       statusLabel: tr(lv.status),
       catLabel: CATL[lv.cat] || lv.cat,
@@ -221,7 +248,7 @@ export function TeamLeaves() {
   const appr = leaves.filter((l) => l.status === 'معتمدة').length;
   const AC = '#1e4634', NB = '#e8ebe6';
   const noFilters = !fStatus && !onlyConflict && !fCat && !fType;
-  const clearAll = () => { setFStatus(''); setFCat(''); setFType(''); setSearch(''); setFMonth(''); setOnlyConflict(false); };
+  const clearAll = () => { setFStatus(''); setFCat(''); setFType(''); setSearch(''); setFMonth(''); setOnlyConflict(false); setFPhase(''); };
   const kpis = [
     { label: rl('إجمالي الطلبات', 'Total requests'), value: leaves.length, icon: '∑', bg: '#eef1ec', fg: '#1e4634', border: noFilters ? AC : NB, action: clearAll },
     { label: rl('بانتظار الاعتماد', 'Pending'), value: pend, icon: '⏱', bg: '#fbf0d6', fg: '#a9791f', border: fStatus === 'بانتظار الاعتماد' ? AC : NB, action: () => { setFStatus(fStatus === 'بانتظار الاعتماد' ? '' : 'بانتظار الاعتماد'); setOnlyConflict(false); } },
@@ -235,9 +262,10 @@ export function TeamLeaves() {
   const statusOpts = [{ v: '', label: rl('كل الحالات', 'All statuses') }, ...opt(['بانتظار الاعتماد', 'معتمدة', 'مرفوضة', 'مخططة', 'منتهية'])];
   const typeOpts = [{ v: '', label: rl('كل الأنواع', 'All types') }, ...opt(['سنوية', 'طارئة', 'مرضية'])];
   const monthOpts = [{ v: '', label: rl('كل الأشهر', 'All months') }, ...monthKeys.map((k) => ({ v: k, label: monName(monthMap[k].m) + ' ' + monthMap[k].y }))];
+  const phaseOpts = [{ v: '', label: rl('كل المراحل', 'All phases') }, ...opt(['قادمة', 'جارية', 'منتهية', 'ملغاة'])];
 
   // ---- side panel actions
-  const closePanel = () => { setSelId(null); setEditingDates(false); setNoteDraft(''); };
+  const closePanel = () => { setSelId(null); setEditingDates(false); setNoteDraft(''); setLvEdit(false); };
   const openPanel = (id: string) => { setSelId(id); setEditingDates(false); setNoteDraft(''); };
   const doApprove = (id: string) => { mutate((d) => { const lv = d.leaves.find((l) => l.id === id); if (lv) lv.status = 'معتمدة'; }); showToast(rl('تم اعتماد الإجازة', 'Leave approved')); };
   const doReject = (id: string) => {
@@ -332,6 +360,7 @@ export function TeamLeaves() {
           <Dropdown value={fCat} options={catOpts} onChange={setFCat} opt={{ size: 'sm', minWidth: '140px' }} />
           <Dropdown value={fStatus} options={statusOpts} onChange={(v) => { setFStatus(v); setOnlyConflict(false); }} opt={{ size: 'sm', minWidth: '150px' }} />
           <Dropdown value={fType} options={typeOpts} onChange={setFType} opt={{ size: 'sm', minWidth: '130px' }} />
+          <Dropdown value={fPhase} options={phaseOpts} onChange={setFPhase} opt={{ size: 'sm', minWidth: '130px' }} />
           {checkChip(onlyConflict, rl('التعارضات فقط', 'Conflicts only'), () => { setOnlyConflict(!onlyConflict); setFStatus(''); })}
           {checkChip(fStatus === 'بانتظار الاعتماد', rl('بانتظار الاعتماد فقط', 'Pending only'), () => { setFStatus(fStatus === 'بانتظار الاعتماد' ? '' : 'بانتظار الاعتماد'); setOnlyConflict(false); })}
         </div>
@@ -413,7 +442,10 @@ export function TeamLeaves() {
               <div style={{ color: '#3c4a42' }}>{tr(r.lv.type)}</div>
               <div style={{ color: '#3c4a42', fontSize: 12 }}>{r.period}</div>
               <div style={{ color: '#3c4a42' }}>{r.lv.days}</div>
-              <div><Badge bg={r.bg} fg={r.fg} style={{ padding: '3px 10px' }}>{r.statusLabel}</Badge></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                <Badge bg={r.bg} fg={r.fg} style={{ padding: '3px 10px' }}>{r.statusLabel}</Badge>
+                {r.phase && <Badge bg={r.phBg} fg={r.phFg} style={{ padding: '2px 9px', fontSize: 9.5 }}>{r.phaseLabel}</Badge>}
+              </div>
               <div style={{ color: '#6d7973', fontSize: 12 }}>{r.backupDisp}</div>
             </div>
           ))}
@@ -425,7 +457,19 @@ export function TeamLeaves() {
 
       {/* SIDE PANEL */}
       <Drawer open={!!selLv} onClose={closePanel} width={456}>
-        {selLv && <LeavePanel
+        {selLv && lvEdit && canManage && (
+          <div style={{ padding: '22px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <button onClick={() => setLvEdit(false)} title={rl('رجوع', 'Back')} style={{ flex: 'none', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, cursor: 'pointer' }}>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: lang === 'en' ? 'none' : 'scaleX(-1)' }}><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg>
+              </button>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#17211c' }}>{rl('تعديل الإجازة', 'Edit leave')}</h3>
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: 11.5, color: '#9aa39b' }}>{selLv.person}</p>
+            <LeaveFormFields key={selLv.id} leaveId={selLv.id} onDone={() => setLvEdit(false)} onCancel={() => setLvEdit(false)} />
+          </div>
+        )}
+        {selLv && !(lvEdit && canManage) && <LeavePanel
           key={selLv.id}
           lv={selLv}
           dec={dec(selLv)}
@@ -435,6 +479,8 @@ export function TeamLeaves() {
           canApprove={canApprove}
           canNote={canNote}
           canReview={canReview}
+          canManage={canManage}
+          onEdit={() => setLvEdit(true)}
           parsed={parsed}
           members={data.members.map((m) => m.name)}
           managerNames={leaves.filter((l) => l.cat === 'manager').map((l) => l.person)}
@@ -458,7 +504,23 @@ export function TeamLeaves() {
           onReviewed={() => doReviewed(selLv.id)}
         />}
       </Drawer>
-      <SectionAddButton section="leaves" />
+
+      {canManage && (
+        <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
+          <button onClick={() => setLvForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            {rl('إضافة إجازة', 'New leave')}
+          </button>
+        </div>
+      )}
+
+      {lvForm && (
+        <Modal open onClose={() => setLvForm(false)} width={620}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{rl('إجازة جديدة', 'New leave record')}</h3>
+          <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{rl('تخطيط داخلي للإجازات — الاعتماد الرسمي والأرصدة عبر Oracle من اختصاص الموارد البشرية.', 'Internal planning only — official approval, balances and Oracle stay with HR.')}</p>
+          <LeaveFormFields leaveId={null} onDone={() => setLvForm(false)} onCancel={() => setLvForm(false)} />
+        </Modal>
+      )}
     </Fade>
   );
 }
@@ -466,13 +528,15 @@ export function TeamLeaves() {
 // ============================= SIDE PANEL =============================
 interface PanelProps {
   lv: Leave;
-  dec: ReturnType<() => { bg: string; fg: string; statusLabel: string; catLabel: string; period: string; backupDisp: string; hasConflict: boolean; conflictWith: string }>;
+  dec: ReturnType<() => { bg: string; fg: string; statusLabel: string; catLabel: string; period: string; backupDisp: string; hasConflict: boolean; conflictWith: string; phase: string; phaseLabel: string; phBg: string; phFg: string }>;
   reviewed: boolean;
   rl: (a: string, b: string) => string;
   tr: (s: string | null | undefined) => string;
   canApprove: boolean;
   canNote: boolean;
   canReview: boolean;
+  canManage: boolean;
+  onEdit: () => void;
   parsed: Parsed[];
   members: string[];
   managerNames: string[];
@@ -529,6 +593,7 @@ function LeavePanel(p: PanelProps) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <Badge bg={dec.bg} fg={dec.fg} style={{ fontSize: 11, padding: '4px 12px' }}>{dec.statusLabel}</Badge>
+          {dec.phase && <Badge bg={dec.phBg} fg={dec.phFg} style={{ fontSize: 11, padding: '4px 12px' }}>{dec.phaseLabel}</Badge>}
           <Badge bg="#f2f4f0" fg="#6d7973" style={{ fontSize: 11, padding: '4px 12px', fontWeight: 600 }}>{dec.catLabel}</Badge>
           {dec.hasConflict && <Badge bg="#f6e5df" fg="#b0433b" style={{ fontSize: 11, padding: '4px 12px' }}>{rl('تعارض', 'Conflict')}</Badge>}
           {p.reviewed && <Badge bg="#e2f0e8" fg="#2e7d55" style={{ fontSize: 11, padding: '4px 12px' }}>{rl('تمت المراجعة', 'Reviewed')}</Badge>}
@@ -587,6 +652,25 @@ function LeavePanel(p: PanelProps) {
         </div>
         <div><div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 4 }}>{rl('الإدارة', 'Unit')}</div><div style={{ fontSize: 12.5, color: '#2a332d', lineHeight: 1.6 }}>{lv.dept}</div></div>
         <div><div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 4 }}>{rl('البديل المعيّن', 'Assigned backup')}</div><div style={{ fontSize: 12.5, color: '#2a332d', lineHeight: 1.6 }}>{dec.backupDisp}</div></div>
+        {!!(lv.attachments && lv.attachments.length) && (
+          <div>
+            <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 6 }}>{rl('المرفقات الداعمة', 'Supporting attachments')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {lv.attachments.map((a, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 9, padding: '8px 11px', fontSize: 12, color: '#2a332d' }}>
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg>
+                  {a}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {!!(lv.chairNotes && lv.chairNotes.trim()) && (
+          <div style={{ background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 11, padding: '11px 13px' }}>
+            <div style={{ fontSize: 10.5, color: '#1e4634', marginBottom: 4, fontWeight: 700 }}>{rl('ملاحظات وتوجيهات رئيس القطاع', 'Sector Head comments & instructions')}</div>
+            <div style={{ fontSize: 12.5, color: '#2b4a3a', lineHeight: 1.7 }}>{lv.chairNotes}</div>
+          </div>
+        )}
         {!!(lv.notes && lv.notes.trim()) && (
           <div style={{ background: '#fbf7ee', border: '1px solid #efe3c9', borderRadius: 11, padding: '11px 13px' }}>
             <div style={{ fontSize: 10.5, color: '#a9791f', marginBottom: 4 }}>{rl('ملاحظات', 'Notes')}</div>
@@ -627,6 +711,17 @@ function LeavePanel(p: PanelProps) {
             {rl('ملاحظة', 'Note')}
           </button>
         )}
+        {p.canManage && (
+          <button onClick={p.onEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+            {rl('تعديل الإجازة', 'Edit leave')}
+          </button>
+        )}
+        {p.canManage && (
+          <span style={{ width: '100%', fontSize: 10, color: '#9aa39b', lineHeight: 1.6 }}>
+            {rl('الاعتماد الرسمي وتعديل الأرصدة ومعالجة الإجازة في Oracle من اختصاص الموارد البشرية — هذه الشاشة للتخطيط الداخلي فقط.', 'Official approval, balances and Oracle processing stay with HR — this screen is for internal planning only.')}
+          </span>
+        )}
         {p.canReview && (
           <>
             <button onClick={p.onReqEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -641,5 +736,136 @@ function LeavePanel(p: PanelProps) {
         )}
       </div>
     </div>
+  );
+}
+
+/* ---- Leave planning form (leave planner): employee or sector director,
+   type, dates with auto day-count, backup, notes, chair instructions and
+   supporting attachments. Conflicts are detected live; conflicted or
+   review-worthy records can be sent to the Sector Head. Official approval,
+   balances and Oracle processing are out of scope by design. ---- */
+function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null; onDone: () => void; onCancel: () => void }) {
+  const { lang, tr } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const cu = useCurrentUser();
+  const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+
+  const existing = leaveId ? data.leaves.find((l) => l.id === leaveId) : null;
+  const [f, setF] = useState<Record<string, string>>(() => existing ? {
+    person: existing.person, type: existing.type, start: existing.start, end: existing.end,
+    backup: existing.backup || '—', notes: existing.notes || '', chairNotes: existing.chairNotes || '',
+    fstatus: existing.status,
+  } : { person: '', type: 'سنوية', start: '', end: '', backup: '—', notes: '', chairNotes: '', fstatus: 'مخططة' });
+  const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
+  const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+
+  // people pool: office team + sector directors (cat derives from the pick)
+  const officeNames = data.members.map((m) => m.name);
+  const managerNames = data.sectorManagers.map((m) => m.name);
+  const personOpts = [
+    ...officeNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('فريق المكتب', 'Office team') })),
+    ...managerNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء القطاع', 'Sector directors') })),
+  ];
+  const catOfPerson = (n: string): LeaveCat => (managerNames.includes(n) ? 'manager' : 'office');
+  const backupOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') },
+    ...[...officeNames, ...managerNames].filter((n) => n !== f.person).map((n) => ({ v: n, label: tr(n) }))];
+
+  // auto day count
+  const ps = parseAr(f.start), pe = parseAr(f.end);
+  const days = ps && pe && +pe >= +ps ? Math.round((+pe - +ps) / DAY) + 1 : 0;
+
+  // live conflict detection: overlapping active leave in the same category
+  const clash = (ps && pe && f.person) ? data.leaves.filter((l) => {
+    if (l.id === leaveId || !activeForConflict(l)) return false;
+    if (l.cat !== catOfPerson(f.person)) return false;
+    const s2 = parseAr(l.start), e2 = parseAr(l.end);
+    return !!(s2 && e2 && s2 <= pe && ps <= e2);
+  }) : [];
+
+  const STATUS_PLAN = ['مخططة', 'منتهية', 'ملغاة'];
+
+  const save = (send: boolean) => {
+    if (!f.person) { showToast(rl('يرجى اختيار الموظف أو مدير القطاع', 'Please pick the employee or sector director')); return; }
+    if (!ps || !pe || +pe < +ps) { showToast(rl('يرجى ضبط تاريخي البداية والنهاية', 'Please set valid start and end dates')); return; }
+    mutate((d) => {
+      let lv: Leave & { _mowner?: string; _mrev?: boolean; _mret?: string; _mlog?: unknown[] };
+      if (existing) lv = d.leaves.find((l) => l.id === leaveId)! as never;
+      else {
+        lv = { id: 'lv' + Math.floor(Math.random() * 1e9), person: '', cat: 'office', role: '', dept: '', type: '', start: '', end: '', days: 0, status: 'مخططة', backup: '—', notes: '' };
+        d.leaves.unshift(lv);
+        lv._mowner = cu.id;
+      }
+      if (!lv) return;
+      lv.person = f.person;
+      lv.cat = catOfPerson(f.person);
+      const mem = d.members.find((m) => m.name === f.person);
+      const mgr = d.sectorManagers.find((m) => m.name === f.person);
+      lv.role = mem ? mem.role : (mgr ? mgr.role : lv.role);
+      lv.dept = mgr ? mgr.dept : (lv.dept || 'مكتب رئيس القطاع');
+      lv.type = f.type; lv.start = f.start; lv.end = f.end; lv.days = days;
+      lv.backup = f.backup || '—'; lv.notes = (f.notes || '').trim();
+      lv.chairNotes = (f.chairNotes || '').trim();
+      lv.attachments = atts;
+      if (send) {
+        lv.status = 'بانتظار الاعتماد';
+        lv._mrev = true; lv._mret = ''; lv._mowner = lv._mowner || cu.id;
+        (lv._mlog = lv._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار مراجعة رئيس القطاع', note: clash.length ? rl('تعارض في الجدولة مع: ', 'Scheduling conflict with: ') + clash.map((c) => c.person).join('، ') : '', sent: true, by: cu.name });
+      } else if (STATUS_PLAN.includes(f.fstatus)) {
+        lv.status = f.fstatus;
+      }
+    });
+    showToast(send
+      ? rl('أُرسلت الإجازة لرئيس القطاع للمراجعة', 'Leave sent to the Sector Head for review')
+      : rl('تم حفظ سجل الإجازة', 'Leave record saved'));
+    onDone();
+  };
+
+  const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+  const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
+  const lockedStatus = existing && !STATUS_PLAN.includes(existing.status);
+
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الموظف / مدير القطاع', 'Employee / sector director')}</Label>
+          <Dropdown value={f.person} options={personOpts} onChange={set('person')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الشخص', 'Pick a person') }} /></div>
+        <div><Label>{rl('نوع الإجازة', 'Leave type')}</Label><Dropdown value={f.type} options={['سنوية', 'طارئة', 'مرضية'].map((v) => ({ v, label: tr(v) }))} onChange={set('type')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('حالة التخطيط', 'Planning status')}</Label>
+          {lockedStatus
+            ? <div style={{ ...inputStyle, background: '#f2f4f0', color: '#7d867f' }}>{tr(existing!.status)} — {rl('تُدار من رئيس القطاع', 'managed by the Sector Head')}</div>
+            : <Dropdown value={f.fstatus} options={STATUS_PLAN.map((v) => ({ v, label: tr(v) }))} onChange={set('fstatus')} opt={{ block: true, size: 'sm' }} />}
+        </div>
+        <div><Label>{rl('تاريخ البداية', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
+        <div><Label>{rl('تاريخ النهاية', 'End date')}</Label><DateField value={f.end} onChange={set('end')} /></div>
+        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 10, padding: '9px 12px' }}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1e4634" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>
+          <span style={{ fontSize: 12, color: '#3c4a42' }}>{rl('عدد الأيام (محسوب تلقائياً): ', 'Days (auto-calculated): ')}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: '#1e4634' }}>{days || '—'}</span>
+        </div>
+        {clash.length > 0 && (
+          <div style={{ gridColumn: '1 / -1', background: '#fdf3ef', border: '1px solid #f0d8ce', borderRadius: 11, padding: '11px 13px' }}>
+            <div style={{ fontSize: 11, color: '#b0433b', fontWeight: 800, marginBottom: 4 }}>{rl('تنبيه: تعارض في الجدولة', 'Warning: scheduling conflict')}</div>
+            <div style={{ fontSize: 12, color: '#9a3a2b', lineHeight: 1.7 }}>
+              {rl('تتداخل هذه الفترة مع: ', 'This period overlaps with: ')}{clash.map((c) => tr(c.person)).join('، ')} — {rl('يُنصح بإرسالها لرئيس القطاع للمراجعة.', 'sending it to the Sector Head for review is recommended.')}
+            </div>
+          </div>
+        )}
+        <div><Label>{rl('البديل / القائم بالأعمال', 'Backup / acting person')}</Label><Dropdown value={f.backup} options={backupOpts} onChange={set('backup')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('ملاحظات داخلية', 'Internal notes')}</Label><input value={f.notes} onChange={setI('notes')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('ملاحظات وتوجيهات رئيس القطاع', 'Sector Head comments & instructions')}</Label><textarea value={f.chairNotes} onChange={setI('chairNotes')} rows={2} placeholder={rl('تُسجَّل هنا توجيهات رئيس القطاع المتعلقة بهذه الإجازة…', 'Record the Sector Head instructions for this leave…')} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مرفقات داعمة (إن وجدت)', 'Supporting attachments (optional)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
+      </div>
+      <div style={{ marginTop: 12, fontSize: 10.5, color: '#9aa39b', lineHeight: 1.7 }}>
+        {rl('هذه الشاشة للتخطيط الداخلي والاطلاع فقط — الاعتماد الرسمي وتعديل الأرصدة ومعالجة الإجازة في Oracle من اختصاص الموارد البشرية.', 'Internal planning and visibility only — official approval, leave balances and Oracle processing remain with HR.')}
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button onClick={onCancel} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
+        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع للمراجعة', 'Send to Sector Head for review')}</button>
+      </div>
+    </>
   );
 }

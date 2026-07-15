@@ -11,6 +11,7 @@ import type { Project } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
 import { ProjectEditModal } from './ProjectEditModal';
 import { DateField } from '../../components/DateField';
+import { FileUploadField } from '../../components/FileUploadField';
 
 const TODAY_STORE = '2 يوليو 2026';
 
@@ -35,7 +36,7 @@ export function ProjectDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [updOpen, setUpdOpen] = useState(false);
   const [updDraft, setUpdDraft] = useState('');
-  const [attachDraft, setAttachDraft] = useState('');
+  const [attachStaged, setAttachStaged] = useState<string[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [reopenMode, setReopenMode] = useState(false);
@@ -450,11 +451,13 @@ export function ProjectDetail() {
         {pdTab === 'files' && (
           <div style={{ animation: 'fadeUp .16s ease' }}>
             {canEdit && (
-              <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-                <input value={attachDraft} onChange={(e) => setAttachDraft(e.target.value)} placeholder={rl('اسم المرفق (مثال: خطة المشروع.pdf)', 'Attachment name (e.g. plan.pdf)')} style={{ flex: 1, minWidth: 200, border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none' }} />
-                <button type="button" onClick={() => { const v = attachDraft.trim(); if (!v) return; mutate((d) => { const pr = d.projects.find((x) => x.id === id); if (pr) (pr.attachments = pr.attachments || []).push(v); }); setAttachDraft(''); showToast(rl('تمت إضافة المرفق', 'Attachment added')); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة مرفق', 'Add attachment')}
-                </button>
+              <div style={{ marginBottom: 14 }}>
+                <FileUploadField files={attachStaged} onChange={setAttachStaged} />
+                {attachStaged.length > 0 && (
+                  <button type="button" onClick={() => { const fs = attachStaged; mutate((d) => { const pr = d.projects.find((x) => x.id === id); if (pr) pr.attachments = [...(pr.attachments || []), ...fs]; }); setAttachStaged([]); showToast(rl('تمت إضافة المرفقات إلى المشروع', 'Attachments added to the project')); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('حفظ المرفقات في المشروع', 'Save attachments to project')} ({attachStaged.length})
+                  </button>
+                )}
               </div>
             )}
             {attachments.length > 0 ? (
@@ -467,10 +470,13 @@ export function ProjectDetail() {
                       <span style={{ width: 38, height: 38, flex: 'none', borderRadius: 10, background: xl ? '#e2f0e8' : '#f7e6e4', color: xl ? '#2e7d55' : '#b0433b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
                       </span>
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: '#2a332d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(fn)}</div>
                         <div style={{ fontSize: 10.5, color: '#9aa39b' }}>{xl ? 'Excel' : 'PDF'}</div>
                       </div>
+                      {canEdit && (
+                        <button type="button" title={rl('إزالة المرفق', 'Remove attachment')} onClick={() => { mutate((d) => { const pr = d.projects.find((x) => x.id === id); if (pr) pr.attachments = (pr.attachments || []).filter((_, x) => x !== i); }); showToast(rl('تمت إزالة المرفق', 'Attachment removed')); }} style={{ flex: 'none', width: 24, height: 24, border: 'none', borderRadius: 7, background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 }}>✕</button>
+                      )}
                     </div>
                   );
                 })}

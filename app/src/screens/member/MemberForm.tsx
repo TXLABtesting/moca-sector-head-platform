@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../../components/ui';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
+import { FileUploadField } from '../../components/FileUploadField';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
@@ -126,6 +127,10 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
           <Field label={rl('المرسل', 'Sender')} k="sender" />
           <Field label={rl('المستلم', 'Recipient')} k="recipient" />
           <Field label={rl('المتابع', 'Follow-up')} k="followup" />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Label>{rl('المرفق', 'Attachment')}</Label>
+            <FileUploadField multiple={false} files={f.attachment ? [String(f.attachment)] : []} onChange={(fs) => setF((p: any) => ({ ...p, attachment: fs[0] || '' }))} />
+          </div>
         </>)}
 
         {kind === 'audit' && (<>

@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import { Fade, Modal } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
+import { FileUploadField } from '../components/FileUploadField';
 import { useToast } from '../components/Toast';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
@@ -281,7 +282,7 @@ export function Correspondence() {
       {canAdd && (
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 16 }}>
           <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>صادر / وارد جديد
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>إضافة وارد/صادر جديد
           </button>
         </div>
       )}
@@ -318,10 +319,7 @@ export function Correspondence() {
           <div style={{ gridColumn: '1/3' }}><label style={labelStyle}>{t('fAction')}</label>{txt('action')}</div>
           <div style={{ gridColumn: '1/3' }}>
             <label style={labelStyle}>{t('fAttach')}</label>
-            <div style={{ border: '1px dashed #cdd3ca', borderRadius: 10, padding: 18, textAlign: 'center', color: '#9aa39b', fontSize: 12.5, background: '#f9faf8' }}>
-              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#b0b8af" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6 }}><path d="M12 15V3m0 0-4 4m4-4 4 4" /><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
-              <div>{t('dropFile')}</div>
-            </div>
+            <FileUploadField multiple={false} files={form.attachment ? [String(form.attachment)] : []} onChange={(fs) => setF('attachment')(fs[0] || '')} />
           </div>
           <div style={{ gridColumn: '1/3' }}><label style={labelStyle}>{t('chairmanNotes')}</label><textarea value={String(form.notes ?? '')} onChange={(e) => setF('notes')(e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} /></div>
         </div>

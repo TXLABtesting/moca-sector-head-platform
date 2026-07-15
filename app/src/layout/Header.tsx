@@ -5,6 +5,7 @@ import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { TYPES } from './headerHelpers';
 import { Icon } from '../components/Icon';
+import { NotificationsBell } from './Notifications';
 import { asset } from '../shared/helpers';
 
 const BACK_PAGES: Page[] = ['projectDetail', 'meetingDetail', 'docDetail', 'reportDetail', 'auditDetail', 'finDetail', 'reglog', 'mtasks'];
@@ -105,10 +106,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 3.8 5.7 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.7-3.8-9S9.5 5.5 12 3Z" /></svg>
           {lang === 'ar' ? 'EN' : 'ع'}
         </button>
-        <button style={{ position: 'relative', width: 42, height: 42, borderRadius: 12, border: '1px solid #ebeee9', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#3c4a42', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }}>
-          <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5a5 5 0 0 0-5 5c0 4-1.5 5.5-1.5 5.5h13S17 15.5 17 11.5a5 5 0 0 0-5-5Z" /><path d="M10 19.5a2 2 0 0 0 4 0M12 4v2.5" /></svg>
-          <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: '50%', background: '#b0433b', border: '2px solid #fff' }} />
-        </button>
+        <NotificationsBell />
         <img src={asset('assets/logo.png')} alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} className="hide-sm" />
       </div>
     </header>

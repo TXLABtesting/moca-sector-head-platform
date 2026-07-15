@@ -37,6 +37,8 @@ export interface Leave {
   status: string;
   backup: string;
   notes: string;
+  chairNotes?: string;
+  attachments?: string[];
 }
 
 export interface TimelineEntry {
@@ -189,6 +191,7 @@ export interface OfficeTask {
   title: string;
   dept: string;
   owner: string;
+  participants?: string[];
   status: string;
   desc: string;
   lastUpdate: string;

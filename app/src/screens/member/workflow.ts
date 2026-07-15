@@ -21,8 +21,8 @@ const uid = (p: string) => p + Math.floor(Math.random() * 1e9);
 const COLLS: Record<string, MColl> = {
   correspondence: {
     key: 'correspondence', get: (d) => d.correspondence, title: (r) => r.name, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
-    make: (f, me) => ({ id: uid('c'), name: f.title, dir: f.dir || 'صادر', type: f.docType || 'رسالة', entity: f.entity || '—', sender: f.sender || '—', recipient: f.recipient || '—', date: f.fdate || '—', recvDate: f.fdate || '—', status: f.fstatus || 'قيد المتابعة', priority: 'متوسطة', followup: f.followup || me, needsAction: true, attachment: 'مرفق.pdf', action: f.note || '—', notes: f.note || '' }),
-    load: (r) => ({ title: r.name, dir: r.dir, docType: r.type, entity: r.entity, sender: r.sender, recipient: r.recipient, fdate: r.date, fstatus: r.status, followup: r.followup, note: r.notes }),
+    make: (f, me) => ({ id: uid('c'), name: f.title, dir: f.dir || 'صادر', type: f.docType || 'رسالة', entity: f.entity || '—', sender: f.sender || '—', recipient: f.recipient || '—', date: f.fdate || '—', recvDate: f.fdate || '—', status: f.fstatus || 'قيد المتابعة', priority: 'متوسطة', followup: f.followup || me, needsAction: true, attachment: f.attachment || 'مرفق.pdf', action: f.note || '—', notes: f.note || '' }),
+    load: (r) => ({ title: r.name, dir: r.dir, docType: r.type, entity: r.entity, sender: r.sender, recipient: r.recipient, fdate: r.date, fstatus: r.status, followup: r.followup, note: r.notes, attachment: r.attachment }),
   },
   followups: {
     key: 'actions', get: (d) => d.actions, title: (r) => r.title, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
@@ -45,7 +45,7 @@ const COLLS: Record<string, MColl> = {
     load: (r) => ({ title: r.name, note: r.purpose, fstatus: r._mstatus }),
   },
   leaves: {
-    key: 'leaves', get: (d) => d.leaves, title: (r) => r.person, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    key: 'leaves', get: (d) => d.leaves, title: (r) => r.person, status: (r) => r.status, setStatus: (r, s) => { r.status = s === 'معتمد' ? 'معتمدة' : s; },
     make: (f) => ({ id: uid('lv'), person: f.title, cat: 'office', role: '', dept: f.entity || '', type: f.docType || 'سنوية', start: f.start || '—', end: f.due || '—', days: 0, status: f.fstatus || 'بانتظار الاعتماد', backup: f.backup || '—', notes: f.note || '' }),
     load: (r) => ({ title: r.person, entity: r.dept, docType: r.type, start: r.start, due: r.end, fstatus: r.status, backup: r.backup, note: r.notes }),
   },
@@ -100,7 +100,7 @@ export function ownedBy(ownerStr: string, name: string): boolean {
 }
 
 /** Statuses considered "closed" for the member's open-items counters. */
-export const FINAL_STATUSES = ['معتمد', 'مكتمل', 'ملغي', 'مغلق', 'مرفوض', 'منتهية'];
+export const FINAL_STATUSES = ['معتمد', 'معتمدة', 'مكتمل', 'ملغي', 'ملغاة', 'مغلق', 'مرفوض', 'مرفوضة', 'منتهية'];
 
 const SEC_KIND: Record<string, string> = {
   correspondence: 'correspondence', followups: 'followup', projects: 'project', projPhases: 'project', projUpdates: 'project', projRisks: 'project',
