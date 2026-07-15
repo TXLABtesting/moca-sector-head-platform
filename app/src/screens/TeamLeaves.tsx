@@ -1,9 +1,10 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Fade, Drawer, Avatar, Badge, Modal } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { useToast } from '../components/Toast';
 import { useStore } from '../store/store';
+import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { useI18n } from '../i18n/i18n';
@@ -266,6 +267,11 @@ export function TeamLeaves() {
 
   // ---- side panel actions
   const closePanel = () => { setSelId(null); setEditingDates(false); setNoteDraft(''); setLvEdit(false); };
+  const { params } = useNav();
+  useEffect(() => {
+    const t = params.selLeave as string | undefined;
+    if (t) { setSelId(t); setLvEdit(false); }
+  }, [params.selLeave]);
   const openPanel = (id: string) => { setSelId(id); setEditingDates(false); setNoteDraft(''); };
   const doApprove = (id: string) => { mutate((d) => { const lv = d.leaves.find((l) => l.id === id); if (lv) lv.status = 'معتمدة'; }); showToast(rl('تم اعتماد الإجازة', 'Leave approved')); };
   const doReject = (id: string) => {

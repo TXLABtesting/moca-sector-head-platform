@@ -108,24 +108,6 @@ export function MemberDashboard() {
       <p style={{ margin: '0 0 16px', fontSize: 13, color: '#7d867f' }}>{cu.job}</p>
       <DemoHint />
 
-      {/* personal alerts: returned items */}
-      {buckets.returned.map((it) => (
-        <div key={it.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: '#fdf3f2', border: '1px solid #f3d9d6', borderRadius: 14, padding: '14px 16px', marginBottom: 10 }}>
-          <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none', marginTop: 1 }}><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z" /><path d="M12 8v4m0 4h.01" /></svg>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c' }}>{tr(it.title)}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '3px 10px', background: '#f7e6e4', color: '#b0433b' }}>{tr(it.status)}</span>
-            </div>
-            {it.reason && <div style={{ fontSize: 12.5, color: '#9a3f38', lineHeight: 1.6 }}><strong>{rl('سبب الإرجاع', 'Return reason')}:</strong> {it.reason}</div>}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 'none', alignSelf: 'center' }}>
-            <button onClick={() => setForm({ section: it.sec, editId: it.id })} style={btnGhost}>{rl('تعديل', 'Edit')}</button>
-            <button onClick={() => sendForReview(it)} style={btnPrimary}>{rl('إعادة الإرسال', 'Resend')}</button>
-          </div>
-        </div>
-      ))}
-
       {/* six workflow filter cards */}
       <div className="rg3" style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 11, margin: '14px 0 18px' }}>
         {CARDS.map((c) => {

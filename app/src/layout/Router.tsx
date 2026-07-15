@@ -16,6 +16,7 @@ import { OfficeTasks } from '../screens/OfficeTasks';
 import { TeamLeaves } from '../screens/TeamLeaves';
 import { TeamWorkspace } from '../screens/TeamWorkspace';
 import { Settings } from '../screens/Settings';
+import { NotificationsCenter } from '../screens/NotificationsCenter';
 
 export function Router() {
   const { page } = useNav();
@@ -59,6 +60,8 @@ export function Router() {
       return <TeamWorkspace />;
     case 'settings':
       return <Settings />;
+    case 'notifications':
+      return <NotificationsCenter />;
     default:
       return <ChairDashboard />;
   }

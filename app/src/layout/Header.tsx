@@ -28,6 +28,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
     docDetail: t('t_docDetail'), reportcenter: t('t_reportcenter'), reportDetail: t('rc_detailTitle'),
     auditDetail: t('au_title'), finDetail: t('fin_title'), reglog: t('reg_title'), mtasks: t('mt_title'),
     otasks: t('ot_title'), leaves: t('lv_title'), settings: t('t_settings'),
+    notifications: rl('مركز التنبيهات', 'Notifications Center'),
   };
   const crumbs: Record<string, string> = {
     dashboard: t('c_dashboard'), workspace: rl('فريق المكتب', 'Office Team'),
@@ -37,6 +38,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
     docDetail: t('c_docDetail'), reportcenter: t('c_reportcenter'), reportDetail: t('rc_crumb'),
     auditDetail: t('rc_crumb'), finDetail: t('rc_crumb'), reglog: t('rc_crumb'), mtasks: t('n_meetings'),
     otasks: t('ot_crumb'), leaves: t('lv_crumb'), settings: t('c_settings'),
+    notifications: rl('التنبيهات', 'Notifications'),
   };
 
   const showBack = BACK_PAGES.includes(page);

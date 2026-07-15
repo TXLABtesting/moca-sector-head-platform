@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Fade, Card, Badge, Modal } from '../components/ui';
 import { useStore } from '../store/store';
+import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
@@ -58,6 +59,11 @@ export function Committees() {
   const { showToast } = useToast();
 
   const [selId, setSelId] = useState<string | null>(null);
+  const { params } = useNav();
+  useEffect(() => {
+    const t = params.selCommittee as string | undefined;
+    if (t) setSelId(t);
+  }, [params.selCommittee]);
   const [tab, setTab] = useState<'summary' | 'meetings' | 'decisions' | 'members'>('summary');
   const [preview, setPreview] = useState<Preview | null>(null);
 
