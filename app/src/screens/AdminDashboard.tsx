@@ -5,7 +5,7 @@ import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { ACTIONS, SECTIONS, TYPES, SCOPES, type SeedUser } from '../domain/permissions';
-import { initials } from '../shared/helpers';
+import { initials, asset } from '../shared/helpers';
 import { AV } from '../shared/constants';
 
 function avColor(name: string): [string, string] {
@@ -79,7 +79,7 @@ export function AdminDashboard() {
             return (
               <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 4px', borderBottom: '1px solid #f4f6f3' }}>
                 {u.img
-                  ? <img src={'/' + u.img} alt={u.name} style={{ width: 38, height: 38, flex: 'none', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top' }} />
+                  ? <img src={asset(u.img)} alt={u.name} style={{ width: 38, height: 38, flex: 'none', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top' }} />
                   : <span style={{ width: 38, height: 38, flex: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: avBg, color: avFg }}>{initials(u.name)}</span>}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>

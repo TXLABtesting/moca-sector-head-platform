@@ -1,5 +1,6 @@
 /* Pure helpers ported from dc-shared.js. */
 import { AR_MONTHS, AR_MON_IDX, MONN, MIMG } from './constants';
+import { ASSET_DATA } from './assetData';
 
 export function pad2(n: number): string { return (n < 10 ? '0' : '') + n; }
 
@@ -8,9 +9,12 @@ export function initials(n: string): string {
   return (p[0] || '').slice(0, 1) + ((p[1] || '').slice(0, 1));
 }
 
-/** Ensure a prototype asset path (e.g. "assets/team/x.jpg") is served from /assets. */
+/** Resolve a prototype asset path (e.g. "assets/team/x.jpg"): inlined data URI when
+ *  available (self-contained demo build), else the /assets URL. */
 export function asset(path: string): string {
   if (!path) return '';
+  const key = path.replace(/^\//, '');
+  if (ASSET_DATA[key]) return ASSET_DATA[key];
   if (path.startsWith('http') || path.startsWith('/')) return path;
   return '/' + path;
 }

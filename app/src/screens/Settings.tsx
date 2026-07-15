@@ -7,7 +7,7 @@ import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { ACTIONS, SECTIONS, TYPES, SCOPES, SEED_USERS, effectivePerms, type SeedUser, type ActionKey } from '../domain/permissions';
-import { initials } from '../shared/helpers';
+import { initials, asset } from '../shared/helpers';
 import { AV } from '../shared/constants';
 
 type Tab = 'users' | 'types' | 'sections' | 'extra' | 'log';
@@ -122,7 +122,7 @@ export function Settings() {
             return (
               <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.2fr 1.3fr 0.7fr', gap: 12, alignItems: 'center', padding: '12px 8px', borderBottom: '1px solid #f4f6f3' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-                  {u.img ? <img src={'/' + u.img} alt={u.name} style={{ width: 38, height: 38, flex: 'none', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top' }} /> : <span style={{ width: 38, height: 38, flex: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: avBg, color: avFg }}>{initials(u.name)}</span>}
+                  {u.img ? <img src={asset(u.img)} alt={u.name} style={{ width: 38, height: 38, flex: 'none', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top' }} /> : <span style={{ width: 38, height: 38, flex: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: avBg, color: avFg }}>{initials(u.name)}</span>}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
                     <div style={{ fontSize: 11, color: '#9aa39b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.job}</div>

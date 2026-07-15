@@ -6,6 +6,7 @@ import { useCurrentUser } from '../store/useCurrentUser';
 import { canSee } from '../domain/permissions';
 import { ACTIVE_MAP, NAV_SECTION, NAV_BASE, NAV_ON, BADGE_STYLE } from './navConfig';
 import { Avatar } from '../components/ui';
+import { asset } from '../shared/helpers';
 
 interface NavDef { key: Page; labelKey: string; labelAr: string; labelEn: string; icon: ReactNode; badge?: number; child?: boolean }
 
@@ -90,7 +91,7 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
         })}
       </nav>
       <div className="sb-profile" style={{ margin: 12, padding: '14px 15px', borderRadius: 16, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', gap: 11 }}>
-        <Avatar name={cu.name} img={cu.img ? '/' + cu.img : undefined} size={42} />
+        <Avatar name={cu.name} img={cu.img ? asset(cu.img) : undefined} size={42} />
         <div className="sb-proftext" style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>{roleName}</div>
           <div style={{ fontSize: 11, color: '#9fb8a9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{roleTypeName}</div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { seedData } from '../data/seed';
 import type { AppData } from '../data/types';
 import { WORK_ITEMS, type WorkItem } from '../domain/workflow';
@@ -37,6 +37,27 @@ interface AppState {
 
 const clone = <T,>(v: T): T => (typeof structuredClone === 'function' ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
 
+/** localStorage when available, else in-memory (sandboxed iframes of the hosted demo
+ *  throw on any localStorage access — the demo then simply resets on reload). */
+function safeStorage(): Storage {
+  try {
+    const t = '__moca_probe__';
+    window.localStorage.setItem(t, '1');
+    window.localStorage.removeItem(t);
+    return window.localStorage;
+  } catch {
+    const mem = new Map<string, string>();
+    return {
+      getItem: (k: string) => (mem.has(k) ? mem.get(k)! : null),
+      setItem: (k: string, v: string) => { mem.set(k, v); },
+      removeItem: (k: string) => { mem.delete(k); },
+      clear: () => mem.clear(),
+      key: (i: number) => Array.from(mem.keys())[i] ?? null,
+      get length() { return mem.size; },
+    } as Storage;
+  }
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -65,6 +86,7 @@ export const useStore = create<AppState>()(
     {
       name: 'moca.platform',
       version: 4,
+      storage: createJSONStorage(safeStorage),
     }
   )
 );

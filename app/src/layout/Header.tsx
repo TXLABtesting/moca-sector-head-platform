@@ -5,6 +5,7 @@ import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { TYPES } from './headerHelpers';
 import { Icon } from '../components/Icon';
+import { asset } from '../shared/helpers';
 
 const BACK_PAGES: Page[] = ['projectDetail', 'meetingDetail', 'docDetail', 'reportDetail', 'auditDetail', 'finDetail', 'reglog', 'mtasks'];
 
@@ -107,7 +108,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
           <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5a5 5 0 0 0-5 5c0 4-1.5 5.5-1.5 5.5h13S17 15.5 17 11.5a5 5 0 0 0-5-5Z" /><path d="M10 19.5a2 2 0 0 0 4 0M12 4v2.5" /></svg>
           <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: '50%', background: '#b0433b', border: '2px solid #fff' }} />
         </button>
-        <img src="/assets/logo.png" alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} />
+        <img src={asset('assets/logo.png')} alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} />
       </div>
     </header>
   );
