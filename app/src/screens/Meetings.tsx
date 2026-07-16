@@ -9,8 +9,7 @@ import { can } from '../domain/permissions';
 import { PS, AS } from '../shared/constants';
 import { initials } from '../shared/helpers';
 import { MinuteTasks } from './meetings/MinuteTasks';
-import { SectionAddButton } from '../components/SectionAddButton';
-import { MemberForm } from './member/MemberForm';
+import { MinutesForm } from './meetings/MinutesForm';
 
 const DETAIL_CARD: CSSProperties = {
   background: '#ffffff', border: 'none', borderRadius: 24,
@@ -30,6 +29,10 @@ function MinutesList() {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const { goto } = useNav();
   const data = useStore((s) => s.data);
+  const cu = useCurrentUser();
+  const canEditMin = cu.type !== 'chair' && can(cu, 'minutes', 'edit');
+  const canAddMin = cu.type !== 'chair' && (can(cu, 'minutes', 'add') || can(cu, 'minutes', 'edit'));
+  const [mForm, setMForm] = useState<{ id: string | null } | null>(null);
   const meetings = data.meetings;
   const mtasks = data.mtasks;
 
@@ -50,7 +53,20 @@ function MinutesList() {
 
   return (
     <Fade>
-      <SectionAddButton section="minutes" title={rl('محاضر الاجتماعات', 'Meeting minutes')} desc={rl('سجل المحاضر وقراراتها ومهامها', 'Minutes, their decisions and tasks')} />
+      <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{rl('محاضر الاجتماعات', 'Meeting minutes')}</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{rl('سجل المحاضر وقراراتها ومهامها', 'Minutes, their decisions and tasks')}</p>
+        </div>
+        {canAddMin && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
+            <button onClick={() => setMForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              {rl('إضافة محضر اجتماع جديد', 'Add new meeting minutes')}
+            </button>
+          </div>
+        )}
+      </div>
       <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
         {kpis.map((k, i) => (
           <div key={i} onClick={k.open} style={tile}>
@@ -63,7 +79,12 @@ function MinutesList() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {meetings.map((mt) => {
           const parts = mt.date.split(' ');
-          const [bg, fg] = PS[mt.status as keyof typeof PS] || ['#eee', '#555'];
+          const meta = mt as typeof mt & { _mret?: string };
+          const stName = meta._mret ? 'أعيد للتعديل' : mt.status;
+          const [bg, fg] = PS[stName as keyof typeof PS]
+            || (stName === 'بانتظار مراجعة رئيس القطاع' ? ['#fbf0d6', '#a9791f']
+            : stName === 'مسودة' ? ['#eceeeb', '#6d7973']
+            : stName === 'أعيد للتعديل' ? ['#f7e6e4', '#b0433b'] : ['#eee', '#555']);
           const late = mt.actions.filter((a) => a.status === 'متأخر').length;
           return (
             <div key={mt.id} onClick={() => goto('meetingDetail', { selMeeting: mt.id })} style={{
@@ -97,12 +118,17 @@ function MinutesList() {
                 {late > 0 && (
                   <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: '#f7e6e4', color: '#b0433b' }}>{late} {t('overdueWord')}</span>
                 )}
-                <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: bg, color: fg }}>{tr(mt.status)}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: bg, color: fg }}>{tr(stName)}</span>
+                <button onClick={(e) => { e.stopPropagation(); goto('meetingDetail', { selMeeting: mt.id }); }} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('فتح', 'Open')}</button>
+                {canEditMin && (
+                  <button onClick={(e) => { e.stopPropagation(); setMForm({ id: mt.id }); }} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تعديل', 'Edit')}</button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+      {mForm && <MinutesForm meetingId={mForm.id} onClose={() => setMForm(null)} />}
     </Fade>
   );
 }
@@ -138,14 +164,24 @@ function MeetingDetail() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ ...DETAIL_CARD, padding: '22px 24px' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 600 }}>{tr(mt.title)}</h2>
-            <div style={{ fontSize: 12.5, color: '#8a938c', marginBottom: 16 }}>{dl(mt.date)} · {t('ownerShort')} {tr(mt.owner)}</div>
+            <div style={{ fontSize: 12.5, color: '#8a938c', marginBottom: 16, lineHeight: 1.8 }}>
+              {dl(mt.date)}{mt.time ? ' · ' + mt.time : ''} · {t('ownerShort')} {tr(mt.owner)}
+              {mt.entity ? <span> · {rl('الجهة', 'Entity')}: {tr(mt.entity)}</span> : null}
+              {mt.location ? <span> · {rl('المكان', 'Location')}: {/^https?:/.test(mt.location) ? <a href={mt.location} target="_blank" rel="noreferrer" style={{ color: '#2f6aa8' }}>{mt.location}</a> : tr(mt.location)}</span> : null}
+            </div>
+            {!!((mt as typeof mt & { _mret?: string })._mret) && (
+              <div style={{ background: '#fdf3f2', border: '1.5px solid #e7b8b3', borderRadius: 11, padding: '11px 13px', marginBottom: 14 }}>
+                <div style={{ fontSize: 11, color: '#b0433b', fontWeight: 800, marginBottom: 3 }}>{rl('أُعيد للتعديل من رئيس القطاع — سبب الإرجاع', 'Returned by the Sector Head — reason')}</div>
+                <div style={{ fontSize: 12.5, color: '#9a3a2b', lineHeight: 1.7 }}>{(mt as typeof mt & { _mret?: string })._mret}</div>
+              </div>
+            )}
             {canEditMin && (
               <button onClick={() => setEditOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 15px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', marginBottom: 16 }}>
                 <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
                 {rl('تعديل المحضر', 'Edit minutes')}
               </button>
             )}
-            {editOpen && <MemberForm open onClose={() => setEditOpen(false)} section="minutes" editId={mt.id} />}
+            {editOpen && <MinutesForm meetingId={mt.id} onClose={() => setEditOpen(false)} />}
             <div style={{ fontSize: 11, color: '#9aa39b', marginBottom: 6 }}>{t('meetingSummary')}</div>
             <p style={{ margin: 0, fontSize: 13.5, color: '#3c4a42', lineHeight: 1.7 }}>{tr(mt.summary)}</p>
           </div>
@@ -177,7 +213,11 @@ function MeetingDetail() {
                   <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', background: '#f7f8f6', borderRadius: 11, padding: '12px 14px' }}>
                     <div>
                       <div style={{ fontSize: 13, color: '#2a332d', fontWeight: 500 }}>{tr(a.text)}</div>
-                      <div style={{ fontSize: 11, color: '#9aa39b', marginTop: 3 }}>{tr(a.owner)} · {t('dueWord')} {dl(a.due)}</div>
+                      <div style={{ fontSize: 11, color: '#9aa39b', marginTop: 3 }}>
+                        {tr(a.owner)}{(a.participants && a.participants.length) ? rl(' + مشاركون: ', ' + participants: ') + a.participants.map((n) => tr(n)).join('، ') : ''} · {t('dueWord')} {dl(a.due)}
+                        {typeof a.prog === 'number' ? <span style={{ fontWeight: 800, color: '#1f4a37' }}> · {a.prog}%</span> : null}
+                        {a.lastUpdate ? <span> · {rl('آخر تحديث', 'Last update')}: {a.lastUpdate}</span> : null}
+                      </div>
                     </div>
                     {canStatus
                       ? <Dropdown value={a.status} options={['مفتوح', 'قيد التنفيذ', 'مكتمل', 'متأخر'].map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setActionStatus(a.id, v)} opt={{ size: 'sm', bg, color: fg, weight: 700, borderColor: 'transparent' }} />
@@ -216,6 +256,24 @@ function MeetingDetail() {
             )}
           </div>
 
+          {!!(mt.chairNotes && mt.chairNotes.trim()) && (
+            <div style={{ ...DETAIL_CARD, padding: 20, border: '1px solid #d6e5db' }}>
+              <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 600, color: '#1e4634' }}>{rl('ملاحظات رئيس القطاع', 'Sector Head comments')}</h3>
+              <div style={{ fontSize: 12.5, color: '#2b4a3a', lineHeight: 1.7 }}>{mt.chairNotes}</div>
+            </div>
+          )}
+          {!!(mt.attachments && mt.attachments.length > 1) && (
+            <div style={{ ...DETAIL_CARD, padding: 20 }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{rl('مرفقات إضافية', 'More attachments')}</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {mt.attachments.slice(1).map((a, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12, color: '#2a332d' }}>
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>{a}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {mt.attachment && (
             <div style={{ ...DETAIL_CARD, padding: 20 }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{t('minutesAttachment')}</h3>

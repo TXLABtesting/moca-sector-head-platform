@@ -104,6 +104,9 @@ export interface MeetingAction {
   owner: string;
   due: string;
   status: string;
+  participants?: string[];
+  prog?: number;
+  lastUpdate?: string;
 }
 
 export interface Meeting {
@@ -119,6 +122,11 @@ export interface Meeting {
   decisions: string[];
   actions: MeetingAction[];
   attachment?: string;
+  time?: string;
+  location?: string;
+  entity?: string;
+  attachments?: string[];
+  chairNotes?: string;
 }
 
 export interface ActionItem {
