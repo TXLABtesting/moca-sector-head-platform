@@ -67,7 +67,8 @@ export function ReqMeetings() {
   const isChair = cu.type === 'chair';
   const chairDecide = isChair;
   const memberManage = !isChair && can(cu, 'meetings', 'edit');
-  const canAddMeeting = can(cu, 'meetings', 'add');
+  // the Sector Head reviews/approves meetings — only the coordinator adds them
+  const canAddMeeting = cu.type !== 'chair' && can(cu, 'meetings', 'add');
   const L = lang === 'en';
   const rl = (a: string, b: string) => (L ? b : a);
 

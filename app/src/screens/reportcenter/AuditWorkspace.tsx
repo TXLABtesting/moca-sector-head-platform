@@ -123,11 +123,79 @@ function buildAuditTemplateDocx(): Blob {
 
 const downloadAuditTemplate = () => triggerDownload(buildAuditTemplateDocx(), TEMPLATE_NAME);
 
-/* ================= upload parsing (docx zip reader, no libraries) ================= */
-async function docxText(buf: ArrayBuffer): Promise<string | null> {
+/** Excel version of the template — same labels the parser reads back. */
+const XLSX_TEMPLATE_NAME = 'Followup_Audit_Report_Template.xlsx';
+function buildAuditTemplateXlsx(): Blob {
+  const rows: [string, string][] = [
+    ['الحقل', 'القيمة'],
+    ['الوحدة التنظيمية', ''],
+    ['عنوان الملاحظة', ''],
+    ['المسؤول عن المعالجة', ''],
+    ['الحالة', 'قيد التنفيذ'],
+    ['تاريخ التنفيذ', ''],
+    ['ملاحظة التدقيق الداخلي 1', ''],
+    ['ملاحظة التدقيق الداخلي 2', ''],
+    ['ملاحظة التدقيق الداخلي 3', ''],
+    ['آلية إغلاق الملاحظة 1', ''],
+    ['آلية إغلاق الملاحظة 2', ''],
+    ['آلية إغلاق الملاحظة 3', ''],
+    ['ملاحظات', ''],
+  ];
+  const cell = (ref: string, v: string) => (v ? `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${X(v)}</t></is></c>` : '');
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="34" customWidth="1"/><col min="2" max="2" width="60" customWidth="1"/></cols><sheetData>${rows.map(([a, b], i) => `<row r="${i + 1}">${cell('A' + (i + 1), a)}${cell('B' + (i + 1), b)}</row>`).join('')}</sheetData></worksheet>`;
+  const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="قالب الملاحظة" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+  return storedZip([
+    ['[Content_Types].xml', contentTypes],
+    ['_rels/.rels', rels],
+    ['xl/workbook.xml', workbook],
+    ['xl/_rels/workbook.xml.rels', wbRels],
+    ['xl/worksheets/sheet1.xml', sheetXml],
+  ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+const downloadAuditTemplateXlsx = () => triggerDownload(buildAuditTemplateXlsx(), XLSX_TEMPLATE_NAME);
+
+/** Build a docx pre-filled with the CURRENT report data (all its observations). */
+function buildFilledReportDocx(rep: AuditRep, obs: { title: string; owner: string; status: string; due: string; notes: string; obsB: string[]; actB: string[] }[]): Blob {
+  const bulletLines = (arr: string[]) => (arr.filter((x) => x.trim()).length ? arr.filter((x) => x.trim()).map((x) => wP('- ' + x)).join('') : wP('- —'));
+  let body =
+    wP(rep.title, { bold: true, size: 36 }) +
+    wTbl(['الحقل', 'القيمة'], [
+      ['الوحدة التنظيمية', rep.unit || '—'],
+      ['سنة التقرير', rep.year || '—'],
+      ['الفترة', rep.period || '—'],
+      ['الدورية', rep.freq || '—'],
+      ['المسؤول', rep.resp || '—'],
+    ]);
+  obs.forEach((a, i) => {
+    body +=
+      wP('الملاحظة ' + (i + 1), { bold: true, size: 30 }) +
+      wTbl(['الحقل', 'القيمة'], [
+        ['عنوان الملاحظة', a.title || '—'],
+        ['المسؤول عن المعالجة', a.owner || '—'],
+        ['الحالة', a.status || '—'],
+        ['تاريخ التنفيذ', a.due || '—'],
+      ]) +
+      wP('ملاحظة التدقيق الداخلي', { bold: true, size: 26 }) + bulletLines(a.obsB) +
+      wP('آلية إغلاق الملاحظة', { bold: true, size: 26 }) + bulletLines(a.actB) +
+      wP('ملاحظات', { bold: true, size: 26 }) + wP(a.notes || '—');
+  });
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:bidi/></w:sectPr></w:body></w:document>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  return storedZip([
+    ['[Content_Types].xml', contentTypes],
+    ['_rels/.rels', rels],
+    ['word/document.xml', documentXml],
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+/* ================= upload parsing (docx/xlsx zip reader, no libraries) ================= */
+async function zipEntryText(buf: ArrayBuffer, name: string): Promise<string | null> {
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
-  const name = 'word/document.xml';
   for (let i = 0; i < u8.length - 4; i++) {
     if (dv.getUint32(i, true) !== 0x04034b50) continue;
     const method = dv.getUint16(i + 8, true);
@@ -144,6 +212,54 @@ async function docxText(buf: ArrayBuffer): Promise<string | null> {
     return await new Response(stream).text();
   }
   return null;
+}
+const docxText = (buf: ArrayBuffer) => zipEntryText(buf, 'word/document.xml');
+
+/** Read the first worksheet of an .xlsx into rows of cell strings
+ *  (supports shared strings AND inline strings — Excel saves use shared). */
+async function xlsxRows(buf: ArrayBuffer): Promise<string[][] | null> {
+  const sheet = await zipEntryText(buf, 'xl/worksheets/sheet1.xml');
+  if (!sheet) return null;
+  const sharedXml = await zipEntryText(buf, 'xl/sharedStrings.xml');
+  const shared: string[] = [];
+  if (sharedXml) {
+    for (const si of sharedXml.match(/<si>[\s\S]*?<\/si>/g) || []) {
+      shared.push((si.match(/<t[^>]*>([^<]*)<\/t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join(''));
+    }
+  }
+  const colIdx = (ref: string) => {
+    const m = ref.match(/^[A-Z]+/); if (!m) return 0;
+    let n = 0; for (const ch of m[0]) n = n * 26 + (ch.charCodeAt(0) - 64);
+    return n - 1;
+  };
+  const rows: string[][] = [];
+  for (const rowXml of sheet.match(/<row[^>]*>[\s\S]*?<\/row>/g) || []) {
+    const cells: string[] = [];
+    for (const cXml of rowXml.match(/<c [^>]*(?:\/>|>[\s\S]*?<\/c>)/g) || []) {
+      const ref = (cXml.match(/r="([^"]+)"/) || [])[1] || '';
+      const type = (cXml.match(/t="([^"]+)"/) || [])[1] || '';
+      let val = '';
+      if (type === 'inlineStr') {
+        val = (cXml.match(/<t[^>]*>([^<]*)<\/t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join('');
+      } else {
+        const v = (cXml.match(/<v[^>]*>([^<]*)<\/v>/) || [])[1] || '';
+        val = type === 's' ? (shared[parseInt(v, 10)] ?? '') : v;
+      }
+      cells[colIdx(ref)] = val.trim();
+    }
+    rows.push(Array.from(cells, (c) => c || ''));
+  }
+  return rows.length ? rows : null;
+}
+
+/** Excel stores typed dates as serial numbers — convert plausible ones to an Arabic date. */
+const AR_MONS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+function excelSerialToDate(v: string): string {
+  if (!/^\d{4,6}(\.\d+)?$/.test(v)) return v;
+  const n = parseFloat(v);
+  if (!isFinite(n) || n < 20000 || n > 80000) return v;
+  const d = new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000);
+  return d.getUTCDate() + ' ' + AR_MONS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
 }
 
 function toBlocks(src: string, isXml: boolean): { lines: string[]; tables: string[][][] } {
@@ -234,6 +350,22 @@ function parseObsFile(lines: string[], tables: string[][][]): ObsParsed {
     if (parts.length) found.notes = parts.join(' ');
   }
 
+  // Excel-style fallback: bullets/notes live as numbered label→value rows in the sheet table
+  const kvMany = (label: RegExp): string[] | undefined => {
+    const out: string[] = [];
+    for (const t of tables) for (const r of t) {
+      if (label.test(r[0] || '')) {
+        const v = (r[1] || '').trim();
+        if (v && !PLACEHOLDER.test(v)) out.push(v);
+      }
+    }
+    return out.length ? out : undefined;
+  };
+  if (!found.obs) found.obs = kvMany(/^ملاحظة التدقيق الداخلي/);
+  if (!found.action) found.action = kvMany(/^آلية إغلاق الملاحظة/);
+  if (!found.notes) { const v = kvVal(/^ملاحظات/); if (v) found.notes = v; }
+  if (found.due) found.due = excelSerialToDate(found.due);
+
   const KEYS: { k: keyof ObsParsed; ar: string }[] = [
     { k: 'unit', ar: 'الوحدة التنظيمية' }, { k: 'title', ar: 'عنوان الملاحظة' },
     { k: 'obs', ar: 'ملاحظة التدقيق الداخلي' }, { k: 'action', ar: 'آلية إغلاق الملاحظة' },
@@ -270,20 +402,48 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
   const setOI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setO((p) => ({ ...p, [k]: e.target.value }));
   const unitOpts = [...new Set([...AUDIT_UNITS, (f.unit || '').trim()])].filter(Boolean);
 
+  // EDIT mode: all the report's observations, editable inline
+  interface ObsDraft { id: string; title: string; owner: string; status: string; due: string; notes: string; obsB: string[]; actB: string[] }
+  const [obsList, setObsList] = useState<ObsDraft[]>(() => existing
+    ? data.audit.filter((a) => (a.rep || 'admin2025') === repId).map((a) => ({
+        id: a.id, title: a.area, owner: a.owner, status: a.status,
+        due: a.due === '—' ? '' : a.due, notes: a.notes || '',
+        obsB: splitBullets(a.obs), actB: splitBullets(a.action),
+      }))
+    : []);
+  const setObs = (i: number, k: keyof ObsDraft, v: unknown) => setObsList((p) => p.map((x, j) => (j === i ? { ...x, [k]: v } : x)) as ObsDraft[]);
+  const downloadFilled = () => {
+    if (!existing) return;
+    triggerDownload(
+      buildFilledReportDocx({ ...existing, title: f.title || existing.title, unit: f.unit, year: f.year, period: f.period, freq: f.freq, resp: f.resp }, obsList),
+      'Followup_Audit_Report_' + (f.year || existing.year) + '.docx'
+    );
+  };
+
   const onUpload = async (file: File) => {
     try {
       let blocks: { lines: string[]; tables: string[][][] } | null = null;
       const buf = await file.arrayBuffer();
       const head = new Uint8Array(buf.slice(0, 2));
       if (head[0] === 0x50 && head[1] === 0x4b) {
+        // zip container: Word (.docx) or Excel (.xlsx)
         const xml = await docxText(buf);
         if (xml) blocks = toBlocks(xml, true);
+        else {
+          const rows = await xlsxRows(buf);
+          if (rows) blocks = { lines: [], tables: [rows] };
+        }
+      } else if (/\.csv$/i.test(file.name)) {
+        const text = new TextDecoder('utf-8').decode(buf);
+        const sep = text.includes('\t') ? '\t' : (text.split(';').length > text.split(',').length ? ';' : ',');
+        const rows = text.split(/\r?\n/).filter((l) => l.trim()).map((l) => l.split(sep).map((c) => c.trim()));
+        blocks = { lines: [], tables: [rows] };
       } else {
         const text = new TextDecoder('utf-8').decode(buf);
         blocks = toBlocks(text, false);
         if (!blocks.lines.length) blocks = { lines: text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), tables: [] };
       }
-      if (!blocks || !blocks.lines.length) { showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة'); setAtts((p) => [...p, file.name]); return; }
+      if (!blocks || (!blocks.lines.length && !blocks.tables.length)) { showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة'); setAtts((p) => [...p, file.name]); return; }
       const parsed = parseObsFile(blocks.lines, blocks.tables);
       if (parsed.unit) setF((p) => ({ ...p, unit: parsed.unit! }));
       setO((p) => ({
@@ -323,6 +483,25 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
       if (send) { r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev && r.status !== 'معتمد') r.status = existing ? r.status : 'مسودة';
       (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إنشاء التقرير'), sent: !!send, by: cu.name });
+      // EDIT mode: write the inline-edited observations back to the shared register
+      if (existing) {
+        obsList.forEach((od) => {
+          const a = d.audit.find((x) => x.id === od.id);
+          if (!a) return;
+          const nObs = joinBullets(od.obsB); const nAct = joinBullets(od.actB);
+          const nTitle = od.title.trim() || a.area; const nOwner = od.owner.trim() || a.owner;
+          const nDue = (od.due || '').trim() || '—'; const nNotes = od.notes.trim();
+          const changed = a.area !== nTitle || a.owner !== nOwner || a.status !== od.status
+            || a.due !== nDue || (a.notes || '') !== nNotes || a.obs !== nObs || a.action !== nAct;
+          if (!changed) return;
+          const from = a.status;
+          a.area = nTitle; a.owner = nOwner; a.due = nDue; a.notes = nNotes;
+          a.obs = nObs; a.action = nAct; a.status = od.status; a.updated = 'الآن';
+          (a.log = a.log || []).unshift(from !== od.status
+            ? { at: 'الآن', by: cu.name, from, to: od.status, note: 'تحديث من نموذج تعديل التقرير' }
+            : { at: 'الآن', by: cu.name, note: 'تحديث بيانات الملاحظة من نموذج تعديل التقرير' });
+        });
+      }
       // the first observation entered with a new report is saved to the shared audit register
       if (!existing && ((o.title || '').trim() || obsB.some((x) => x.trim()))) {
         d.audit.push({
@@ -353,14 +532,18 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
             <button type="button" onClick={downloadAuditTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
-              تحميل قالب التقرير
+              تحميل قالب Word
             </button>
-            <input ref={fileRef} type="file" accept=".doc,.docx,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
+            <button type="button" onClick={downloadAuditTemplateXlsx} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+              تحميل قالب Excel
+            </button>
+            <input ref={fileRef} type="file" accept=".doc,.docx,.xlsx,.xls,.csv,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
             <button type="button" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
               رفع القالب المكتمل (تعبئة تلقائية)
             </button>
-            <span style={{ fontSize: 10.5, color: '#7d867f' }}>عبّئ القالب خارج المنصة ثم ارفعه — تُعرض البيانات للمراجعة ولا تُحفظ مباشرة.</span>
+            <span style={{ fontSize: 10.5, color: '#7d867f' }}>يُقبل Word أو Excel — عبّئ القالب ثم ارفعه، وتُعرض البيانات للمراجعة ولا تُحفظ مباشرة.</span>
           </div>
           {parsedFrom && (
             <div style={{ margin: '8px 0 0', background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: '#1e4634' }}>
@@ -401,6 +584,47 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
           <textarea value={o.notes} onChange={setOI('notes')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
           {secHead('مرفقات الملاحظة')}
           <FileUploadField files={obsAtts} onChange={setObsAtts} />
+        </>
+      )}
+
+      {/* EDIT mode: the full report data — every observation editable in place */}
+      {existing && (
+        <>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0 4px', background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
+            <button type="button" onClick={downloadFilled} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+              تحميل قالب محدث ببيانات التقرير الحالية
+            </button>
+            <span style={{ fontSize: 10.5, color: '#7d867f' }}>ملف Word يحتوي كل بيانات التقرير وملاحظاته كما هي الآن.</span>
+          </div>
+
+          {secHead('ملاحظات التقرير — تعديل مباشر (' + obsList.length + ')')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {obsList.map((od, i) => (
+              <details key={od.id} open={obsList.length <= 2} style={{ border: '1px solid #e6ece7', borderRadius: 12, background: '#fbfcfa' }}>
+                <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px' }}>
+                  <span style={{ flex: 'none', fontSize: 10.5, fontWeight: 800, color: '#8a6a1f', background: '#fbf3df', borderRadius: 8, padding: '3px 9px' }}>{i + 1}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{od.title || 'ملاحظة بدون عنوان'}</span>
+                  <span style={{ flex: 'none', fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '3px 10px', background: (OBSC[od.status] || ['#eceeeb', '#6d7973'])[0], color: (OBSC[od.status] || ['#eceeeb', '#6d7973'])[1] }}>{od.status}</span>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="M6 9l6 6 6-6" /></svg>
+                </summary>
+                <div style={{ padding: '4px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={od.title} onChange={(e) => setObs(i, 'title', e.target.value)} style={inputStyle} /></div>
+                    <div><Label>المسؤول عن المعالجة</Label><input value={od.owner} onChange={(e) => setObs(i, 'owner', e.target.value)} style={inputStyle} /></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div><Label>الحالة</Label><Dropdown value={od.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setObs(i, 'status', v)} opt={{ block: true, size: 'sm' }} /></div>
+                      <div><Label>تاريخ التنفيذ</Label><DateField value={od.due} onChange={(v) => setObs(i, 'due', v)} /></div>
+                    </div>
+                  </div>
+                  <div><Label>ملاحظة التدقيق الداخلي</Label><Bullets items={od.obsB} onChange={(v) => setObs(i, 'obsB', v)} addLabel="إضافة نقطة" /></div>
+                  <div><Label>آلية إغلاق الملاحظة</Label><Bullets items={od.actB} onChange={(v) => setObs(i, 'actB', v)} addLabel="إضافة نقطة" /></div>
+                  <div><Label>ملاحظات</Label><textarea value={od.notes} onChange={(e) => setObs(i, 'notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+                </div>
+              </details>
+            ))}
+            {obsList.length === 0 && <div style={{ padding: 14, textAlign: 'center', color: '#9aa39b', fontSize: 12 }}>لا توجد ملاحظات على هذا التقرير بعد — أضفها من زر «إضافة ملاحظة جديدة»</div>}
+          </div>
         </>
       )}
 

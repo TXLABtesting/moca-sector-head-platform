@@ -80,7 +80,10 @@ export function ReportCenter() {
 
   return (
     <Fade>
-      <SectionAddButton section="reportCenter" title={rl('مركز التقارير', 'Report Center')} desc={t('rc_intro')} />
+      <div className="page-head" style={{ marginBottom: 16 }}>
+        <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{rl('مركز التقارير', 'Report Center')}</h1>
+        <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{t('rc_intro')}</p>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(330px,1fr))', gap: 18 }}>
         {cards.map((r, i) => (
           <div key={i} style={{ background: '#fff', borderRadius: 22, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', padding: '22px 22px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>

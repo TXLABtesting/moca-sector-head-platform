@@ -50,9 +50,9 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
   const go = (p: Page) => { goto(p); onCloseMenu(); };
 
   return (
-    <aside className={'app-side app-scroll' + (menuOpen ? ' open' : '') + (collapsed ? ' collapsed' : '')} style={{
+    <aside className={'app-side' + (menuOpen ? ' open' : '') + (collapsed ? ' collapsed' : '')} style={{
       width: 272, flex: 'none', background: 'linear-gradient(180deg,#132b20,#0e2118)',
-      color: '#cfdcd3', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh',
+      color: '#cfdcd3', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', overflow: 'hidden',
     }}>
       <div className="sb-brand" style={{ padding: '22px 18px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div className="sb-brandmark" style={{ width: 42, height: 42, flex: 'none', borderRadius: 13, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.14)', color: '#e8d5a2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -67,7 +67,8 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
         </button>
       </div>
       <div className="sb-menulabel" style={{ padding: '0 20px 8px', fontSize: 10.5, color: 'rgba(255,255,255,.32)', fontWeight: 600, letterSpacing: '.08em' }}>{t('menu')}</div>
-      <nav className="app-scroll" style={{ flex: 1, overflow: 'visible', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* only the menu list scrolls — brand stays pinned on top, profile at the bottom */}
+      <nav className="sb-nav" style={{ flex: 1, minHeight: 0, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 3 }}>
         {items.filter((i) => i.show).map((it) => {
           const active = activeKey === it.key;
           const label = lang === 'en' ? it.labelEn : it.labelAr;

@@ -12,12 +12,10 @@ export function DemoHint() {
   const [hidden, setHidden] = useState<boolean>(() => {
     try { return sessionStorage.getItem(key) === '1'; } catch { return false; }
   });
-  if (hidden) return null;
+  // The Sector Head's dashboard stays clean — no demo/explainer strips.
+  if (hidden || cu.type === 'chair') return null;
 
-  const text = cu.type === 'chair'
-    ? rl('هذه اللوحة تجمع كل ما يرفعه فريق المكتب: اعتمدي البند أو أرجعيه للتعديل أو وجّهي — وتصل النتيجة فوراً إلى لوحة العضو المسؤول.',
-        'This board gathers everything your office team submits: approve, return for edit, or direct — and the outcome instantly reaches the responsible member’s board.')
-    : cu.type === 'sysadmin'
+  const text = cu.type === 'sysadmin'
       ? rl('مدير النظام يدير المستخدمين والأدوار والنطاقات والأقسام الظاهرة لكل شخص — من شاشة الإعدادات والصلاحيات.',
           'The system admin manages users, roles, scopes, and the sections each person can see — from Settings & Roles.')
       : rl('ما تضيفه هنا وترسله للمراجعة يظهر مباشرة في لوحة رئيس القطاع، وما يعتمده أو يرجعه رئيس القطاع يظهر لك هنا.',
