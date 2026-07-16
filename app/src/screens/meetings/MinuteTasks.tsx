@@ -10,8 +10,11 @@ import { useStore } from '../../store/store';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import type { MinuteTask } from '../../data/types';
-import { SectionAddButton } from '../../components/SectionAddButton';
+import { MinuteTaskForm } from './MinuteTaskForm';
+import { AttachmentDownload } from '../../components/AttachmentDownload';
 import { MTS, GS, MT_STATUSES, mtNeedsSupport, mtMonKey, mtMonLabel } from './mtShared';
+
+type MtaskMeta = MinuteTask & { _mrev?: boolean; _mret?: string; _mowner?: string };
 
 const CARD_SHADOW = '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)';
 
@@ -24,9 +27,12 @@ export function MinuteTasks() {
   const mutate = useStore((s) => s.mutate);
   const cu = useCurrentUser();
 
-  const canDirect = can(cu, 'minuteTasks', 'note');
-  const canReview = can(cu, 'minuteTasks', 'review');
+  const isChair = cu.type === 'chair';
+  // chair-only follow-up actions (directives / review marks) — never shown to members
+  const canDirect = isChair && can(cu, 'minuteTasks', 'note');
+  const canReview = isChair && can(cu, 'minuteTasks', 'review');
   const canStatus = can(cu, 'minuteTasks', 'status');
+  const canAddEdit = !isChair && (can(cu, 'minuteTasks', 'add') || can(cu, 'minuteTasks', 'edit'));
 
   const mtasks = data.mtasks;
 
@@ -36,6 +42,8 @@ export function MinuteTasks() {
   const [mtOwner, setOwner] = useState('');
   const [mtDept, setDept] = useState('');
   const [mtSupport, setSupport] = useState(false);
+  const [mtMeeting, setMeeting] = useState('');
+  const [mtForm, setMtForm] = useState<{ id: string | null } | null>(null);
   const [selMtMonth, setSelMonth] = useState('');
   const [mtDetailed, setDetailed] = useState(false);
   const [mtLimit, setLimit] = useState(12);
@@ -47,17 +55,24 @@ export function MinuteTasks() {
   useEffect(() => {
     const st = (params.mtStatus as string) || '';
     const sup = !!params.mtSupport;
-    setStatus(st); setSupport(sup);
+    const mtg = (params.mtMeeting as string) || '';
+    setStatus(st); setSupport(sup); setMeeting(mtg);
     setSearch((params.mtSearch as string) || '');
     setOwner((params.mtOwner as string) || '');
     setDept((params.mtDept as string) || '');
     setLimit(12);
-    // If a status/support deep-link arrives, land on the newest month that actually
-    // has matching tasks (otherwise keep the default newest month).
-    if (st || sup) {
+    // A deep-link to a specific task opens its drawer on the right month.
+    const sel = (params.selMtask as string) || '';
+    if (sel) {
+      const tk = mtasks.find((x) => x.id === sel);
+      if (tk) { setSelMonth(mtMonKey(tk.mDate)); setSelMtask(sel); return; }
+    }
+    // If a status/support/meeting deep-link arrives, land on the newest month that
+    // actually has matching tasks (otherwise keep the default newest month).
+    if (st || sup || mtg) {
       const desc = [...new Set(mtasks.map((tk) => mtMonKey(tk.mDate)))].filter(Boolean).sort().reverse();
       const match = desc.find((mk) => mtasks.some((tk) =>
-        mtMonKey(tk.mDate) === mk && (st ? tk.status === st : true) && (sup ? mtNeedsSupport(tk) : true)));
+        mtMonKey(tk.mDate) === mk && (st ? tk.status === st : true) && (sup ? mtNeedsSupport(tk) : true) && (mtg ? tk.meeting === mtg : true)));
       setSelMonth(match || '');
     } else {
       setSelMonth('');
@@ -76,7 +91,7 @@ export function MinuteTasks() {
   const canNewer = curIdx > 0;
 
   const setMonth = (key: string) => {
-    setSelMonth(key); setStatus(''); setSupport(false); setSearch(''); setOwner(''); setDept(''); setLimit(12);
+    setSelMonth(key); setStatus(''); setSupport(false); setSearch(''); setOwner(''); setDept(''); setMeeting(''); setLimit(12);
   };
 
   const monthTasks = useMemo(
@@ -107,6 +122,7 @@ export function MinuteTasks() {
   const mq = mtSearch.trim();
   const filtered = monthTasks.filter((tk) => {
     if (mtStatus && tk.status !== mtStatus) return false;
+    if (mtMeeting && tk.meeting !== mtMeeting) return false;
     if (mtOwner && tk.owner !== mtOwner) return false;
     if (mtDept && tk.dept !== mtDept) return false;
     if (mtSupport && !mtNeedsSupport(tk)) return false;
@@ -143,11 +159,15 @@ export function MinuteTasks() {
   const deptOpts = [{ v: '', label: rl('كل الجهات', 'All departments') }].concat(
     [...new Set(monthTasks.map((tk) => tk.dept))].map((o) => ({ v: o, label: tr(o) }))
   );
+  const meetingOpts = [{ v: '', label: rl('كل الاجتماعات', 'All meetings') }].concat(
+    [...new Set(monthTasks.map((tk) => tk.meeting))].map((o) => ({ v: o, label: tr(o) }))
+  );
   const monthOpts = monthsAll.map((k) => ({ v: k, label: mtMonLabel(k, lang) }));
 
   // ---- mutations ----
   const setTaskStatus = (id: string, val: string) => mutate((d) => {
-    const tk = d.mtasks.find((x) => x.id === id); if (tk) tk.status = val;
+    const tk = d.mtasks.find((x) => x.id === id);
+    if (tk) { tk.status = val; tk.lastUpdate = 'الآن — ' + cu.name; if (val === 'مكتمل') tk.prog = 100; }
   });
   const openDirective = (id: string) => { setDirModalId(id); setDirDraft(''); };
   const saveDirective = () => {
@@ -191,7 +211,20 @@ export function MinuteTasks() {
 
   return (
     <Fade>
-      <SectionAddButton section="minuteTasks" title={rl('مهام محاضر الاجتماعات', 'Minutes tasks')} desc={rl('المهام المنبثقة عن المحاضر ومتابعة حالاتها', 'Tasks arising from minutes and their follow-up')} />
+      <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{rl('مهام محاضر الاجتماعات', 'Minutes tasks')}</h1>
+          <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{rl('المهام المنبثقة عن المحاضر ومتابعة حالاتها', 'Tasks arising from minutes and their follow-up')}</p>
+        </div>
+        {canAddEdit && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
+            <button onClick={() => setMtForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              {rl('إضافة مهمة جديدة', 'Add new task')}
+            </button>
+          </div>
+        )}
+      </div>
       {/* KPI summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,minmax(0,1fr))', gap: 12, marginBottom: 22 }} className="rg5">
         {kpis.map((k) => {
@@ -248,6 +281,7 @@ export function MinuteTasks() {
             <input value={mtSearch} onChange={(e) => setSearch(e.target.value)} placeholder={t('mt_search')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', paddingInlineStart: 34, fontSize: 12.5, fontFamily: 'inherit' }} />
           </div>
           <Dropdown value={mtStatus} options={statusOpts} onChange={setStatus} opt={{ size: 'sm', minWidth: '118px' }} />
+          <Dropdown value={mtMeeting} options={meetingOpts} onChange={setMeeting} opt={{ size: 'sm', minWidth: '140px' }} />
           <Dropdown value={mtOwner} options={ownerOpts} onChange={setOwner} opt={{ size: 'sm', minWidth: '120px' }} />
           <Dropdown value={mtDept} options={deptOpts} onChange={setDept} opt={{ size: 'sm', minWidth: '120px' }} />
           <button onClick={() => setSupport(!mtSupport)} style={supportBtnStyle}>
@@ -258,7 +292,7 @@ export function MinuteTasks() {
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" /></svg>
             {mtDetailed ? rl('عرض مختصر', 'Concise view') : rl('عرض مفصّل', 'Detailed view')}
           </button>
-          <button onClick={() => { setSearch(''); setStatus(''); setOwner(''); setDept(''); setSupport(false); }} style={{ border: '1px solid #e2e6df', background: '#ffffff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={() => { setSearch(''); setStatus(''); setOwner(''); setDept(''); setMeeting(''); setSupport(false); }} style={{ border: '1px solid #e2e6df', background: '#ffffff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             {t('mt_clear')}
           </button>
         </div>
@@ -279,16 +313,16 @@ export function MinuteTasks() {
                 <th style={thStyle}>{t('mt_status')}</th>
                 {mtDetailed && <th style={thStyle}>{t('mt_deps')}</th>}
                 {mtDetailed && <th style={thStyle}>{t('mt_notes')}</th>}
-                <th style={thStyle}>{t('mt_markReviewed')}</th>
+                <th style={thStyle}>{canAddEdit ? rl('إجراءات', 'Actions') : t('mt_markReviewed')}</th>
               </tr>
             </thead>
             <tbody>
               {groups.map((g) => (
                 <GroupRows key={g.key} g={g} tr={tr} dl={dl} rl={rl}
                   detailed={mtDetailed}
-                  canDirect={canDirect} canReview={canReview} canStatus={canStatus}
+                  canDirect={canDirect} canReview={canReview} canStatus={canStatus} canEdit={canAddEdit}
                   disp={disp} dueColorOf={dueColorOf}
-                  onOpen={setSelMtask} onDirective={openDirective} onReviewed={markReviewed} onStatus={setTaskStatus}
+                  onOpen={setSelMtask} onEdit={(id) => setMtForm({ id })} onDirective={openDirective} onReviewed={markReviewed} onStatus={setTaskStatus}
                   tDir={t('mt_dirCount')} tAdd={t('mt_addDirective')} tRev={t('mt_markReviewed')} />
               ))}
             </tbody>
@@ -374,8 +408,9 @@ export function MinuteTasks() {
       <Drawer open={!!selTask} onClose={() => setSelMtask(null)} width={468}>
         {selTask && (
           <MtaskDrawerBody tk={selTask} tr={tr} dl={dl} rl={rl} t={t}
-            canDirect={canDirect} canReview={canReview}
+            canDirect={canDirect} canReview={canReview} canEdit={canAddEdit}
             onDirective={() => openDirective(selTask.id)} onRequestUpdate={requestUpdate} onReviewed={() => markReviewed(selTask.id)}
+            onEdit={() => { setSelMtask(null); setMtForm({ id: selTask.id }); }}
             onClose={() => setSelMtask(null)} disp={disp} dueColorOf={dueColorOf} />
         )}
       </Drawer>
@@ -394,6 +429,9 @@ export function MinuteTasks() {
           <button onClick={() => setDirModalId(null)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#5b6b62', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>{t('mt_cancel')}</button>
         </div>
       </Modal>
+
+      {/* add / edit task form (same shared record) */}
+      {mtForm && <MinuteTaskForm taskId={mtForm.id} onClose={() => setMtForm(null)} />}
     </Fade>
   );
 }
@@ -403,9 +441,9 @@ interface GroupRowsProps {
   g: { key: string; meeting: string; dept: string; mDate: string; span: number; status: string; stBg: string; stFg: string; count: number; tasks: MinuteTask[] };
   tr: (s: string) => string; dl: (s: string) => string; rl: (a: string, b: string) => string;
   detailed: boolean;
-  canDirect: boolean; canReview: boolean; canStatus: boolean;
+  canDirect: boolean; canReview: boolean; canStatus: boolean; canEdit: boolean;
   disp: (v: string | undefined) => string; dueColorOf: (tk: MinuteTask) => string;
-  onOpen: (id: string) => void; onDirective: (id: string) => void; onReviewed: (id: string) => void; onStatus: (id: string, v: string) => void;
+  onOpen: (id: string) => void; onEdit: (id: string) => void; onDirective: (id: string) => void; onReviewed: (id: string) => void; onStatus: (id: string, v: string) => void;
   tDir: string; tAdd: string; tRev: string;
 }
 
@@ -435,17 +473,33 @@ function GroupRows(p: GroupRowsProps) {
       {g.tasks.map((a) => {
         const [sb, sf] = MTS[a.status] || ['#eee', '#555'];
         const dirCount = (a.directives || []).length;
+        const meta = a as MinuteTask & { _mrev?: boolean; _mret?: string };
         return (
           <tr key={a.id}>
             <td style={tdBase} />
             <td style={{ ...tdBase, textAlign: 'center' }}><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#c3cec4' }} /></td>
             <td onClick={() => p.onOpen(a.id)} style={{ ...tdBase, lineHeight: 1.55, maxWidth: 340, cursor: 'pointer' }}>
               {tr(a.task)}
-              {dirCount > 0 && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 10, fontWeight: 600, color: '#1f4a37', background: '#e9f0ec', borderRadius: 6, padding: '2px 8px' }}>{dirCount} {p.tDir}</span>
+              <span style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
+                {dirCount > 0 && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, color: '#1f4a37', background: '#e9f0ec', borderRadius: 6, padding: '2px 8px' }}>{dirCount} {p.tDir}</span>
+                )}
+                {typeof a.prog === 'number' && a.prog > 0 && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 800, color: '#1f4a37', background: '#eef5f0', borderRadius: 6, padding: '2px 8px' }}>{a.prog}%</span>
+                )}
+                {meta._mret ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#b0433b', background: '#f7e6e4', borderRadius: 6, padding: '2px 8px' }}>{tr('أعيد للتعديل')}</span>
+                ) : meta._mrev ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#a9791f', background: '#fbf0d6', borderRadius: 6, padding: '2px 8px' }}>{tr('بانتظار مراجعة رئيس القطاع')}</span>
+                ) : null}
+              </span>
+            </td>
+            <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>
+              {tr(a.owner)}
+              {!!(a.participants && a.participants.length) && (
+                <div style={{ fontSize: 10, color: '#9aa39b', marginTop: 3, whiteSpace: 'normal', maxWidth: 160 }}>+ {a.participants.map((n) => tr(n)).join('، ')}</div>
               )}
             </td>
-            <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>{tr(a.owner)}</td>
             {detailed && <td style={{ ...tdBase, maxWidth: 190, lineHeight: 1.5 }}>{disp(a.prerequisite)}</td>}
             {detailed && <td style={{ ...tdBase, maxWidth: 190, lineHeight: 1.5 }}>{disp(a.support)}</td>}
             {detailed && <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>{disp(a.budget)}</td>}
@@ -459,6 +513,12 @@ function GroupRows(p: GroupRowsProps) {
             {detailed && <td style={{ ...tdBase, maxWidth: 220, lineHeight: 1.5 }}>{disp(a.notes)}</td>}
             <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>
               <div style={{ display: 'flex', gap: 5 }}>
+                {p.canEdit && (
+                  <>
+                    <button onClick={() => p.onOpen(a.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('فتح', 'Open')}</button>
+                    <button onClick={() => p.onEdit(a.id)} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تعديل', 'Edit')}</button>
+                  </>
+                )}
                 {p.canDirect && (
                   <button onClick={() => p.onDirective(a.id)} title={p.tAdd} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f2f4f0', border: '1px solid #e2e6df', borderRadius: 8, color: '#1f4a37', cursor: 'pointer' }}>
                     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -481,13 +541,14 @@ function GroupRows(p: GroupRowsProps) {
 // ---- drawer body ----
 interface DrawerBodyProps {
   tk: MinuteTask; tr: (s: string) => string; dl: (s: string) => string; rl: (a: string, b: string) => string; t: (k: string) => string;
-  canDirect: boolean; canReview: boolean;
-  onDirective: () => void; onRequestUpdate: () => void; onReviewed: () => void; onClose: () => void;
+  canDirect: boolean; canReview: boolean; canEdit: boolean;
+  onDirective: () => void; onRequestUpdate: () => void; onReviewed: () => void; onEdit: () => void; onClose: () => void;
   disp: (v: string | undefined) => string; dueColorOf: (tk: MinuteTask) => string;
 }
 
 function MtaskDrawerBody(p: DrawerBodyProps) {
-  const { tk, tr, dl, t, disp, dueColorOf } = p;
+  const { tk, tr, dl, rl, t, disp, dueColorOf } = p;
+  const meta = tk as MtaskMeta;
   const [sb, sf] = MTS[tk.status] || ['#eee', '#555'];
   const field = (label: string, value: string, strong = false, color = '#17211c') => (
     <div style={{ flex: 1, minWidth: 140, background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
@@ -510,7 +571,22 @@ function MtaskDrawerBody(p: DrawerBodyProps) {
         </div>
         <div style={{ fontSize: 11, color: '#9aa39b', marginBottom: 4 }}>{tr(tk.meeting)} · {dl(tk.mDate)}</div>
         <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#17211c', lineHeight: 1.6 }}>{tr(tk.task)}</h2>
+        {!!meta._mret && (
+          <div style={{ background: '#fdf3f2', border: '1.5px solid #e7b8b3', borderRadius: 11, padding: '10px 12px', marginTop: 12 }}>
+            <div style={{ fontSize: 10.5, color: '#b0433b', fontWeight: 800, marginBottom: 3 }}>{rl('أُعيدت للتعديل من رئيس القطاع — سبب الإرجاع', 'Returned by the Sector Head — reason')}</div>
+            <div style={{ fontSize: 12, color: '#9a3a2b', lineHeight: 1.7 }}>{meta._mret}</div>
+          </div>
+        )}
+        {!meta._mret && meta._mrev && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 10.5, fontWeight: 700, color: '#a9791f', background: '#fbf0d6', borderRadius: 20, padding: '4px 11px' }}>{tr('بانتظار مراجعة رئيس القطاع')}</div>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+          {p.canEdit && (
+            <button onClick={p.onEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+              {rl('تعديل المهمة', 'Edit task')}
+            </button>
+          )}
           {p.canDirect && (
             <button onClick={p.onDirective} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -532,14 +608,48 @@ function MtaskDrawerBody(p: DrawerBodyProps) {
         </div>
       </div>
       <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+        {!!(tk.desc && tk.desc.trim()) && block(rl('وصف المهمة', 'Description'), tr(tk.desc))}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {field(t('mt_owner'), tr(tk.owner))}
           {field(t('mt_dept'), tr(tk.dept))}
         </div>
+        {!!(tk.participants && tk.participants.length) && (
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: '#6d7973', marginBottom: 6 }}>{rl('مشاركون إضافيون', 'Additional participants')}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {tk.participants.map((n) => (
+                <span key={n} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #cdd8ce', background: '#f4f8f5', color: '#1e4634', borderRadius: 20, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>{tr(n)}</span>
+              ))}
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {field(t('mt_due'), dl(tk.due), true, dueColorOf(tk))}
-          {field(t('mt_budget'), disp(tk.budget))}
+          {field(rl('نسبة الإنجاز', 'Completion'), (tk.prog ?? 0) + '%', true, '#1f4a37')}
         </div>
+        {typeof tk.prog === 'number' && (
+          <div style={{ height: 7, background: '#eef0ec', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ width: Math.max(0, Math.min(100, tk.prog)) + '%', height: '100%', background: '#2e7d55', borderRadius: 6 }} />
+          </div>
+        )}
+        {!!tk.lastUpdate && (
+          <div style={{ fontSize: 11, color: '#9aa39b' }}>{rl('آخر تحديث', 'Last update')}: {tr(tk.lastUpdate)}</div>
+        )}
+        {!!(tk.attachments && tk.attachments.length) && (
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: '#6d7973', marginBottom: 6 }}>{rl('المرفقات', 'Attachments')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {tk.attachments.map((a, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12, color: '#2a332d' }}>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a}</span>
+                  <AttachmentDownload name={a} size={24} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {field(t('mt_budget'), disp(tk.budget))}
         {block(t('mt_prereq'), disp(tk.prerequisite))}
         {block(t('mt_deps'), disp(tk.dependencies))}
         <div style={{ background: '#fbf3df', border: '1px solid #efe0be', borderRadius: 11, padding: '11px 13px' }}>

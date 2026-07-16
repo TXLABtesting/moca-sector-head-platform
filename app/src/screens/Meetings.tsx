@@ -110,9 +110,12 @@ function MinutesList() {
                     <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" /></svg>
                     {mt.attendees.length} {t('attendeesWord')}
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', background: '#e9f0ec', color: '#1f4a37' }}>
+                  <span onClick={(e) => { e.stopPropagation(); goto('mtasks', { mtMeeting: mt.title }); }}
+                    title={rl('فتح صفحة مهام محاضر الاجتماعات لهذا المحضر', 'Open the minutes-tasks page for this minute')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', background: '#e9f0ec', color: '#1f4a37', cursor: 'pointer', border: '1px solid #d5e4da' }}>
                     <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
                     {mt.actions.length} {t('actionWord')}
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'scaleX(-1)' }}><path d="M7 17 17 7M7 7h10v10" /></svg>
                   </span>
                 </div>
               </div>

@@ -159,13 +159,18 @@ export interface MinuteTask {
   meeting: string;
   dept: string;
   task: string;
+  desc?: string;
   owner: string;
+  participants?: string[];
   support: string;
   prerequisite: string;
   budget: string;
   dependencies: string;
   status: string;
   due: string;
+  prog?: number;
+  lastUpdate?: string;
+  attachments?: string[];
   notes: string;
   directives: ProjectDirective[];
   reviewed: boolean;

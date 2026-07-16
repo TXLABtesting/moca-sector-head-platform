@@ -9,7 +9,7 @@ import { mColl } from '../member/workflow';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** Sections whose shared collections can carry member submissions (deduped by collection). */
-const REVIEW_SECS = ['correspondence', 'followups', 'projects', 'minutes', 'committees', 'leaves', 'auditReports', 'reportLog', 'myTasks', 'reportCenter'];
+const REVIEW_SECS = ['correspondence', 'followups', 'projects', 'minutes', 'minuteTasks', 'committees', 'leaves', 'auditReports', 'reportLog', 'myTasks', 'reportCenter'];
 
 interface Sub { id: string; title: string; ownerName: string; sectionName: string; note: string; isWork: boolean; sec: string }
 interface ModalState { kind: 'return' | 'directive'; sub: Sub }

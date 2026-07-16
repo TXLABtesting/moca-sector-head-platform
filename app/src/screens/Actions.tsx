@@ -35,7 +35,7 @@ export function Actions() {
   const all: Act[] = [
     ...data.actions.map((a) => ({ id: a.id, title: a.title, source: a.source, sourceType: a.sourceType, owner: a.owner, priority: a.priority, due: a.due, status: a.status, kind: 'action' as const })),
     ...data.audit.filter((a) => a.status !== 'مغلق').map((a) => ({ id: a.id, title: 'متابعة ملاحظة التدقيق: ' + a.area, source: 'تدقيق: إدارة الشؤون الإدارية 2025 — ملاحظة ' + a.num, sourceType: 'تدقيق', owner: a.owner, priority: a.imp, due: a.due, status: a.status, kind: 'audit' as const })),
-    ...data.mtasks.filter((tk) => tk.status !== 'مكتمل').map((tk) => ({ id: tk.id, title: tk.task.length > 70 ? tk.task.slice(0, 70) + '…' : tk.task, source: 'مهمة محضر: ' + tk.meeting, sourceType: 'مهمة محضر', owner: tk.owner, priority: needsSupport(tk) ? 'عالية' : 'متوسطة', due: tk.due, status: tk.status, kind: 'mtask' as const })),
+    ...data.mtasks.filter((tk) => tk.status !== 'مكتمل' && tk.status !== 'ملغي').map((tk) => ({ id: tk.id, title: tk.task.length > 70 ? tk.task.slice(0, 70) + '…' : tk.task, source: 'مهمة محضر: ' + tk.meeting, sourceType: 'مهمة محضر', owner: tk.owner, priority: needsSupport(tk) ? 'عالية' : 'متوسطة', due: tk.due, status: tk.status, kind: 'mtask' as const })),
     ...data.otasks.filter(oNeedsAttn).map((tk) => ({ id: tk.id, title: tk.title, source: 'مهمة مكتب: ' + tk.dept, sourceType: 'مهمة مكتب', owner: tk.owner, priority: (tk.status === 'متأخر' || tk.status === 'يحتاج توجيه') ? 'عالية' : 'متوسطة', due: tk.end || '—', status: tk.status, kind: 'otask' as const })),
   ];
 

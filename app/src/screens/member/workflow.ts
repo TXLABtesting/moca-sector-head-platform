@@ -64,6 +64,11 @@ const COLLS: Record<string, MColl> = {
     make: (f, me) => ({ id: 'ret' + Math.floor(Math.random() * 1e9), year: '2026', quarter: f.title || 'الربع الثالث', date: f.fdate || '—', status: f.fstatus || 'مسودة', lastUpdate: 'الآن', updatedBy: me, execSummary: f.note ? [f.note] : [], strengths: [], weaknesses: [], improvements: [], recs: [], entities: [], cases: [], conclusion: '' }),
     load: (r) => ({ title: r.quarter, fdate: r.date, fstatus: r.status, note: (r.execSummary || [])[0] || '' }),
   },
+  mtasks: {
+    key: 'mtasks', get: (d) => d.mtasks, title: (r) => r.task, status: (r) => r._mstatus || r.status, setStatus: (r, s) => { r._mstatus = s; },
+    make: (f, me) => ({ id: uid('mtk'), mDate: f.fdate || '—', meeting: f.entity || '—', dept: f.entity || '—', task: f.title, owner: f.respOwner || me, support: 'لا يوجد', prerequisite: 'لا يوجد', budget: 'لا يوجد', dependencies: 'لا يوجد', status: f.fstatus || 'لم يبدأ', due: f.due || '—', notes: f.note || '', directives: [], reviewed: false }),
+    load: (r) => ({ title: r.task, entity: r.meeting, respOwner: r.owner, fdate: r.mDate, due: r.due, fstatus: r.status, note: r.notes }),
+  },
   myTasks: {
     key: 'otasks', get: (d) => d.otasks, title: (r) => r.title, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
     make: (f, me) => ({ id: uid('ot'), title: f.title, owner: me, dept: f.entity || 'مكتب رئيس القطاع', start: f.start || '—', end: f.due || '—', label: f.label || 'مهمة', status: f.fstatus || 'قيد التنفيذ', desc: f.note || '', lastUpdate: '', due: '', notes: '', directives: [], attachments: [], reviewed: false }),
@@ -73,7 +78,7 @@ const COLLS: Record<string, MColl> = {
 
 const SEC2COLL: Record<string, string> = {
   correspondence: 'correspondence', followups: 'followups', projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
-  minutes: 'minutes', minuteTasks: 'minutes', committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves',
+  minutes: 'minutes', minuteTasks: 'mtasks', committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves',
   auditReports: 'auditReports', reportLog: 'reportLog', myTasks: 'myTasks', reportCenter: 'retention',
 };
 
@@ -93,6 +98,7 @@ export const OWNER_OF: Record<string, (r: any) => string> = {
   audit: (r) => r.owner || '',
   regReports: (r) => r.resp || '',
   otasks: (r) => r.owner || '',
+  mtasks: (r) => r.owner || '',
   retReports: (r) => r.updatedBy || '',
 };
 

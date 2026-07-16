@@ -10,7 +10,8 @@ export const MTS: Record<string, readonly [string, string]> = {
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
   'لم يبدأ': ['#eceae6', '#8a8078'],
   'متأخر': ['#f7e6e4', '#b0433b'],
-  'مستمر': ['#e6eef6', '#3a6ea5'],
+  'ملغي': ['#eceeeb', '#9aa39b'],
+  'مستمر': ['#e6eef6', '#3a6ea5'], // legacy value kept for old saved data
 };
 
 /** Group-header status colours [bg, fg]. */
@@ -20,7 +21,8 @@ export const GS: Record<string, readonly [string, string]> = {
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
 
-export const MT_STATUSES = ['مكتمل', 'قيد التنفيذ', 'لم يبدأ', 'متأخر', 'مستمر'];
+/** Approved task statuses only (per the office workflow spec). */
+export const MT_STATUSES = ['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر', 'ملغي'];
 
 export function mtNeedsSupport(tk: { status: string }): boolean {
   return tk.status === 'لم يبدأ' || tk.status === 'متأخر';
