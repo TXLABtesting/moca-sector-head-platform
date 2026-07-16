@@ -3,6 +3,7 @@ import { Fade, Avatar, Modal, Drawer } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
+import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
@@ -603,8 +604,9 @@ function TaskDetail({ task, canEdit, onClose, onEditDeadline, onAddDirective, on
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {task.attachments.map((f, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 10, padding: '9px 12px' }}>
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#5b6b62" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 3H14l5 5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V4.5A1.5 1.5 0 0 1 6.5 3Z" /><path d="M14 3v4a1 1 0 0 0 1 1h4" /></svg>
-                  <span style={{ fontSize: 12, color: '#3c4a42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr(f)}</span>
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#5b6b62" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="M6.5 3H14l5 5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V4.5A1.5 1.5 0 0 1 6.5 3Z" /><path d="M14 3v4a1 1 0 0 0 1 1h4" /></svg>
+                  <span style={{ flex: 1, fontSize: 12, color: '#3c4a42', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr(f)}</span>
+                  <AttachmentDownload name={f} size={24} />
                 </div>
               ))}
             </div>

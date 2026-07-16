@@ -12,6 +12,7 @@ import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from '.
 import { ProjectEditModal } from './ProjectEditModal';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
+import { AttachmentDownload } from '../../components/AttachmentDownload';
 
 const TODAY_STORE = '2 يوليو 2026';
 
@@ -474,6 +475,7 @@ export function ProjectDetail() {
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: '#2a332d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(fn)}</div>
                         <div style={{ fontSize: 10.5, color: '#9aa39b' }}>{xl ? 'Excel' : 'PDF'}</div>
                       </div>
+                      <AttachmentDownload name={String(fn)} size={26} />
                       {canEdit && (
                         <button type="button" title={rl('إزالة المرفق', 'Remove attachment')} onClick={() => { mutate((d) => { const pr = d.projects.find((x) => x.id === id); if (pr) pr.attachments = (pr.attachments || []).filter((_, x) => x !== i); }); showToast(rl('تمت إزالة المرفق', 'Attachment removed')); }} style={{ flex: 'none', width: 24, height: 24, border: 'none', borderRadius: 7, background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 }}>✕</button>
                       )}

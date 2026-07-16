@@ -11,6 +11,7 @@ import { useI18n } from '../i18n/i18n';
 import { parseAr } from '../shared/helpers';
 import type { Leave, LeaveCat } from '../data/types';
 import { FileUploadField } from '../components/FileUploadField';
+import { AttachmentDownload } from '../components/AttachmentDownload';
 
 const DAY = 86400000;
 const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -693,8 +694,9 @@ function LeavePanel(p: PanelProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {lv.attachments.map((a, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 9, padding: '8px 11px', fontSize: 12, color: '#2a332d' }}>
-                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg>
-                  {a}
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg>
+                  <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a}</span>
+                  <AttachmentDownload name={a} size={24} />
                 </div>
               ))}
             </div>

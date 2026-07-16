@@ -3,6 +3,7 @@ import { Modal, Badge } from '../../components/ui';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
+import { AttachmentDownload } from '../../components/AttachmentDownload';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
@@ -609,8 +610,9 @@ function RetView({ report, onClose }: { report: RetReport; onClose: () => void }
       {report.conclusion && (<div style={{ marginBottom: 12 }}>{secHead('الخلاصة')}<div style={{ ...box, fontSize: 12.5, color: '#2a332d', lineHeight: 1.8 }}>{report.conclusion}</div></div>)}
       {!!(report.attachments && report.attachments.length) && (<div>{secHead('المرفقات')}
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>{report.attachments.map((a, i) => (
-          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 9, padding: '7px 11px', fontSize: 11.5, color: '#2a332d' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>{a}
+          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 9, padding: '6px 11px 6px 6px', fontSize: 11.5, color: '#2a332d' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>{a}
+            <AttachmentDownload name={a} size={22} />
           </span>))}</div></div>)}
     </Modal>
   );

@@ -11,6 +11,7 @@ import { PS, AS } from '../shared/constants';
 import { initials } from '../shared/helpers';
 import { MinuteTasks } from './meetings/MinuteTasks';
 import { MinutesForm } from './meetings/MinutesForm';
+import { AttachmentDownload } from '../components/AttachmentDownload';
 
 const DETAIL_CARD: CSSProperties = {
   background: '#ffffff', border: 'none', borderRadius: 24,
@@ -319,7 +320,9 @@ function MeetingDetail() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {mt.attachments.slice(1).map((a, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12, color: '#2a332d' }}>
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>{a}
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a}</span>
+                    <AttachmentDownload name={a} size={24} />
                   </div>
                 ))}
               </div>
@@ -329,11 +332,12 @@ function MeetingDetail() {
             <div style={{ ...DETAIL_CARD, padding: 20 }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{t('minutesAttachment')}</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f7f8f6', borderRadius: 11, padding: '13px 14px' }}>
-                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.6}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
-                <div>
+                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.6} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: '#2a332d' }}>{tr(mt.attachment)}</div>
                   <div style={{ fontSize: 10.5, color: '#9aa39b' }}>PDF</div>
                 </div>
+                <AttachmentDownload name={mt.attachment} size={30} />
               </div>
             </div>
           )}

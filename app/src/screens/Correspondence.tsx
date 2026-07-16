@@ -3,6 +3,7 @@ import { Fade, Modal } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
+import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useToast } from '../components/Toast';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
@@ -178,11 +179,12 @@ export function Correspondence() {
             <div style={{ background: '#ffffff', border: 'none', borderRadius: 24, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', padding: 20 }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{t('attachment')}</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f7f8f6', borderRadius: 11, padding: '13px 14px' }}>
-                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.6}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
-                <div style={{ minWidth: 0 }}>
+                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.6} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: '#2a332d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(doc.attachment || 'مرفق.pdf')}</div>
                   <div style={{ fontSize: 10.5, color: '#9aa39b' }}>{t('clickView')}</div>
                 </div>
+                <AttachmentDownload name={doc.attachment || 'مرفق.pdf'} size={30} />
               </div>
             </div>
 
