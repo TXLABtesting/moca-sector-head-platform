@@ -6,6 +6,7 @@ import { useNav } from '../store/nav';
 import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
+import { useToast } from '../components/Toast';
 import { PS, AS } from '../shared/constants';
 import { initials } from '../shared/helpers';
 import { MinuteTasks } from './meetings/MinuteTasks';
@@ -142,13 +143,36 @@ function MeetingDetail() {
   const mutate = useStore((s) => s.mutate);
   const cu = useCurrentUser();
   const canStatus = can(cu, 'minutes', 'status');
-  const canEditMin = cu.type !== 'chair' && can(cu, 'minutes', 'edit');
+  const isChair = cu.type === 'chair';
+  const canEditMin = !isChair && can(cu, 'minutes', 'edit');
   const [editOpen, setEditOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const { showToast } = useToast();
 
   const mt = data.meetings.find((m) => m.id === params.selMeeting);
   if (!mt) {
     return <Fade><div style={{ padding: 40, textAlign: 'center', color: '#8a938c', fontSize: 14 }}>—</div></Fade>;
   }
+
+  // chair-notes ↔ owner-replies thread carried on the shared record's log
+  const meta = mt as typeof mt & { _mret?: string; _mlog?: { at: string; to?: string; note?: string; by?: string; chair?: boolean }[] };
+  const thread = (meta._mlog || []).filter((e) => (e.note || '').trim());
+  const sendNote = () => {
+    const txt = noteDraft.trim();
+    if (!txt) return;
+    mutate((d) => {
+      const m = d.meetings.find((x) => x.id === mt.id) as (typeof mt & { chairNotes?: string; _mlog?: unknown[] }) | undefined;
+      if (!m) return;
+      (m._mlog = m._mlog || []).unshift({
+        at: 'الآن',
+        to: isChair ? 'ملاحظة من رئيس القطاع على المحضر' : 'رد المسؤول عن المحضر',
+        note: txt, chair: isChair, by: cu.name,
+      });
+      if (isChair) m.chairNotes = txt;
+    });
+    setNoteDraft('');
+    showToast(isChair ? rl('أُضيفت الملاحظة — ستظهر للمسؤول عن المحضر فوراً', 'Note added — visible to the minutes owner') : rl('أُرسل الرد إلى رئيس القطاع', 'Reply sent to the Sector Head'));
+  };
 
   const setActionStatus = (aid: string, val: string) => mutate((d) => {
     const m = d.meetings.find((x) => x.id === mt.id);
@@ -256,12 +280,39 @@ function MeetingDetail() {
             )}
           </div>
 
-          {!!(mt.chairNotes && mt.chairNotes.trim()) && (
-            <div style={{ ...DETAIL_CARD, padding: 20, border: '1px solid #d6e5db' }}>
-              <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 600, color: '#1e4634' }}>{rl('ملاحظات رئيس القطاع', 'Sector Head comments')}</h3>
-              <div style={{ fontSize: 12.5, color: '#2b4a3a', lineHeight: 1.7 }}>{mt.chairNotes}</div>
-            </div>
-          )}
+          <div style={{ ...DETAIL_CARD, padding: 20, border: '1.5px solid #e9dcb8' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#8a6a1f' }}>{rl('ملاحظات رئيس القطاع والردود', 'Sector Head notes & replies')}</h3>
+            {!!(mt.chairNotes && mt.chairNotes.trim()) && thread.length === 0 && (
+              <div style={{ background: '#fbf7ee', border: '1px solid #efe3c9', borderRadius: 10, padding: '9px 11px', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: '#6b5b1e', lineHeight: 1.7 }}>{mt.chairNotes}</div>
+                <div style={{ fontSize: 9.5, color: '#a9791f', marginTop: 3 }}>{rl('رئيس القطاع', 'Sector Head')}</div>
+              </div>
+            )}
+            {thread.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 10 }}>
+                {thread.map((e, i) => (
+                  <div key={i} style={{ background: e.chair ? '#fbf7ee' : '#f4f8f5', border: '1px solid ' + (e.chair ? '#efe3c9' : '#dfeae2'), borderRadius: 10, padding: '9px 11px' }}>
+                    <div style={{ fontSize: 12, color: e.chair ? '#6b5b1e' : '#2b4a3a', lineHeight: 1.7 }}>{e.note}</div>
+                    <div style={{ fontSize: 9.5, color: '#9aa39b', marginTop: 3 }}>{tr(e.at)} · {e.chair ? rl('رئيس القطاع', 'Sector Head') : tr(e.by || '')}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {thread.length === 0 && !(mt.chairNotes && mt.chairNotes.trim()) && (
+              <div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 10 }}>{rl('لا توجد ملاحظات بعد', 'No notes yet')}</div>
+            )}
+            {(isChair || canEditMin) && (
+              <>
+                <textarea value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)}
+                  placeholder={isChair ? rl('اكتبي ملاحظتك على المحضر…', 'Write your note…') : rl('اكتب ردّك على ملاحظات رئيس القطاع…', 'Write your reply…')}
+                  rows={2} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 11px', fontSize: 12, fontFamily: 'inherit', color: '#17211c', outline: 'none', resize: 'vertical' }} />
+                <button onClick={sendNote} style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+                  {isChair ? rl('إضافة ملاحظة', 'Add note') : rl('إرسال الرد', 'Send reply')}
+                </button>
+              </>
+            )}
+          </div>
           {!!(mt.attachments && mt.attachments.length > 1) && (
             <div style={{ ...DETAIL_CARD, padding: 20 }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{rl('مرفقات إضافية', 'More attachments')}</h3>
