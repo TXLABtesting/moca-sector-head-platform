@@ -8,7 +8,7 @@ import { PS } from '../shared/constants';
 import { DemoHint } from '../components/DemoHint';
 import { mColl } from './member/workflow';
 
-type Tab = 'approvals' | 'updates' | 'minutes' | 'follow' | 'corr';
+type Tab = 'approvals' | 'updates' | 'minutes' | 'follow' | 'corr' | 'committees';
 
 interface Note { label: string; v: string; bg: string; bd: string; lFg: string; vFg: string }
 interface Meta { k: string; v: string; iconD: string }
@@ -160,21 +160,36 @@ export function ChairDashboard() {
       actions: [btn(rl('متابعة', 'Follow'), 'gold', () => goto('docDetail', { selDoc: c.id })), view(() => goto('docDetail', { selDoc: c.id }))] };
   });
 
+  // ---- committees & work teams ----
+  const commRows: Row[] = (data.committees || []).slice(0, 10).map((c) => {
+    const meetings = c.meetings || [];
+    const tasks = meetings.flatMap((m) => m.tasks || []);
+    const openTasks = tasks.filter((t) => t.status !== 'مكتمل').length;
+    const lastMeet = meetings.length ? meetings[meetings.length - 1] : null;
+    const [bg, fg] = c.status === 'نشطة' || c.status === 'نشط' ? ['#e2f0e8', '#2e7d55'] : ['#eceeeb', '#6d7973'];
+    return { tag: tr(c.status || 'نشطة'), tagBg: bg, tagFg: fg, title: tr(c.name),
+      notes: [lastMeet && lastMeet.points ? NOTE(rl('آخر اجتماع', 'Last meeting'), lastMeet.points, 'blue') : null,
+        openTasks > 0 ? NOTE(rl('مهام مفتوحة', 'Open tasks'), openTasks + ' ' + rl('مهمة قيد المتابعة', 'tasks in follow-up'), 'gold') : null].filter(Boolean) as Note[],
+      meta: [MI(rl('المقرر', 'Rapporteur'), tr(c.rapporteur), 'owner'), MI(rl('الدورية', 'Frequency'), tr(c.freq || '—'), 'date'), MI(rl('الاجتماعات', 'Meetings'), String(meetings.length || c.actualMeetings || 0), 'meeting')].filter((m) => m.v),
+      actions: [view(() => goto('committees', { selCommittee: c.id }))] };
+  });
+
   const DEF: Record<Tab, Def> = {
     approvals: { title: rl('اعتماد رئيس القطاع', 'Chair approvals'), sub: rl('بنود بانتظار اعتمادك', 'Items awaiting your approval'), accent: '#b0433b', icBg: '#f7e6e4', icFg: '#b0433b', count: apprList.length, rows: apprList.slice(0, 10), hint: rl('ما يحتاج اعتمادك فقط: بدء مشروع، اكتمال مشروع، تمديد موعد نهائي، أو اعتماد إجازة.', 'Approval-only items: project start, project completion, deadline extension, or leave approval.'), icon: <IcoApprovals /> },
     updates: { title: rl('تحديثات المشاريع', 'Project updates'), sub: rl('آخر تحديثات المشاريع النشطة', 'Latest active project updates'), accent: '#3a6ea5', icBg: '#e9f0f6', icFg: '#3a6ea5', count: data.projects.length, rows: updRows, hint: rl('تحديثات كل المشاريع: الحالة ونسبة الإنجاز والخطوة القادمة.', 'All project updates: status, progress and next step.'), icon: <IcoBars /> },
     minutes: { title: rl('محاضر الاجتماعات', 'Meeting minutes'), sub: rl('المهام والقرارات الناتجة', 'Resulting tasks & decisions'), accent: '#7a4d94', icBg: '#f3ecf6', icFg: '#7a4d94', count: data.mtasks.length, rows: minRows, hint: rl('المهام الناتجة عن الاجتماعات والمسؤول عنها وحالتها.', 'Tasks resulting from meetings, their owners and status.'), icon: <IcoDoc /> },
     follow: { title: rl('المتابعات', 'Follow-ups'), sub: rl('بنود مفتوحة تحتاج متابعة', 'Open items needing follow-up'), accent: '#a9791f', icBg: '#fbf3df', icFg: '#a9791f', count: folList.length, rows: folList.slice(0, 12), hint: rl('بنود مفتوحة من مختلف الأقسام — وسم كل بند يوضّح نوعه: مهمة مكتب، مشروع، مهمة محضر، أو تدقيق.', 'Open items across departments — each tag shows its type.'), icon: <IcoCheck /> },
     corr: { title: rl('الصادر والوارد', 'Correspondence'), sub: rl('مراسلات تحتاج إجراء', 'Correspondence needing action'), accent: '#2e7d55', icBg: '#e2f0e8', icFg: '#2e7d55', count: data.correspondence.filter((c) => c.needsAction).length, rows: corrRows, hint: rl('المستندات الصادرة والواردة التي تحتاج متابعة أو إجراء.', 'Outgoing/incoming documents needing follow-up.'), icon: <IcoMail /> },
+    committees: { title: rl('اللجان وفرق العمل', 'Committees & teams'), sub: rl('اللجان ومهامها المفتوحة', 'Committees and their open tasks'), accent: '#2b8a8a', icBg: '#e4f2f2', icFg: '#2b8a8a', count: (data.committees || []).length, rows: commRows, hint: rl('اللجان وفرق العمل: المقرر والدورية والاجتماعات والمهام المفتوحة لكل لجنة.', 'Committees & teams: rapporteur, frequency, meetings and open tasks.'), icon: <IcoTeam /> },
   };
 
   const active = DEF[tab];
-  const cards: { key: Tab; def: Def }[] = (['approvals', 'updates', 'minutes', 'follow', 'corr'] as Tab[]).map((k) => ({ key: k, def: DEF[k] }));
+  const cards: { key: Tab; def: Def }[] = (['approvals', 'updates', 'minutes', 'follow', 'corr', 'committees'] as Tab[]).map((k) => ({ key: k, def: DEF[k] }));
 
   return (
     <Fade>
       <DemoHint />
-      <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 13, marginBottom: 24 }}>
+      <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 13, marginBottom: 24 }}>
         {cards.map(({ key, def }) => {
           const on = tab === key;
           const cardStyle: CSSProperties = {
@@ -255,4 +270,5 @@ const IcoBars = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none
 const IcoDoc = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>;
 const IcoCheck = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L20 6" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg>;
 const IcoMail = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m4 7 8 6 8-6" /></svg>;
+const IcoTeam = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" /></svg>;
 

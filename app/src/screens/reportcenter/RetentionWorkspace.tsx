@@ -10,6 +10,8 @@ import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import type { RetReport, RetRecommendation, RetEntityRow, RetCase } from '../../data/types';
+import { triggerDownload } from '../../shared/fileGen';
+import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER } from './templateIO';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -62,61 +64,6 @@ function Bullets({ items, onChange, addLabel }: { items: string[]; onChange: (v:
 }
 
 /* ================= template download / parse ================= */
-/* The template is generated in the browser as a REAL .docx: a stored (no
-   compression) ZIP built byte-by-byte with a local CRC32 — no libraries.
-   Word opens it normally, and our upload parser reads it back. */
-function crc32(u8: Uint8Array): number {
-  let c: number;
-  const table: number[] = [];
-  for (let n = 0; n < 256; n++) {
-    c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    table[n] = c >>> 0;
-  }
-  let crc = 0 ^ -1;
-  for (let i = 0; i < u8.length; i++) crc = (crc >>> 8) ^ table[(crc ^ u8[i]) & 0xff];
-  return (crc ^ -1) >>> 0;
-}
-
-function storedZip(files: [string, string][]): Blob {
-  const enc = new TextEncoder();
-  const chunks: Uint8Array[] = [];
-  const central: Uint8Array[] = [];
-  let offset = 0;
-  const u16 = (v: number) => new Uint8Array([v & 255, (v >> 8) & 255]);
-  const u32 = (v: number) => new Uint8Array([v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255]);
-  const cat = (...parts: Uint8Array[]) => {
-    const len = parts.reduce((a, b) => a + b.length, 0);
-    const out = new Uint8Array(len);
-    let o = 0; parts.forEach((pp) => { out.set(pp, o); o += pp.length; });
-    return out;
-  };
-  for (const [name, content] of files) {
-    const nameB = enc.encode(name);
-    const dataB = enc.encode(content);
-    const crc = crc32(dataB);
-    const local = cat(u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc), u32(dataB.length), u32(dataB.length), u16(nameB.length), u16(0), nameB, dataB);
-    chunks.push(local);
-    central.push(cat(u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc), u32(dataB.length), u32(dataB.length), u16(nameB.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), nameB));
-    offset += local.length;
-  }
-  const centralAll = cat(...central);
-  const eocd = cat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(centralAll.length), u32(offset), u16(0));
-  return new Blob([cat(...chunks, centralAll, eocd)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-}
-
-const X = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const wP = (t: string, opts?: { bold?: boolean; size?: number }) => {
-  const rpr = `<w:rPr>${opts?.bold ? '<w:b/>' : ''}${opts?.size ? `<w:sz w:val="${opts.size}"/>` : ''}<w:rtl/></w:rPr>`;
-  return `<w:p><w:pPr><w:bidi/>${opts?.bold || opts?.size ? rpr : ''}</w:pPr><w:r>${rpr}<w:t xml:space="preserve">${X(t)}</w:t></w:r></w:p>`;
-};
-const wTbl = (head: string[], rows: string[][]) => {
-  const tc = (t: string, hdr: boolean) => `<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>${hdr ? '<w:shd w:val="clear" w:fill="EEF3F0"/>' : ''}</w:tcPr>${wP(t, hdr ? { bold: true } : undefined)}</w:tc>`;
-  const tr = (cells: string[], hdr: boolean) => `<w:tr>${cells.map((c) => tc(c, hdr)).join('')}</w:tr>`;
-  const borders = '<w:tblBorders><w:top w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:start w:val="single" w:sz="4"/><w:end w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders>';
-  return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="5000" w:type="pct"/>${borders}</w:tblPr>${tr(head, true)}${rows.map((r) => tr(r, false)).join('')}</w:tbl>${wP('')}`;
-};
-
 function buildTemplateDocx(): Blob {
   const ph = 'اكتب هنا';
   const bullets = (n: number) => Array.from({ length: n }, () => wP('- ' + ph)).join('');
@@ -134,52 +81,38 @@ function buildTemplateDocx(): Blob {
     wP('أعلى الحالات التي تستحق متابعة رئيس القطاع', { bold: true, size: 28 }) +
     wTbl(['رقم العقد', 'القيمة (درهم)', 'أسباب التأخر', 'الحالة'], Array.from({ length: 2 }, () => [ph, ph, ph, ph])) +
     wP('الخلاصة', { bold: true, size: 28 }) + wP(ph);
-  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:bidi/></w:sectPr></w:body></w:document>`;
-  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
-  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
-  return storedZip([
-    ['[Content_Types].xml', contentTypes],
-    ['_rels/.rels', rels],
-    ['word/document.xml', documentXml],
-  ]);
+  return makeDocx(body);
 }
 
 const TEMPLATE_NAME = 'Retained_Payments_Report_Template.docx';
+const TEMPLATE_XLSX = 'Retained_Payments_Report_Template.xlsx';
 
-function clickAnchor(doc: Document, url: string) {
-  const a = doc.createElement('a');
-  a.href = url;
-  a.download = TEMPLATE_NAME;
-  a.rel = 'noopener';
-  doc.body.appendChild(a);
-  a.click();
-  a.remove();
+/** Excel version of the template — same labels/sections the parser reads back. */
+function buildTemplateXlsx(): Blob {
+  const rows: string[][] = [
+    ['الحقل', 'القيمة'],
+    ['السنة', '2026'],
+    ['الربع', 'الربع الثالث'],
+    ['الملخص التنفيذي 1', ''], ['الملخص التنفيذي 2', ''], ['الملخص التنفيذي 3', ''],
+    ['نقاط القوة 1', ''], ['نقاط القوة 2', ''], ['نقاط القوة 3', ''],
+    ['نقاط الضعف 1', ''], ['نقاط الضعف 2', ''], ['نقاط الضعف 3', ''],
+    ['مجالات التحسين 1', ''], ['مجالات التحسين 2', ''], ['مجالات التحسين 3', ''],
+    ['الخلاصة', ''],
+    [''],
+    ['الملاحظة', 'التوصية', 'الأهمية'],
+    ['', '', ''], ['', '', ''], ['', '', ''],
+    [''],
+    ['الجهة', 'العدد', 'القيمة (درهم)', 'النسبة', 'مستمر', 'غير مغلق', 'مغلق'],
+    ['', '', '', '', '', '', ''], ['', '', '', '', '', '', ''], ['', '', '', '', '', '', ''],
+    [''],
+    ['رقم العقد', 'القيمة (درهم)', 'أسباب التأخر', 'الحالة'],
+    ['', '', '', ''], ['', '', '', ''],
+  ];
+  return makeXlsx(rows, 'قالب التقرير');
 }
 
-function downloadTemplate() {
-  const blob = buildTemplateDocx();
-  const url = URL.createObjectURL(blob);
-  const inFrame = (() => { try { return window.self !== window.top; } catch { return true; } })();
-  if (inFrame) {
-    // Hosted demos run inside a sandboxed iframe that silently blocks
-    // downloads started in the frame. Open a popup (which escapes the
-    // sandbox) and fire the download from INSIDE it.
-    const w = window.open('', '_blank');
-    if (w) {
-      try {
-        w.document.write('<meta charset="utf-8"><title>' + TEMPLATE_NAME + '</title><p style="font-family:sans-serif;direction:rtl;padding:24px">جارٍ تنزيل قالب تقرير الدفعات المستبقاة… يمكن إغلاق هذا التبويب.</p>');
-        clickAnchor(w.document, url);
-        setTimeout(() => { try { w.close(); } catch { /* noop */ } }, 2500);
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        return;
-      } catch {
-        try { w.location.href = url; return; } catch { /* fall through */ }
-      }
-    }
-  }
-  clickAnchor(document, url);
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
+const downloadTemplate = () => triggerDownload(buildTemplateDocx(), TEMPLATE_NAME);
+const downloadTemplateXlsx = () => triggerDownload(buildTemplateXlsx(), TEMPLATE_XLSX);
 
 interface Parsed {
   year?: string; quarter?: string;
@@ -188,76 +121,35 @@ interface Parsed {
   missing: string[];
 }
 
-/** Minimal docx (zip) reader: locate word/document.xml and inflate it with
- *  DecompressionStream — no external libraries. */
-async function docxText(buf: ArrayBuffer): Promise<string | null> {
-  const u8 = new Uint8Array(buf);
-  const dv = new DataView(buf);
-  const name = 'word/document.xml';
-  for (let i = 0; i < u8.length - 4; i++) {
-    if (dv.getUint32(i, true) !== 0x04034b50) continue;
-    const method = dv.getUint16(i + 8, true);
-    const compSize = dv.getUint32(i + 18, true);
-    const nameLen = dv.getUint16(i + 26, true);
-    const extraLen = dv.getUint16(i + 28, true);
-    const fname = new TextDecoder().decode(u8.slice(i + 30, i + 30 + nameLen));
-    if (fname !== name) { i += 29; continue; }
-    const start = i + 30 + nameLen + extraLen;
-    const comp = u8.slice(start, start + compSize);
-    if (method === 0) return new TextDecoder('utf-8').decode(comp);
-    const ds = new DecompressionStream('deflate-raw');
-    const stream = new Blob([comp]).stream().pipeThrough(ds);
-    return await new Response(stream).text();
-  }
-  return null;
-}
-
-/** Turn document XML/HTML into ordered lines + tables (rows of cells). */
-function toBlocks(src: string, isXml: boolean): { lines: string[]; tables: string[][][] } {
-  const lines: string[] = [];
+function parseReportFile(lines: string[], tablesIn: string[][][]): Parsed {
+  // An Excel upload arrives as ONE sheet-table: split it into sections at the
+  // known header rows so the docx table logic below applies unchanged.
   const tables: string[][][] = [];
-  if (isXml) {
-    const re = /<w:p[ >][\s\S]*?<\/w:p>|<w:tbl>[\s\S]*?<\/w:tbl>/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(src))) {
-      const seg = m[0];
-      if (seg.startsWith('<w:tbl>')) {
-        const rows: string[][] = [];
-        for (const rm of seg.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || []) {
-          const cells = (rm.match(/<w:tc[ >][\s\S]*?<\/w:tc>/g) || []).map((cm) => ((cm.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join(' ')).trim());
-          rows.push(cells);
-        }
-        tables.push(rows);
-        lines.push(' TABLE' + (tables.length - 1));
-      } else {
-        const t = (seg.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []).map((x) => x.replace(/<[^>]+>/g, '')).join('').trim();
-        if (t) lines.push(t);
+  for (const t of tablesIn) {
+    const cuts: number[] = [];
+    t.forEach((r, i) => {
+      const j = r.join(' ');
+      const isHeadRow = (/الملاحظة/.test(r[0] || '') && /التوصية/.test(j))
+        || ((r[0] || '').trim() === 'الجهة' && /العدد/.test(j))
+        || ((r[0] || '').trim() === 'رقم العقد');
+      if (i > 0 && isHeadRow) cuts.push(i);
+    });
+    if (!cuts.length) { tables.push(t); continue; }
+    let prev = 0;
+    [...cuts, t.length].forEach((c) => { const seg = t.slice(prev, c).filter((r) => r.some((x) => (x || '').trim())); if (seg.length) tables.push(seg); prev = c; });
+  }
+  const found: Parsed = { missing: [] };
+  // Excel-style fallback: bullet sections stored as numbered label→value rows
+  const kvMany = (label: RegExp): string[] | undefined => {
+    const out: string[] = [];
+    for (const t of tables) for (const r of t) {
+      if (label.test((r[0] || '').trim())) {
+        const v = (r[1] || '').trim();
+        if (v && !PLACEHOLDER.test(v)) out.push(v);
       }
     }
-  } else {
-    const doc = new DOMParser().parseFromString(src, 'text/html');
-    const walk = (el: Element) => {
-      for (const ch of Array.from(el.children)) {
-        const tag = ch.tagName.toLowerCase();
-        if (tag === 'table') {
-          const rows = Array.from(ch.querySelectorAll('tr')).map((tr) => Array.from(tr.querySelectorAll('td,th')).map((c) => (c.textContent || '').trim()));
-          tables.push(rows);
-          lines.push(' TABLE' + (tables.length - 1));
-        } else if (/^(h\d|p|li)$/.test(tag)) {
-          const t = (ch.textContent || '').trim();
-          if (t) lines.push(t);
-          if (tag !== 'li') walk(ch);
-        } else walk(ch);
-      }
-    };
-    walk(doc.body);
-  }
-  return { lines, tables };
-}
-
-const PLACEHOLDER = /^(اكتب هنا|-+)$/;
-function parseReportFile(lines: string[], tables: string[][][]): Parsed {
-  const found: Parsed = { missing: [] };
+    return out.length ? out : undefined;
+  };
   // year/quarter may live in the header table, not the paragraphs
   const all = lines.join('\n') + '\n' + tables.map((t) => t.flat().join('\n')).join('\n');
   const ym = all.match(/20\d{2}/); if (ym) found.year = ym[0];
@@ -307,6 +199,16 @@ function parseReportFile(lines: string[], tables: string[][][]): Parsed {
   if (ci >= 0) {
     const parts = lines.slice(ci + 1).filter((l) => !l.startsWith(' ') && !PLACEHOLDER.test(l));
     if (parts.length) found.conclusion = parts.join(' ');
+  }
+
+  found.execSummary = found.execSummary || kvMany(/^الملخص التنفيذي/);
+  found.strengths = found.strengths || kvMany(/^نقاط القوة/);
+  found.weaknesses = found.weaknesses || kvMany(/^نقاط الضعف/);
+  found.improvements = found.improvements || kvMany(/^مجالات التحسين/);
+  if (!found.conclusion) {
+    for (const t of tables) for (const r of t) {
+      if (/^الخلاصة/.test((r[0] || '').trim())) { const v = (r[1] || '').trim(); if (v && !PLACEHOLDER.test(v)) found.conclusion = v; }
+    }
   }
 
   for (const t of tables) {
@@ -373,18 +275,8 @@ function RetForm({ reportId, onClose }: { reportId: string | null; onClose: () =
 
   const onUpload = async (file: File) => {
     try {
-      let blocks: { lines: string[]; tables: string[][][] } | null = null;
-      const buf = await file.arrayBuffer();
-      const head = new Uint8Array(buf.slice(0, 2));
-      if (head[0] === 0x50 && head[1] === 0x4b) {
-        const xml = await docxText(buf);
-        if (xml) blocks = toBlocks(xml, true);
-      } else {
-        const text = new TextDecoder('utf-8').decode(buf);
-        blocks = toBlocks(text, false);
-        if (!blocks.lines.length) { blocks = { lines: text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), tables: [] }; }
-      }
-      if (!blocks || !blocks.lines.length) { showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة'); setAtts((p) => [...p, file.name]); return; }
+      const blocks = await fileToBlocks(file);
+      if (!blocks) { showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة'); setAtts((p) => [...p, file.name]); return; }
       const parsed = parseReportFile(blocks.lines, blocks.tables);
       if (parsed.year) setF((p) => ({ ...p, year: parsed.year! }));
       if (parsed.quarter) setF((p) => ({ ...p, quarter: parsed.quarter! }));
@@ -458,14 +350,18 @@ function RetForm({ reportId, onClose }: { reportId: string | null; onClose: () =
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
         <button type="button" onClick={downloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
-          تحميل قالب التقرير
+          تحميل قالب Word
         </button>
-        <input ref={fileRef} type="file" accept=".doc,.docx,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
+        <button type="button" onClick={downloadTemplateXlsx} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+          تحميل قالب Excel
+        </button>
+        <input ref={fileRef} type="file" accept=".doc,.docx,.xlsx,.xls,.csv,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
         <button type="button" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
           رفع التقرير المكتمل (تعبئة تلقائية)
         </button>
-        <span style={{ fontSize: 10.5, color: '#7d867f' }}>عبّئ القالب خارج المنصة ثم ارفعه — تُعرض البيانات للمراجعة ولا تُحفظ مباشرة.</span>
+        <span style={{ fontSize: 10.5, color: '#7d867f' }}>يُقبل Word أو Excel — عبّئ القالب ثم ارفعه، وتُعرض البيانات للمراجعة ولا تُحفظ مباشرة.</span>
       </div>
       {parsedFrom && (
         <div style={{ margin: '8px 0 0', background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: '#1e4634' }}>
