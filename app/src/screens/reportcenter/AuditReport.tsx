@@ -19,7 +19,8 @@ const tdBase: CSSProperties = { padding: 12, borderBottom: '1px solid #f4f6f2', 
 
 export function AuditReport({ canApprove }: { canApprove: boolean }) {
   const { t, tr, dl, lang } = useI18n();
-  const audit = useStore((s) => s.data.audit);
+  const auditAll = useStore((s) => s.data.audit);
+  const auditReps = useStore((s) => s.data.auditReps) || [];
   const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
   const av = useAv();
@@ -50,18 +51,30 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
     : (a.imp === 'عالية' ? rl('أهمية عالية تتطلب تدخلك', 'High priority — needs attention')
       : (audStale(a) ? rl('لم تُحدَّث مؤخراً', 'No recent update') : rl('تحتاج متابعة', 'Needs follow-up')));
 
+  // ---- family registry (shared auditReps collection — new reports from the
+  //      responsible member appear here automatically) ----
+  const obsOf = (repId: string) => auditAll.filter((a) => (a.rep || 'admin2025') === repId);
+  const AUDIT_REG = auditReps.map((r) => {
+    const meta = r as typeof r & { _mret?: string };
+    const obs = obsOf(r.id);
+    return {
+      id: r.id, unit: r.unit, year: r.year, status: meta._mret ? 'أعيد للتعديل' : r.status,
+      title: tr(r.title), period: r.period, freq: r.freq, resp: r.resp,
+      total: obs.length, closed: obs.filter((a) => a.status === 'مغلق').length,
+    };
+  });
+  const audLatest = AUDIT_REG.find((r) => r.total > 0) || AUDIT_REG[0]
+    || { id: 'admin2025', unit: 'إدارة الشؤون الإدارية', year: '2025', status: 'قيد المتابعة', title: '', period: '', freq: '', resp: '', total: 0, closed: 0 };
+  const curUnit = selUnit || audLatest.unit;
+  const curYear = selYear || audLatest.year;
+  const selReport = AUDIT_REG.find((r) => r.unit === curUnit && r.year === curYear) || null;
+  const audit = selReport ? obsOf(selReport.id) : auditAll;
+
   const audTotal = audit.length;
   const audClosed = audit.filter((a) => a.status === 'مغلق').length;
   const audProg = audit.filter((a) => a.status === 'قيد التنفيذ').length;
   const audLateN = audit.filter((a) => a.status === 'متأخر').length;
   const audNeedIntN = audit.filter(audFlag).length;
-
-  // ---- family registry (single available report so far) ----
-  const AUDIT_REG = [{ id: 'admin2025', unit: 'إدارة الشؤون الإدارية', year: '2025', status: 'قيد المتابعة', title: rl('تقرير المتابعة على إدارة الشؤون الإدارية 2025', 'Admin Affairs Follow-up Report 2025'), total: audTotal, closed: audClosed }];
-  const audLatest = AUDIT_REG[0];
-  const curUnit = selUnit || audLatest.unit;
-  const curYear = selYear || audLatest.year;
-  const selReport = AUDIT_REG.find((r) => r.unit === curUnit && r.year === curYear) || null;
   const arq = famSearch.trim();
   const reportsList = AUDIT_REG.filter((r) => {
     if (repStatus && r.status !== repStatus) return false;
@@ -123,9 +136,13 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
   const ownerOpts = [{ v: '', label: rl('كل المسؤولين', 'All responsibles') }, ...uniq('owner').map((o) => ({ v: o, label: tr(o) }))];
   const deptOpts = [{ v: '', label: rl('كل الوحدات', 'All units') }, ...uniq('area').map((o) => ({ v: o, label: tr(o) }))];
   const dueOpts = [{ v: '', label: rl('كل التواريخ', 'All dates') }, ...uniq('due').map((o) => ({ v: o, label: dl(o) }))];
-  const unitOpts = [{ v: '', label: rl('كل الوحدات', 'All units') }, ...AUDIT_UNITS.map((u) => ({ v: u, label: tr(u) }))];
-  const yearOpts = [{ v: '', label: rl('كل السنوات', 'All years') }, ...['2026', '2025'].map((y) => ({ v: y, label: y }))];
-  const repStatusOpts = [{ v: '', label: t('allStatuses') }, ...['قيد المتابعة', 'مكتمل'].map((s) => ({ v: s, label: tr(s) }))];
+  const unitOpts = [{ v: '', label: rl('كل الوحدات', 'All units') }, ...[...new Set([...AUDIT_UNITS, ...auditReps.map((r) => r.unit)])].map((u) => ({ v: u, label: tr(u) }))];
+  const yearOpts = [{ v: '', label: rl('كل السنوات', 'All years') }, ...[...new Set(['2026', '2025', ...auditReps.map((r) => r.year)])].sort().reverse().map((y) => ({ v: y, label: y }))];
+  const repStatusOpts = [{ v: '', label: t('allStatuses') }, ...[...new Set(['قيد المتابعة', 'مكتمل', ...AUDIT_REG.map((r) => r.status)])].map((s) => ({ v: s, label: tr(s) }))];
+  const REPC: Record<string, [string, string]> = {
+    'قيد المتابعة': ['#fbf0d6', '#a9791f'], 'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
+    'مسودة': ['#eceeeb', '#6d7973'], 'معتمد': ['#e2f0e8', '#2e7d55'], 'مكتمل': ['#e2f0e8', '#2e7d55'], 'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
+  };
 
   const filterBtn = (on: boolean, onC: string, onBg: string): CSSProperties => ({
     display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600,
@@ -151,7 +168,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
           <div key={r.id} onClick={() => { setSelUnit(r.unit); setSelYear(r.year); }} style={{ cursor: 'pointer', background: (r.unit === curUnit && r.year === curYear) ? '#fbf7ec' : '#fff', border: '1px solid #e6eadf', borderRadius: 14, padding: '13px 16px', minWidth: 230, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: '#a9791f' }}>{tr(r.unit)} · {r.year}</span>
-              <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 20, padding: '3px 9px', background: '#fbf0d6', color: '#a9791f' }}>{tr(r.status)}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 20, padding: '3px 9px', background: (REPC[r.status] || REPC['قيد المتابعة'])[0], color: (REPC[r.status] || REPC['قيد المتابعة'])[1] }}>{tr(r.status)}</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c', lineHeight: 1.45 }}>{tr(r.title)}</div>
             <div style={{ fontSize: 10.5, color: '#9aa39b' }}>{r.total} {t('au_obsWord')} · {r.closed} {t('rc_closedShort')}</div>
@@ -166,14 +183,14 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
             <div style={{ flex: 1, minWidth: 240 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(233,200,119,.22)', color: '#f0d488', borderRadius: 20, padding: '5px 12px' }}>{rl('تقارير المتابعة والتدقيق', 'Follow-up & Audit reports')}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, background: '#fbf0d6', color: '#a9791f', borderRadius: 20, padding: '5px 12px' }}>{rl('قيد المتابعة', 'Under follow-up')}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, background: (REPC[selReport.status] || REPC['قيد المتابعة'])[0], color: (REPC[selReport.status] || REPC['قيد المتابعة'])[1], borderRadius: 20, padding: '5px 12px' }}>{tr(selReport.status)}</span>
               </div>
-              <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.4 }}>{rl('تقرير المتابعة على إدارة الشؤون الإدارية 2025', 'Admin Affairs Follow-up Report 2025')}</h2>
-              <div style={{ fontSize: 13, color: '#bcd2c3' }}>{rl('إدارة الشؤون الإدارية', 'Admin Affairs Dept.')} · {rl('متابعة ملاحظات التدقيق الداخلي', 'Internal audit findings follow-up')} · {rl('متابعة دورية / حسب الحاجة', 'Periodic / as needed')}</div>
+              <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.4 }}>{tr(selReport.title)}</h2>
+              <div style={{ fontSize: 13, color: '#bcd2c3' }}>{tr(selReport.unit)} · {rl('متابعة ملاحظات التدقيق الداخلي', 'Internal audit findings follow-up')} · {selReport.freq === 'حسب الحاجة' ? rl('حسب الحاجة', 'As needed') : rl('متابعة دورية', 'Periodic')}{selReport.period ? ' · ' + tr(selReport.period) : ''}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, padding: '11px 15px' }}>
-              <Avatar name="حسن همام" size={40} />
-              <div style={{ lineHeight: 1.4 }}><div style={{ fontSize: 10.5, color: '#a9c0b1' }}>{t('rc_responsible')}</div><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{rl('حسن همام', 'Hasan Hammam')}</div><div style={{ fontSize: 10.5, color: '#a9c0b1' }}>{rl('خبير الجودة والامتثال', 'Quality and Compliance Expert')}</div></div>
+              <Avatar name={selReport.resp || 'حسن همام'} size={40} />
+              <div style={{ lineHeight: 1.4 }}><div style={{ fontSize: 10.5, color: '#a9c0b1' }}>{t('rc_responsible')}</div><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{tr(selReport.resp || 'حسن همام')}</div><div style={{ fontSize: 10.5, color: '#a9c0b1' }}>{selReport.resp && selReport.resp !== 'حسن همام' ? rl('مسؤول المتابعة والتدقيق', 'Follow-up & audit officer') : rl('خبير الجودة والامتثال', 'Quality and Compliance Expert')}</div></div>
             </div>
             <button style={{ background: '#e9c877', color: '#3a2f10', border: 'none', borderRadius: 11, padding: '12px 18px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"></path></svg>{t('rc_downloadFile')}</button>
           </div>

@@ -5,6 +5,7 @@ import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { AuditReport } from './reportcenter/AuditReport';
+import { AuditWorkspace } from './reportcenter/AuditWorkspace';
 import { FinancialSummary } from './reportcenter/FinancialSummary';
 import { ReportsRegister } from './reportcenter/ReportsRegister';
 import { RetentionReport } from './reportcenter/RetentionReport';
@@ -32,7 +33,10 @@ export function ReportCenter() {
   const canApprove = can(cu, 'reportCenter', 'approve') || can(cu, 'auditReports', 'approve')
     || can(cu, 'finReports', 'approve') || can(cu, 'reportLog', 'approve');
 
-  if (page === 'auditDetail') return <Fade><SectionAddButton section="auditReports" header /><AuditReport canApprove={canApprove} /></Fade>;
+  if (page === 'auditDetail') {
+    const manageAud = cu.type !== 'chair' && (can(cu, 'auditReports', 'add') || can(cu, 'auditReports', 'edit'));
+    return <Fade>{manageAud ? <AuditWorkspace /> : <><SectionAddButton section="auditReports" header /><AuditReport canApprove={canApprove} /></>}</Fade>;
+  }
   if (page === 'finDetail') return <Fade><SectionAddButton section="finReports" header /><FinancialSummary /></Fade>;
   if (page === 'reglog') return <Fade><SectionAddButton section="reportLog" header /><ReportsRegister /></Fade>;
   if (page === 'reportDetail') {

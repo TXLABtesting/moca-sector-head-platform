@@ -15,7 +15,7 @@ function crc32(u8: Uint8Array): number {
   return (crc ^ -1) >>> 0;
 }
 
-function storedZip(files: [string, string][], mime: string): Blob {
+export function storedZip(files: [string, string][], mime: string): Blob {
   const enc = new TextEncoder();
   const chunks: Uint8Array[] = [];
   const central: Uint8Array[] = [];

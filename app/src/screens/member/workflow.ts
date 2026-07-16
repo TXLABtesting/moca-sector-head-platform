@@ -49,10 +49,10 @@ const COLLS: Record<string, MColl> = {
     make: (f) => ({ id: uid('lv'), person: f.title, cat: 'office', role: '', dept: f.entity || '', type: f.docType || 'سنوية', start: f.start || '—', end: f.due || '—', days: 0, status: f.fstatus || 'بانتظار الاعتماد', backup: f.backup || '—', notes: f.note || '' }),
     load: (r) => ({ title: r.person, entity: r.dept, docType: r.type, start: r.start, due: r.end, fstatus: r.status, backup: r.backup, note: r.notes }),
   },
-  auditReports: {
-    key: 'audit', get: (d) => d.audit, title: (r) => r.obs || r.area, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
-    make: (f, me) => ({ id: uid('au'), num: '', area: f.entity || '—', obs: f.title, action: f.action || '—', owner: f.respOwner || me, due: f.due || '—', updated: f.fdate || '—', imp: f.imp || 'متوسطة', status: f.fstatus || 'قيد التنفيذ', notes: f.note || '' }),
-    load: (r) => ({ title: r.obs, entity: r.area, action: r.action, respOwner: r.owner, due: r.due, fdate: r.updated, imp: r.imp, fstatus: r.status, note: r.notes }),
+  auditReps: {
+    key: 'auditReps', get: (d) => d.auditReps || [], title: (r) => r.title, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+    make: (f, me) => ({ id: 'aur' + Math.floor(Math.random() * 1e9), title: f.title, unit: f.entity || 'إدارة الشؤون الإدارية', year: '2026', period: f.docType || '', freq: 'دوري', status: f.fstatus || 'مسودة', resp: f.respOwner || me, attachments: f.attachment ? [f.attachment] : [], notes: f.note || '', lastUpdate: 'الآن', updatedBy: me }),
+    load: (r) => ({ title: r.title, entity: r.unit, docType: r.period, respOwner: r.resp, fstatus: r.status, note: r.notes }),
   },
   reportLog: {
     key: 'regReports', get: (d) => d.regReports, title: (r) => r.title, status: (r) => r._mstatus || r.may || '—', setStatus: (r, s) => { r._mstatus = s; r.may = s; },
@@ -79,7 +79,7 @@ const COLLS: Record<string, MColl> = {
 const SEC2COLL: Record<string, string> = {
   correspondence: 'correspondence', followups: 'followups', projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
   minutes: 'minutes', minuteTasks: 'mtasks', committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves',
-  auditReports: 'auditReports', reportLog: 'reportLog', myTasks: 'myTasks', reportCenter: 'retention',
+  auditReports: 'auditReps', reportLog: 'reportLog', myTasks: 'myTasks', reportCenter: 'retention',
 };
 
 export function mColl(sec: string): MColl | null {
@@ -100,6 +100,7 @@ export const OWNER_OF: Record<string, (r: any) => string> = {
   otasks: (r) => r.owner || '',
   mtasks: (r) => r.owner || '',
   retReports: (r) => r.updatedBy || '',
+  auditReps: (r) => r.resp || r.updatedBy || '',
 };
 
 /** Match a record's owner string against the current member (tolerant of spelling

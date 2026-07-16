@@ -140,6 +140,14 @@ export interface ActionItem {
   status: string;
 }
 
+export interface AuditObsLog {
+  at: string;       // update date/time
+  by: string;       // updated by
+  from?: string;    // previous status
+  to?: string;      // new status
+  note?: string;    // update note
+}
+
 export interface AuditArea {
   id: string;
   num: string;
@@ -151,6 +159,27 @@ export interface AuditArea {
   imp: string;
   due: string;
   updated: string;
+  notes?: string;
+  unit?: string;            // related organizational unit (defaults to the report's unit)
+  rep?: string;             // parent follow-up/audit report id
+  attachments?: string[];
+  log?: AuditObsLog[];      // status-change log
+}
+
+/** A follow-up & audit report (container of AuditArea observations). */
+export interface AuditRep {
+  id: string;
+  title: string;
+  unit: string;
+  year: string;
+  period: string;
+  freq: string;             // دوري | حسب الحاجة
+  status: string;
+  resp: string;
+  attachments?: string[];
+  notes?: string;
+  lastUpdate?: string;
+  updatedBy?: string;
 }
 
 export interface MinuteTask {
@@ -381,6 +410,7 @@ export interface AppData {
   meetings: Meeting[];
   actions: ActionItem[];
   audit: AuditArea[];
+  auditReps: AuditRep[];
   mtasks: MinuteTask[];
   correspondence: Correspondence[];
   otasks: OfficeTask[];
