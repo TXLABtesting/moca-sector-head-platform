@@ -251,6 +251,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
   const data = useStore((s) => s.data);
   const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const existing = repId ? (data.auditReps || []).find((r) => r.id === repId) : null;
   const pool = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]));
@@ -258,7 +259,49 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
     ? { title: existing.title, unit: existing.unit, year: existing.year, period: existing.period, freq: existing.freq, resp: existing.resp, notes: existing.notes || '' }
     : { title: '', unit: 'إدارة الشؤون الإدارية', year: '2026', period: '', freq: 'دوري', resp: cu.name, notes: '' });
   const [atts, setAtts] = useState<string[]>(() => existing?.attachments ? [...existing.attachments] : []);
+  // first observation of a NEW report (same fields as the observation form)
+  const [o, setO] = useState<Record<string, string>>({ title: '', owner: '', status: 'قيد التنفيذ', due: '', notes: '' });
+  const [obsB, setObsB] = useState<string[]>([]);
+  const [actB, setActB] = useState<string[]>([]);
+  const [obsAtts, setObsAtts] = useState<string[]>([]);
+  const [missing, setMissing] = useState<string[]>([]);
+  const [parsedFrom, setParsedFrom] = useState('');
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const setOI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setO((p) => ({ ...p, [k]: e.target.value }));
+  const unitOpts = [...new Set([...AUDIT_UNITS, (f.unit || '').trim()])].filter(Boolean);
+
+  const onUpload = async (file: File) => {
+    try {
+      let blocks: { lines: string[]; tables: string[][][] } | null = null;
+      const buf = await file.arrayBuffer();
+      const head = new Uint8Array(buf.slice(0, 2));
+      if (head[0] === 0x50 && head[1] === 0x4b) {
+        const xml = await docxText(buf);
+        if (xml) blocks = toBlocks(xml, true);
+      } else {
+        const text = new TextDecoder('utf-8').decode(buf);
+        blocks = toBlocks(text, false);
+        if (!blocks.lines.length) blocks = { lines: text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), tables: [] };
+      }
+      if (!blocks || !blocks.lines.length) { showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة'); setAtts((p) => [...p, file.name]); return; }
+      const parsed = parseObsFile(blocks.lines, blocks.tables);
+      if (parsed.unit) setF((p) => ({ ...p, unit: parsed.unit! }));
+      setO((p) => ({
+        ...p,
+        title: parsed.title ?? p.title, owner: parsed.owner ?? p.owner,
+        status: parsed.status ?? p.status, due: parsed.due ?? p.due, notes: parsed.notes ?? p.notes,
+      }));
+      if (parsed.obs) setObsB(parsed.obs);
+      if (parsed.action) setActB(parsed.action);
+      setMissing(parsed.missing);
+      setParsedFrom(file.name);
+      setAtts((p) => (p.includes(file.name) ? p : [...p, file.name]));
+      showToast('قُرئ الملف وعُبئت الحقول — راجع البيانات قبل الحفظ');
+    } catch {
+      showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة');
+      setAtts((p) => [...p, file.name]);
+    }
+  };
 
   const save = (send: boolean) => {
     if (!(f.title || '').trim()) { showToast('يرجى إدخال عنوان التقرير'); return; }
@@ -280,26 +323,86 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
       if (send) { r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev && r.status !== 'معتمد') r.status = existing ? r.status : 'مسودة';
       (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إنشاء التقرير'), sent: !!send, by: cu.name });
+      // the first observation entered with a new report is saved to the shared audit register
+      if (!existing && ((o.title || '').trim() || obsB.some((x) => x.trim()))) {
+        d.audit.push({
+          id: 'au' + Math.floor(Math.random() * 1e9), num: 'م1',
+          area: (o.title || '').trim() || 'ملاحظة بدون عنوان', unit: r.unit,
+          obs: joinBullets(obsB), action: joinBullets(actB),
+          owner: (o.owner || '').trim() || cu.name, status: o.status || 'قيد التنفيذ', imp: 'متوسطة',
+          due: (o.due || '').trim() || '—', updated: 'الآن', notes: (o.notes || '').trim(),
+          rep: r.id, attachments: obsAtts,
+          log: [{ at: 'الآن', by: cu.name, note: 'إضافة الملاحظة مع إنشاء التقرير' }],
+        });
+      }
     });
     showToast(send ? 'أُرسل التقرير لرئيس القطاع للمراجعة — ظاهر لديه في مركز التقارير' : 'حُفظ التقرير');
     onClose();
   };
 
+  const needs = (ar: string) => parsedFrom !== '' && missing.includes(ar);
+
   return (
-    <Modal open onClose={onClose} width={700}>
+    <Modal open onClose={onClose} width={760}>
       <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? 'تعديل تقرير المتابعة والتدقيق' : 'إضافة تقرير جديد'}</h3>
       <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>يُحفظ في نفس السجل الذي يراه رئيس القطاع في مركز التقارير — لا يُنشأ سجل مكرر عند التعديل.</p>
+
+      {/* template download / upload — fills the report unit and the observation data below */}
+      {!existing && (
+        <>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
+            <button type="button" onClick={downloadAuditTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+              تحميل قالب التقرير
+            </button>
+            <input ref={fileRef} type="file" accept=".doc,.docx,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
+              رفع القالب المكتمل (تعبئة تلقائية)
+            </button>
+            <span style={{ fontSize: 10.5, color: '#7d867f' }}>عبّئ القالب خارج المنصة ثم ارفعه — تُعرض البيانات للمراجعة ولا تُحفظ مباشرة.</span>
+          </div>
+          {parsedFrom && (
+            <div style={{ margin: '8px 0 0', background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: '#1e4634' }}>
+              قُرئت البيانات من «{parsedFrom}» — راجعها وعدّلها قبل الحفظ.{missing.length > 0 && <span style={{ color: '#a9791f', fontWeight: 700 }}> حقول لم يُتعرف عليها: {missing.join('، ')}.</span>}
+            </div>
+          )}
+        </>
+      )}
 
       {secHead('بيانات التقرير')}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>عنوان التقرير</Label><input value={f.title} onChange={setI('title')} placeholder="مثال: تقرير المتابعة على إدارة الخدمات المالية 2026" style={inputStyle} /></div>
-        <div><Label>الوحدة التنظيمية المعنية</Label><Dropdown value={f.unit} options={AUDIT_UNITS.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, unit: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px' }} /></div>
+        <div><Label>الوحدة التنظيمية المعنية</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, unit: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px' }} /></div>
         <div><Label>سنة التقرير</Label><input value={f.year} onChange={setI('year')} style={inputStyle} /></div>
         <div><Label>الفترة</Label><input value={f.period} onChange={setI('period')} placeholder="مثال: النصف الأول 2026" style={inputStyle} /></div>
         <div><Label>الدورية</Label><Dropdown value={f.freq} options={FREQS.map((x) => ({ v: x, label: tr(x) }))} onChange={(v) => setF((p) => ({ ...p, freq: v }))} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>حالة التقرير</Label><div style={{ ...inputStyle, background: '#f2f4f0', color: '#7d867f' }}>{existing ? tr(existing.status) : 'مسودة'} — تُدار من سير العمل</div></div>
         <div><Label>المسؤول</Label><Dropdown value={f.resp} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setF((p) => ({ ...p, resp: v }))} opt={{ block: true, size: 'sm' }} /></div>
       </div>
+
+      {/* first-observation data — same fields as the observation form */}
+      {!existing && (
+        <>
+          {secHead('بيانات الملاحظة')}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={o.title} onChange={setOI('title')} style={{ ...inputStyle, ...(needs('عنوان الملاحظة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
+            <div><Label>المسؤول عن المعالجة</Label><input value={o.owner} onChange={setOI('owner')} placeholder="اكتب اسم المسؤول…" style={{ ...inputStyle, ...(needs('المسؤول عن المعالجة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div><Label>الحالة</Label><Dropdown value={o.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setO((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
+              <div><Label>تاريخ التنفيذ</Label><DateField value={o.due} onChange={(v) => setO((p) => ({ ...p, due: v }))} /></div>
+            </div>
+          </div>
+          {secHead('ملاحظة التدقيق الداخلي', needs('ملاحظة التدقيق الداخلي'))}
+          <Bullets items={obsB} onChange={setObsB} addLabel="إضافة نقطة" />
+          {secHead('آلية إغلاق الملاحظة', needs('آلية إغلاق الملاحظة'))}
+          <Bullets items={actB} onChange={setActB} addLabel="إضافة نقطة" />
+          {secHead('ملاحظات على الملاحظة', needs('الملاحظات'))}
+          <textarea value={o.notes} onChange={setOI('notes')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+          {secHead('مرفقات الملاحظة')}
+          <FileUploadField files={obsAtts} onChange={setObsAtts} />
+        </>
+      )}
 
       {secHead('مرفق التقرير')}
       <FileUploadField files={atts} onChange={setAtts} />
@@ -323,7 +426,6 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
   const data = useStore((s) => s.data);
   const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const rep = (data.auditReps || []).find((r) => r.id === repId);
   const existing = obsId ? data.audit.find((a) => a.id === obsId) : null;
@@ -333,41 +435,8 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
   const [obsB, setObsB] = useState<string[]>(() => existing ? splitBullets(existing.obs) : []);
   const [actB, setActB] = useState<string[]>(() => existing ? splitBullets(existing.action) : []);
   const [atts, setAtts] = useState<string[]>(() => existing?.attachments ? [...existing.attachments] : []);
-  const [missing, setMissing] = useState<string[]>([]);
-  const [parsedFrom, setParsedFrom] = useState('');
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
-
-  const onUpload = async (file: File) => {
-    try {
-      let blocks: { lines: string[]; tables: string[][][] } | null = null;
-      const buf = await file.arrayBuffer();
-      const head = new Uint8Array(buf.slice(0, 2));
-      if (head[0] === 0x50 && head[1] === 0x4b) {
-        const xml = await docxText(buf);
-        if (xml) blocks = toBlocks(xml, true);
-      } else {
-        const text = new TextDecoder('utf-8').decode(buf);
-        blocks = toBlocks(text, false);
-        if (!blocks.lines.length) blocks = { lines: text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), tables: [] };
-      }
-      if (!blocks || !blocks.lines.length) { showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة'); setAtts((p) => [...p, file.name]); return; }
-      const parsed = parseObsFile(blocks.lines, blocks.tables);
-      setF((p) => ({
-        ...p,
-        unit: parsed.unit ?? p.unit, title: parsed.title ?? p.title, owner: parsed.owner ?? p.owner,
-        status: parsed.status ?? p.status, due: parsed.due ?? p.due, notes: parsed.notes ?? p.notes,
-      }));
-      if (parsed.obs) setObsB(parsed.obs);
-      if (parsed.action) setActB(parsed.action);
-      setMissing(parsed.missing);
-      setParsedFrom(file.name);
-      setAtts((p) => (p.includes(file.name) ? p : [...p, file.name]));
-      showToast('قُرئ الملف وعُبئت الحقول — راجع البيانات قبل الحفظ');
-    } catch {
-      showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة');
-      setAtts((p) => [...p, file.name]);
-    }
-  };
+  const unitOpts = [...new Set([...AUDIT_UNITS, (f.unit || '').trim()])].filter(Boolean);
 
   const save = (send: boolean) => {
     if (!(f.title || '').trim()) { showToast('يرجى إدخال عنوان الملاحظة'); return; }
@@ -407,47 +476,26 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
     onClose();
   };
 
-  const needs = (ar: string) => parsedFrom !== '' && missing.includes(ar);
-
   return (
     <Modal open onClose={onClose} width={760}>
       <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? 'تعديل الملاحظة' : 'إضافة ملاحظة جديدة'}</h3>
       <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rep ? 'ضمن: ' + rep.title : ''} — تُحفظ في نفس سجل الملاحظات الذي يراه رئيس القطاع.</p>
 
-      {/* template download / upload */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
-        <button type="button" onClick={downloadAuditTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
-          تحميل قالب التقرير
-        </button>
-        <input ref={fileRef} type="file" accept=".doc,.docx,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
-        <button type="button" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
-          رفع القالب المكتمل (تعبئة تلقائية)
-        </button>
-        <span style={{ fontSize: 10.5, color: '#7d867f' }}>عبّئ القالب خارج المنصة ثم ارفعه — تُعرض البيانات للمراجعة ولا تُحفظ مباشرة.</span>
-      </div>
-      {parsedFrom && (
-        <div style={{ margin: '8px 0 0', background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: '#1e4634' }}>
-          قُرئت البيانات من «{parsedFrom}» — راجعها وعدّلها قبل الحفظ.{missing.length > 0 && <span style={{ color: '#a9791f', fontWeight: 700 }}> حقول لم يُتعرف عليها: {missing.join('، ')}.</span>}
-        </div>
-      )}
-
       {secHead('بيانات الملاحظة')}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div><Label>الوحدة التنظيمية المعنية</Label><input value={f.unit} onChange={setI('unit')} style={{ ...inputStyle, ...(needs('الوحدة التنظيمية') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
-        <div><Label>المسؤول عن المعالجة</Label><input value={f.owner} onChange={setI('owner')} placeholder="اكتب اسم المسؤول…" style={{ ...inputStyle, ...(needs('المسؤول عن المعالجة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={f.title} onChange={setI('title')} style={{ ...inputStyle, ...(needs('عنوان الملاحظة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
+        <div><Label>الوحدة التنظيمية المعنية</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, unit: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px', placeholder: 'اختر الوحدة…' }} /></div>
+        <div><Label>المسؤول عن المعالجة</Label><input value={f.owner} onChange={setI('owner')} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>الحالة</Label><Dropdown value={f.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>تاريخ التنفيذ</Label><DateField value={f.due} onChange={(v) => setF((p) => ({ ...p, due: v }))} /></div>
       </div>
 
-      {secHead('ملاحظة التدقيق الداخلي', needs('ملاحظة التدقيق الداخلي'))}
+      {secHead('ملاحظة التدقيق الداخلي')}
       <Bullets items={obsB} onChange={setObsB} addLabel="إضافة نقطة" />
-      {secHead('آلية إغلاق الملاحظة', needs('آلية إغلاق الملاحظة'))}
+      {secHead('آلية إغلاق الملاحظة')}
       <Bullets items={actB} onChange={setActB} addLabel="إضافة نقطة" />
 
-      {secHead('ملاحظات', needs('الملاحظات'))}
+      {secHead('ملاحظات')}
       <textarea value={f.notes} onChange={setI('notes')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
 
       {secHead('المرفقات')}
