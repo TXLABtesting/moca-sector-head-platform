@@ -3702,6 +3702,7 @@ export const seedData = ({
     }
   ],
   "finModel": {
+    "id": "fin1",
     "period": "حتى 30 مايو 2026",
     "budget": 100,
     "used": 20,

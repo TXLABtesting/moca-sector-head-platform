@@ -1,0 +1,344 @@
+import { useRef, useState } from 'react';
+import { Modal, Badge } from '../../components/ui';
+import { useStore } from '../../store/store';
+import { useI18n } from '../../i18n/i18n';
+import { useToast } from '../../components/Toast';
+import { useCurrentUser } from '../../store/useCurrentUser';
+import { can } from '../../domain/permissions';
+import { triggerDownload } from '../../shared/fileGen';
+import { FinancialSummary } from './FinancialSummary';
+import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup } from './templateIO';
+import type { FinModel, FinBigProject, FinEntity } from '../../data/types';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+const WSTC: Record<string, [string, string]> = {
+  'محدّث': ['#e2f0e8', '#2e7d55'],
+  'مسودة': ['#eceeeb', '#6d7973'],
+  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
+  'معتمد': ['#e2f0e8', '#2e7d55'],
+  'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
+};
+
+const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
+const secHead = (t: string, warn?: boolean) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 8px' }}>
+    <span style={{ width: 5, height: 16, borderRadius: 4, background: '#1e4634' }} />
+    <span style={{ fontSize: 13.5, fontWeight: 800, color: '#17211c' }}>{t}</span>
+    {warn && <span style={{ fontSize: 10, fontWeight: 800, color: '#a9791f', background: '#fbf2df', borderRadius: 20, padding: '2px 10px' }}>يحتاج مراجعة — لم يُتعرف عليه من الملف</span>}
+  </div>
+);
+const fmt = (n: number) => (n || 0).toLocaleString('en-US');
+const num = (v: string) => parseFloat(String(v).replace(/[^\d.-]/g, '')) || 0;
+
+/* ---------------- template: pre-filled with the CURRENT summary data ---------------- */
+function kvRows(fm: FinModel, f?: Record<string, string>): [string, string][] {
+  const g = (k: string, v: number | string) => String(f?.[k] ?? v ?? '');
+  return [
+    ['الفترة', g('period', fm.period)],
+    ['الميزانية الإجمالية (مليون درهم)', g('budget', fm.budget)],
+    ['المستخدم (مليون درهم)', g('used', fm.used)],
+    ['الالتزامات', g('commit', fm.commit)],
+    ['المدفوع من الالتزامات', g('commitPaid', fm.commitPaid)],
+    ['التشغيلية - المتوقع', g('opexE', fm.opex.expected)],
+    ['التشغيلية - المدفوع', g('opexP', fm.opex.paid)],
+    ['الرأسمالية - المتوقع', g('capexE', fm.capex.expected)],
+    ['الرأسمالية - المدفوع', g('capexP', fm.capex.paid)],
+  ];
+}
+function buildFinDocx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
+  const body =
+    wP('الملخص التنفيذي المالي', { bold: true, size: 36 }) + wP('') +
+    wTbl(['الحقل', 'القيمة'], kvRows(fm)) +
+    wP('المشاريع الكبرى', { bold: true, size: 28 }) +
+    wTbl(['المشروع', 'المخصص (مليون درهم)', 'المدفوع (مليون درهم)'], projects.length ? projects.map((p) => [p.name, String(p.alloc), String(p.paid)]) : [['اكتب هنا', '', '']]) +
+    wP('الجهات', { bold: true, size: 28 }) +
+    wTbl(['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'], entities.length ? entities.map((e) => [e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]) : [['اكتب هنا', '', '', '', '', '']]);
+  return makeDocx(body);
+}
+function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
+  const rows: string[][] = [['الحقل', 'القيمة'], ...kvRows(fm)];
+  rows.push([''], ['المشروع', 'المخصص', 'المدفوع']);
+  (projects.length ? projects : [{ name: '', alloc: 0, paid: 0 }]).forEach((p) => rows.push([p.name, String(p.alloc || ''), String(p.paid || '')]));
+  rows.push([''], ['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق']);
+  (entities.length ? entities : []).forEach((e) => rows.push([e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]));
+  return makeXlsx(rows, 'الملخص المالي');
+}
+
+/* ---------------- upload parsing ---------------- */
+interface FinParsed {
+  period?: string; budget?: number; used?: number; commit?: number; commitPaid?: number;
+  opexE?: number; opexP?: number; capexE?: number; capexP?: number;
+  projects?: { name: string; alloc: number; paid: number }[];
+  entities?: { name: string; alloc: number; used: number; commit: number; paid: number; due: number }[];
+  missing: string[];
+}
+/** Slice section rows out of tables: rows following a header row that matches
+ *  `head`, stopping at the next header-like row or an empty row. */
+function sliceSection(tables: string[][][], head: (r: string[]) => boolean): string[][] {
+  for (const t of tables) {
+    const hi = t.findIndex(head);
+    if (hi < 0) continue;
+    const out: string[][] = [];
+    for (let i = hi + 1; i < t.length; i++) {
+      const r = t[i];
+      const first = (r[0] || '').trim();
+      if (!first && !(r[1] || '').trim()) break;
+      if (/^(المشروع|الجهة|الحقل)$/.test(first)) break;
+      if (first) out.push(r);
+    }
+    if (out.length) return out;
+  }
+  return [];
+}
+function parseFinFile(tables: string[][][]): FinParsed {
+  const found: FinParsed = { missing: [] };
+  const kvNum = (label: RegExp): number | undefined => {
+    const v = kvLookup(tables, label);
+    return v === undefined ? undefined : num(v);
+  };
+  found.period = kvLookup(tables, /^الفترة/);
+  found.budget = kvNum(/^الميزانية/);
+  found.used = kvNum(/^المستخدم/);
+  found.commit = kvNum(/^الالتزامات/);
+  found.commitPaid = kvNum(/^المدفوع من الالتزامات/);
+  found.opexE = kvNum(/^التشغيلية - المتوقع/);
+  found.opexP = kvNum(/^التشغيلية - المدفوع/);
+  found.capexE = kvNum(/^الرأسمالية - المتوقع/);
+  found.capexP = kvNum(/^الرأسمالية - المدفوع/);
+  const projRows = sliceSection(tables, (r) => /المشروع/.test(r[0] || '') && /المخصص/.test(r.join(' ')));
+  if (projRows.length) found.projects = projRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), paid: num(r[2] || '') })).filter((p) => p.name && p.name !== 'اكتب هنا');
+  const entRows = sliceSection(tables, (r) => /^الجهة/.test((r[0] || '').trim()) && /المخصص/.test(r.join(' ')));
+  if (entRows.length) found.entities = entRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), used: num(r[2] || ''), commit: num(r[3] || ''), paid: num(r[4] || ''), due: num(r[5] || '') })).filter((e) => e.name && e.name !== 'اكتب هنا');
+  const KEYS: { k: keyof FinParsed; ar: string }[] = [
+    { k: 'period', ar: 'الفترة' }, { k: 'budget', ar: 'الميزانية الإجمالية' }, { k: 'used', ar: 'المستخدم' },
+    { k: 'commit', ar: 'الالتزامات' }, { k: 'commitPaid', ar: 'المدفوع من الالتزامات' },
+    { k: 'opexE', ar: 'التشغيلية' }, { k: 'capexE', ar: 'الرأسمالية' },
+    { k: 'projects', ar: 'المشاريع الكبرى' }, { k: 'entities', ar: 'الجهات' },
+  ];
+  found.missing = KEYS.filter((x) => found[x.k] === undefined).map((x) => x.ar);
+  return found;
+}
+
+/* ---------------- the edit form ---------------- */
+function FinForm({ onClose }: { onClose: () => void }) {
+  const cu = useCurrentUser();
+  const fm = useStore((s) => s.data.finModel);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [f, setF] = useState<Record<string, string>>({
+    period: fm.period, budget: String(fm.budget), used: String(fm.used),
+    commit: String(fm.commit), commitPaid: String(fm.commitPaid),
+    opexE: String(fm.opex.expected), opexP: String(fm.opex.paid),
+    capexE: String(fm.capex.expected), capexP: String(fm.capex.paid),
+  });
+  const [projects, setProjects] = useState<FinBigProject[]>(() => fm.bigProjects.map((p) => ({ ...p })));
+  const [ents, setEnts] = useState<{ name: string; alloc: number; used: number; commit: number; paid: number; due: number }[]>(
+    () => fm.entities.map((e) => ({ name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due })));
+  const [missing, setMissing] = useState<string[]>([]);
+  const [parsedFrom, setParsedFrom] = useState('');
+  const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const remain = num(f.budget) - num(f.used);
+  const commitDue = num(f.commit) - num(f.commitPaid);
+
+  const onUpload = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      if (!blocks) { showToast('تعذّرت قراءة الملف تلقائياً'); return; }
+      const p = parseFinFile(blocks.tables);
+      setF((prev) => ({
+        ...prev,
+        period: p.period ?? prev.period,
+        budget: p.budget !== undefined ? String(p.budget) : prev.budget,
+        used: p.used !== undefined ? String(p.used) : prev.used,
+        commit: p.commit !== undefined ? String(p.commit) : prev.commit,
+        commitPaid: p.commitPaid !== undefined ? String(p.commitPaid) : prev.commitPaid,
+        opexE: p.opexE !== undefined ? String(p.opexE) : prev.opexE,
+        opexP: p.opexP !== undefined ? String(p.opexP) : prev.opexP,
+        capexE: p.capexE !== undefined ? String(p.capexE) : prev.capexE,
+        capexP: p.capexP !== undefined ? String(p.capexP) : prev.capexP,
+      }));
+      if (p.projects) setProjects(p.projects);
+      if (p.entities) setEnts(p.entities);
+      setMissing(p.missing);
+      setParsedFrom(file.name);
+      showToast('قُرئ الملف وعُبئت الحقول — راجع البيانات قبل الحفظ');
+    } catch {
+      showToast('تعذّرت قراءة الملف تلقائياً');
+    }
+  };
+
+  const save = (send: boolean) => {
+    if (!(f.period || '').trim()) { showToast('يرجى إدخال الفترة'); return; }
+    mutate((d) => {
+      const m = d.finModel as FinModel & { _mstatus?: string; _mrev?: boolean; _mret?: string; _mowner?: string; _mlog?: unknown[] };
+      m.id = m.id || 'fin1';
+      m.period = f.period.trim();
+      m.budget = num(f.budget); m.used = num(f.used); m.remain = num(f.budget) - num(f.used);
+      m.commit = num(f.commit); m.commitPaid = num(f.commitPaid); m.commitDue = num(f.commit) - num(f.commitPaid);
+      m.opex = { ...m.opex, expected: num(f.opexE), paid: num(f.opexP), due: num(f.opexE) - num(f.opexP) };
+      m.capex = { ...m.capex, expected: num(f.capexE), paid: num(f.capexP), due: num(f.capexE) - num(f.capexP) };
+      m.bigProjects = projects.filter((p) => p.name.trim()).map((p) => ({ ...p, alloc: +p.alloc || 0, paid: +p.paid || 0 }));
+      // merge edited entity figures back, preserving nested breakdowns of existing entities
+      m.entities = ents.filter((e) => e.name.trim()).map((e) => {
+        const old = fm.entities.find((x) => x.name === e.name);
+        return old
+          ? { ...old, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due }
+          : { code: e.name.slice(0, 4), name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due, opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 }, projects: [], overdue: 0 };
+      });
+      m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
+      if (send) { m._mstatus = 'بانتظار مراجعة رئيس القطاع'; m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id; }
+      else if (!m._mrev && m._mstatus !== 'معتمد') m._mstatus = 'مسودة';
+      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : 'تحديث بيانات الملخص المالي', sent: !!send, by: cu.name });
+    });
+    showToast(send ? 'أُرسل الملخص المالي لرئيس القطاع للمراجعة' : 'حُفظت بيانات الملخص المالي');
+    onClose();
+  };
+
+  const needs = (ar: string) => parsedFrom !== '' && missing.includes(ar);
+  const warnStyle = (ar: string) => (needs(ar) ? { borderColor: '#e9c877', background: '#fdf9ee' } : {});
+  const rowBtn: React.CSSProperties = { flex: 'none', width: 26, height: 26, border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 };
+  const addRowBtn = (label: string, onClick: () => void) => (
+    <button type="button" onClick={onClick} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '7px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', marginTop: 8 }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{label}
+    </button>
+  );
+  const th: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: '#7d867f', textAlign: 'start', padding: '4px 2px' };
+
+  return (
+    <Modal open onClose={onClose} width={820}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>تعديل بيانات الملخص التنفيذي المالي</h3>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>تُحفظ في نفس السجل الذي يراه رئيس القطاع في مركز التقارير.</p>
+
+      {/* template: download filled with current data / upload updated */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
+        <button type="button" onClick={() => triggerDownload(buildFinDocx({ ...fm, period: f.period }, projects, ents as never), 'Financial_Summary_Template.docx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+          تحميل قالب Word ببيانات الملخص الحالية
+        </button>
+        <button type="button" onClick={() => triggerDownload(buildFinXlsx({ ...fm, period: f.period }, projects, ents as never), 'Financial_Summary_Template.xlsx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+          تحميل قالب Excel
+        </button>
+        <input ref={fileRef} type="file" accept=".doc,.docx,.xlsx,.xls,.csv,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
+        <button type="button" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
+          رفع القالب المكتمل (تعبئة تلقائية)
+        </button>
+        <span style={{ fontSize: 10.5, color: '#7d867f' }}>يُقبل Word أو Excel — تُعرض البيانات للمراجعة ولا تُحفظ مباشرة.</span>
+      </div>
+      {parsedFrom && (
+        <div style={{ margin: '8px 0 0', background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: '#1e4634' }}>
+          قُرئت البيانات من «{parsedFrom}» — راجعها وعدّلها قبل الحفظ.{missing.length > 0 && <span style={{ color: '#a9791f', fontWeight: 700 }}> حقول لم يُتعرف عليها: {missing.join('، ')}.</span>}
+        </div>
+      )}
+
+      {secHead('البيانات الرئيسية')}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <div style={{ gridColumn: '1 / -1' }}><Label>الفترة</Label><input value={f.period} onChange={setI('period')} style={{ ...inputStyle, ...warnStyle('الفترة') }} /></div>
+        <div><Label>الميزانية الإجمالية (مليون درهم)</Label><input value={f.budget} onChange={setI('budget')} style={{ ...inputStyle, ...warnStyle('الميزانية الإجمالية') }} /></div>
+        <div><Label>المستخدم (مليون درهم)</Label><input value={f.used} onChange={setI('used')} style={{ ...inputStyle, ...warnStyle('المستخدم') }} /></div>
+        <div><Label>المتبقي (يُحسب تلقائياً)</Label><div style={{ ...inputStyle, background: '#f2f4f0', color: '#1e4634', fontWeight: 700 }}>{fmt(remain)}</div></div>
+        <div><Label>الالتزامات (مليون درهم)</Label><input value={f.commit} onChange={setI('commit')} style={{ ...inputStyle, ...warnStyle('الالتزامات') }} /></div>
+        <div><Label>المدفوع من الالتزامات</Label><input value={f.commitPaid} onChange={setI('commitPaid')} style={{ ...inputStyle, ...warnStyle('المدفوع من الالتزامات') }} /></div>
+        <div><Label>المستحق (يُحسب تلقائياً)</Label><div style={{ ...inputStyle, background: '#f2f4f0', color: '#1e4634', fontWeight: 700 }}>{fmt(commitDue)}</div></div>
+      </div>
+
+      {secHead('التدفقات التشغيلية والرأسمالية', needs('التشغيلية') || needs('الرأسمالية'))}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10 }}>
+        <div><Label>التشغيلية — المتوقع</Label><input value={f.opexE} onChange={setI('opexE')} style={inputStyle} /></div>
+        <div><Label>التشغيلية — المدفوع</Label><input value={f.opexP} onChange={setI('opexP')} style={inputStyle} /></div>
+        <div><Label>الرأسمالية — المتوقع</Label><input value={f.capexE} onChange={setI('capexE')} style={inputStyle} /></div>
+        <div><Label>الرأسمالية — المدفوع</Label><input value={f.capexP} onChange={setI('capexP')} style={inputStyle} /></div>
+      </div>
+
+      {secHead('المشاريع الكبرى', needs('المشاريع الكبرى'))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 150px 150px 26px', gap: 8 }}>
+          <span style={th}>المشروع</span><span style={th}>المخصص (مليون درهم)</span><span style={th}>المدفوع (مليون درهم)</span><span />
+        </div>
+        {projects.map((p, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.8fr 150px 150px 26px', gap: 8, alignItems: 'center' }}>
+            <input value={p.name} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} style={inputStyle} />
+            <input value={String(p.alloc || '')} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, alloc: num(e.target.value) } : x)))} style={inputStyle} />
+            <input value={String(p.paid || '')} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, paid: num(e.target.value) } : x)))} style={inputStyle} />
+            <button type="button" onClick={() => setProjects((prev) => prev.filter((_, j) => j !== i))} style={rowBtn}>✕</button>
+          </div>
+        ))}
+        {addRowBtn('إضافة مشروع', () => setProjects((prev) => [...prev, { name: '', alloc: 0, paid: 0 }]))}
+      </div>
+
+      {secHead('الجهات', needs('الجهات'))}
+      <div style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: 720, display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 110px 110px 110px 110px 110px 26px', gap: 7 }}>
+            <span style={th}>الجهة</span><span style={th}>المخصص</span><span style={th}>المستخدم</span><span style={th}>الالتزامات</span><span style={th}>المدفوع</span><span style={th}>المستحق</span><span />
+          </div>
+          {ents.map((e, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.6fr 110px 110px 110px 110px 110px 26px', gap: 7, alignItems: 'center' }}>
+              <input value={e.name} onChange={(ev) => setEnts((prev) => prev.map((x, j) => (j === i ? { ...x, name: ev.target.value } : x)))} style={inputStyle} />
+              {(['alloc', 'used', 'commit', 'paid', 'due'] as const).map((k) => (
+                <input key={k} value={String(e[k] || '')} onChange={(ev) => setEnts((prev) => prev.map((x, j) => (j === i ? { ...x, [k]: num(ev.target.value) } : x)))} style={inputStyle} />
+              ))}
+              <button type="button" onClick={() => setEnts((prev) => prev.filter((_, j) => j !== i))} style={rowBtn}>✕</button>
+            </div>
+          ))}
+          {addRowBtn('إضافة جهة', () => setEnts((prev) => [...prev, { name: '', alloc: 0, used: 0, commit: 0, paid: 0, due: 0 }]))}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ كمسودة</button>
+        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إرسال لرئيس القطاع</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---------------- member workspace: action header + the shared summary view ---------------- */
+export function FinanceWorkspace() {
+  const { tr, dl } = useI18n();
+  const cu = useCurrentUser();
+  const fm = useStore((s) => s.data.finModel);
+  const manage = cu.type !== 'chair' && (can(cu, 'finReports', 'add') || can(cu, 'finReports', 'edit'));
+  const [formOpen, setFormOpen] = useState(false);
+  const meta = fm as FinModel & { _mstatus?: string; _mret?: string };
+  const wf = meta._mret ? 'أعيد للتعديل' : (meta._mstatus || 'محدّث');
+  const [wb, wfg] = WSTC[wf] || ['#eceeeb', '#6d7973'];
+
+  return (
+    <div>
+      <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 8 }}>
+        <div style={{ minWidth: 0, flex: '1 1 260px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: '#17211c' }}>الملخص التنفيذي المالي</h1>
+            <Badge bg={wb} fg={wfg} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(wf)}</Badge>
+          </div>
+          <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#7d867f' }}>
+            سجل مشترك واحد يظهر لرئيس القطاع فوراً{fm.lastUpdate ? ' · آخر تحديث: ' + dl(fm.lastUpdate) + (fm.updatedBy ? ' بواسطة ' + tr(fm.updatedBy) : '') : ''}
+          </p>
+        </div>
+        {manage && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
+            <button onClick={() => setFormOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+              تعديل بيانات الملخص
+            </button>
+          </div>
+        )}
+      </div>
+      {!!(meta._mret && meta._mret.trim()) && (
+        <div style={{ background: '#fdf3f2', border: '1.5px solid #e7b8b3', borderRadius: 11, padding: '11px 13px', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: '#b0433b', fontWeight: 800, marginBottom: 3 }}>أُعيد للتعديل من رئيس القطاع — سبب الإرجاع</div>
+          <div style={{ fontSize: 12.5, color: '#9a3a2b', lineHeight: 1.7 }}>{meta._mret}</div>
+        </div>
+      )}
+      <FinancialSummary />
+      {formOpen && <FinForm onClose={() => setFormOpen(false)} />}
+    </div>
+  );
+}

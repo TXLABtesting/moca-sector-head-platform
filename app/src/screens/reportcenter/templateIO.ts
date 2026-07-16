@@ -1,0 +1,199 @@
+/* Shared template I/O for report workspaces: in-browser generation of real
+   Word/Excel files and reading them back (zip + deflate-raw, no libraries). */
+import { storedZip } from '../../shared/fileGen';
+
+export const PLACEHOLDER = /^(اكتب هنا|-+)$/;
+
+/* ---------------- Word (docx) generation ---------------- */
+export const X = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+export const wP = (t: string, opts?: { bold?: boolean; size?: number }) => {
+  const rpr = `<w:rPr>${opts?.bold ? '<w:b/>' : ''}${opts?.size ? `<w:sz w:val="${opts.size}"/>` : ''}<w:rtl/></w:rPr>`;
+  return `<w:p><w:pPr><w:bidi/>${opts?.bold || opts?.size ? rpr : ''}</w:pPr><w:r>${rpr}<w:t xml:space="preserve">${X(t)}</w:t></w:r></w:p>`;
+};
+export const wTbl = (head: string[], rows: string[][]) => {
+  const tc = (t: string, hdr: boolean) => `<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>${hdr ? '<w:shd w:val="clear" w:fill="EEF3F0"/>' : ''}</w:tcPr>${wP(t, hdr ? { bold: true } : undefined)}</w:tc>`;
+  const tr = (cells: string[], hdr: boolean) => `<w:tr>${cells.map((c) => tc(c, hdr)).join('')}</w:tr>`;
+  const borders = '<w:tblBorders><w:top w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:start w:val="single" w:sz="4"/><w:end w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders>';
+  return `<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="5000" w:type="pct"/>${borders}</w:tblPr>${tr(head, true)}${rows.map((r) => tr(r, false)).join('')}</w:tbl>${wP('')}`;
+};
+
+/** Wrap a document body (built with wP/wTbl) into a complete .docx blob. */
+export function makeDocx(body: string): Blob {
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:bidi/></w:sectPr></w:body></w:document>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  return storedZip([
+    ['[Content_Types].xml', contentTypes],
+    ['_rels/.rels', rels],
+    ['word/document.xml', documentXml],
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+/* ---------------- Excel (xlsx) generation ---------------- */
+/** Build a one-sheet .xlsx from rows of cells (inline strings). */
+export function makeXlsx(rows: string[][], sheetName = 'قالب'): Blob {
+  const colRef = (j: number) => { let n = j + 1, s = ''; while (n > 0) { s = String.fromCharCode(65 + ((n - 1) % 26)) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const cell = (ref: string, v: string) => (v ? `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${X(v)}</t></is></c>` : '');
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="34" customWidth="1"/><col min="2" max="8" width="26" customWidth="1"/></cols><sheetData>${rows.map((r, i) => `<row r="${i + 1}">${r.map((c, j) => cell(colRef(j) + (i + 1), c)).join('')}</row>`).join('')}</sheetData></worksheet>`;
+  const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${X(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+  return storedZip([
+    ['[Content_Types].xml', contentTypes],
+    ['_rels/.rels', rels],
+    ['xl/workbook.xml', workbook],
+    ['xl/_rels/workbook.xml.rels', wbRels],
+    ['xl/worksheets/sheet1.xml', sheetXml],
+  ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+/* ---------------- reading uploads back ---------------- */
+export async function zipEntryText(buf: ArrayBuffer, name: string): Promise<string | null> {
+  const u8 = new Uint8Array(buf);
+  const dv = new DataView(buf);
+  for (let i = 0; i < u8.length - 4; i++) {
+    if (dv.getUint32(i, true) !== 0x04034b50) continue;
+    const method = dv.getUint16(i + 8, true);
+    const compSize = dv.getUint32(i + 18, true);
+    const nameLen = dv.getUint16(i + 26, true);
+    const extraLen = dv.getUint16(i + 28, true);
+    const fname = new TextDecoder().decode(u8.slice(i + 30, i + 30 + nameLen));
+    if (fname !== name) { i += 29; continue; }
+    const start = i + 30 + nameLen + extraLen;
+    const comp = u8.slice(start, start + compSize);
+    if (method === 0) return new TextDecoder('utf-8').decode(comp);
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new Blob([comp]).stream().pipeThrough(ds);
+    return await new Response(stream).text();
+  }
+  return null;
+}
+export const docxText = (buf: ArrayBuffer) => zipEntryText(buf, 'word/document.xml');
+
+/** Read the first worksheet of an .xlsx into rows of cell strings
+ *  (supports shared strings AND inline strings — Excel saves use shared). */
+export async function xlsxRows(buf: ArrayBuffer): Promise<string[][] | null> {
+  const sheet = await zipEntryText(buf, 'xl/worksheets/sheet1.xml');
+  if (!sheet) return null;
+  const sharedXml = await zipEntryText(buf, 'xl/sharedStrings.xml');
+  const shared: string[] = [];
+  if (sharedXml) {
+    for (const si of sharedXml.match(/<si>[\s\S]*?<\/si>/g) || []) {
+      shared.push((si.match(/<t[^>]*>([^<]*)<\/t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join(''));
+    }
+  }
+  const colIdx = (ref: string) => {
+    const m = ref.match(/^[A-Z]+/); if (!m) return 0;
+    let n = 0; for (const ch of m[0]) n = n * 26 + (ch.charCodeAt(0) - 64);
+    return n - 1;
+  };
+  const rows: string[][] = [];
+  for (const rowXml of sheet.match(/<row[^>]*>[\s\S]*?<\/row>/g) || []) {
+    const cells: string[] = [];
+    for (const cXml of rowXml.match(/<c [^>]*(?:\/>|>[\s\S]*?<\/c>)/g) || []) {
+      const ref = (cXml.match(/r="([^"]+)"/) || [])[1] || '';
+      const type = (cXml.match(/t="([^"]+)"/) || [])[1] || '';
+      let val = '';
+      if (type === 'inlineStr') {
+        val = (cXml.match(/<t[^>]*>([^<]*)<\/t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join('');
+      } else {
+        const v = (cXml.match(/<v[^>]*>([^<]*)<\/v>/) || [])[1] || '';
+        val = type === 's' ? (shared[parseInt(v, 10)] ?? '') : v;
+      }
+      cells[colIdx(ref)] = val.trim();
+    }
+    rows.push(Array.from(cells, (c) => c || ''));
+  }
+  return rows.length ? rows : null;
+}
+
+/** Turn document XML/HTML into ordered lines + tables (rows of cells). */
+export function toBlocks(src: string, isXml: boolean): { lines: string[]; tables: string[][][] } {
+  const lines: string[] = [];
+  const tables: string[][][] = [];
+  if (isXml) {
+    const re = /<w:p[ >][\s\S]*?<\/w:p>|<w:tbl>[\s\S]*?<\/w:tbl>/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src))) {
+      const seg = m[0];
+      if (seg.startsWith('<w:tbl>')) {
+        const rows: string[][] = [];
+        for (const rm of seg.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || []) {
+          const cells = (rm.match(/<w:tc[ >][\s\S]*?<\/w:tc>/g) || []).map((cm) => ((cm.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join(' ')).trim());
+          rows.push(cells);
+        }
+        tables.push(rows);
+        lines.push(' TABLE' + (tables.length - 1));
+      } else {
+        const t = (seg.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []).map((x) => x.replace(/<[^>]+>/g, '')).join('').trim();
+        if (t) lines.push(t);
+      }
+    }
+  } else {
+    const doc = new DOMParser().parseFromString(src, 'text/html');
+    const walk = (el: Element) => {
+      for (const ch of Array.from(el.children)) {
+        const tag = ch.tagName.toLowerCase();
+        if (tag === 'table') {
+          const rows = Array.from(ch.querySelectorAll('tr')).map((tr2) => Array.from(tr2.querySelectorAll('td,th')).map((c) => (c.textContent || '').trim()));
+          tables.push(rows);
+          lines.push(' TABLE' + (tables.length - 1));
+        } else if (/^(h\d|p|li)$/.test(tag)) {
+          const t = (ch.textContent || '').trim();
+          if (t) lines.push(t);
+          if (tag !== 'li') walk(ch);
+        } else walk(ch);
+      }
+    };
+    walk(doc.body);
+  }
+  return { lines, tables };
+}
+
+/** Read ANY supported upload (docx / xlsx / csv / html / txt) into blocks. */
+export async function fileToBlocks(file: File): Promise<{ lines: string[]; tables: string[][][] } | null> {
+  const buf = await file.arrayBuffer();
+  const head = new Uint8Array(buf.slice(0, 2));
+  let blocks: { lines: string[]; tables: string[][][] } | null = null;
+  if (head[0] === 0x50 && head[1] === 0x4b) {
+    const xml = await docxText(buf);
+    if (xml) blocks = toBlocks(xml, true);
+    else {
+      const rows = await xlsxRows(buf);
+      if (rows) blocks = { lines: [], tables: [rows] };
+    }
+  } else if (/\.csv$/i.test(file.name)) {
+    const text = new TextDecoder('utf-8').decode(buf);
+    const sep = text.includes('\t') ? '\t' : (text.split(';').length > text.split(',').length ? ';' : ',');
+    const rows = text.split(/\r?\n/).filter((l) => l.trim()).map((l) => l.split(sep).map((c) => c.trim()));
+    blocks = { lines: [], tables: [rows] };
+  } else {
+    const text = new TextDecoder('utf-8').decode(buf);
+    blocks = toBlocks(text, false);
+    if (!blocks.lines.length) blocks = { lines: text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), tables: [] };
+  }
+  if (!blocks || (!blocks.lines.length && !blocks.tables.length)) return null;
+  return blocks;
+}
+
+/** Look up the value of a label→value row across all parsed tables. */
+export function kvLookup(tables: string[][][], label: RegExp): string | undefined {
+  for (const t of tables) for (const r of t) {
+    if (label.test((r[0] || '').trim())) {
+      const v = (r[1] || '').trim();
+      if (v && !PLACEHOLDER.test(v)) return v;
+    }
+  }
+  return undefined;
+}
+
+/** Excel stores typed dates as serial numbers — convert plausible ones to an Arabic date. */
+const AR_MONS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+export function excelSerialToDate(v: string): string {
+  if (!/^\d{4,6}(\.\d+)?$/.test(v)) return v;
+  const n = parseFloat(v);
+  if (!isFinite(n) || n < 20000 || n > 80000) return v;
+  const d = new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000);
+  return d.getUTCDate() + ' ' + AR_MONS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+}

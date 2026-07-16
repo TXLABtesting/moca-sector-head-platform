@@ -174,7 +174,6 @@ export function ChairDashboard() {
   return (
     <Fade>
       <DemoHint />
-      <ReviewSummaryStrip />
       <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 13, marginBottom: 24 }}>
         {cards.map(({ key, def }) => {
           const on = tab === key;
@@ -257,35 +256,3 @@ const IcoDoc = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none"
 const IcoCheck = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L20 6" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg>;
 const IcoMail = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m4 7 8 6 8-6" /></svg>;
 
-/** Executive one-liner replacing the old inline review inbox: alerts now
- *  live in the Notifications Center only. */
-function ReviewSummaryStrip() {
-  const { lang } = useI18n();
-  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
-  const data = useStore((s) => s.data);
-  const work = useStore((s) => s.work);
-  const { goto } = useNav();
-  let pending = work.filter((w) => w.status === 'بانتظار مراجعة رئيس القطاع').length;
-  (['correspondence', 'followups', 'projects', 'minutes', 'committees', 'leaves', 'auditReports', 'reportLog', 'myTasks'] as const).forEach((sec) => {
-    const coll = mColl(sec); if (!coll) return;
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    pending += coll.get(data).filter((r: any) => r._mrev).length;
-  });
-  const meetings = data.reqMeetings.filter((m) => m.status === 'بانتظار الاعتماد').length;
-  const leaves = data.leaves.filter((l) => l.status === 'بانتظار الاعتماد').length;
-  if (pending + meetings + leaves === 0) return null;
-  return (
-    <div onClick={() => goto('notifications')} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: '#ffffff', border: '1.5px solid #c9a24b', borderRadius: 16, padding: '13px 18px', marginBottom: 20, cursor: 'pointer', boxShadow: '0 2px 6px rgba(23,40,32,.04)' }}>
-      <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fbf2df', color: '#a9791f' }}>
-        <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5a5 5 0 0 0-5 5c0 4-1.5 5.5-1.5 5.5h13S17 15.5 17 11.5a5 5 0 0 0-5-5Z" /><path d="M10 19.5a2 2 0 0 0 4 0M12 4v2.5" /></svg>
-      </span>
-      <span style={{ flex: 1, minWidth: 200, fontSize: 13, color: '#17211c', lineHeight: 1.6 }}>
-        <strong>{pending}</strong> {rl('بنود بانتظار مراجعتك', 'items awaiting your review')} · <strong>{meetings}</strong> {rl('طلبات اجتماعات', 'meeting requests')} · <strong>{leaves}</strong> {rl('طلبات إجازات', 'leave requests')}
-      </span>
-      <span style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#1e4634' }}>
-        {rl('فتح مركز التنبيهات', 'Open Notifications Center')}
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: lang === 'en' ? 'none' : 'scaleX(-1)' }}><path d="m9 6 6 6-6 6" /></svg>
-      </span>
-    </div>
-  );
-}

@@ -252,6 +252,7 @@ export interface RegReport {
   freq: string;
   resp: string;
   dept: string;
+  attachments?: string[];
   jan: string;
   feb: string;
   mar: string;
@@ -290,6 +291,9 @@ export interface AgingItem {
 }
 export interface AgingBucket { bucket: string; risk: string; items: AgingItem[] }
 export interface FinModel {
+  id?: string;
+  lastUpdate?: string;
+  updatedBy?: string;
   period: string;
   budget: number;
   used: number;

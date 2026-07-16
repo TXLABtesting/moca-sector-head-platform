@@ -85,7 +85,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 8,
+      version: 9,
       storage: createJSONStorage(safeStorage),
     }
   )

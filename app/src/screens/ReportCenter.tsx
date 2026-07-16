@@ -6,6 +6,8 @@ import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { AuditReport } from './reportcenter/AuditReport';
 import { AuditWorkspace } from './reportcenter/AuditWorkspace';
+import { FinanceWorkspace } from './reportcenter/FinanceWorkspace';
+import { RegisterWorkspace } from './reportcenter/RegisterWorkspace';
 import { FinancialSummary } from './reportcenter/FinancialSummary';
 import { ReportsRegister } from './reportcenter/ReportsRegister';
 import { RetentionReport } from './reportcenter/RetentionReport';
@@ -37,8 +39,14 @@ export function ReportCenter() {
     const manageAud = cu.type !== 'chair' && (can(cu, 'auditReports', 'add') || can(cu, 'auditReports', 'edit'));
     return <Fade>{manageAud ? <AuditWorkspace /> : <><SectionAddButton section="auditReports" header /><AuditReport canApprove={canApprove} /></>}</Fade>;
   }
-  if (page === 'finDetail') return <Fade><SectionAddButton section="finReports" header /><FinancialSummary /></Fade>;
-  if (page === 'reglog') return <Fade><SectionAddButton section="reportLog" header /><ReportsRegister /></Fade>;
+  if (page === 'finDetail') {
+    const manageFin = cu.type !== 'chair' && (can(cu, 'finReports', 'add') || can(cu, 'finReports', 'edit'));
+    return <Fade>{manageFin ? <FinanceWorkspace /> : <FinancialSummary />}</Fade>;
+  }
+  if (page === 'reglog') {
+    const manageReg = cu.type !== 'chair' && (can(cu, 'reportLog', 'add') || can(cu, 'reportLog', 'edit'));
+    return <Fade>{manageReg ? <RegisterWorkspace /> : <ReportsRegister />}</Fade>;
+  }
   if (page === 'reportDetail') {
     const manageRet = cu.type !== 'chair' && (can(cu, 'reportCenter', 'add') || can(cu, 'reportCenter', 'edit'));
     return <Fade>{manageRet ? <RetentionWorkspace /> : <><RetentionReport /><RetentionWorkspace /></>}</Fade>;

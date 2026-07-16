@@ -54,6 +54,11 @@ const COLLS: Record<string, MColl> = {
     make: (f, me) => ({ id: 'aur' + Math.floor(Math.random() * 1e9), title: f.title, unit: f.entity || 'إدارة الشؤون الإدارية', year: '2026', period: f.docType || '', freq: 'دوري', status: f.fstatus || 'مسودة', resp: f.respOwner || me, attachments: f.attachment ? [f.attachment] : [], notes: f.note || '', lastUpdate: 'الآن', updatedBy: me }),
     load: (r) => ({ title: r.title, entity: r.unit, docType: r.period, respOwner: r.resp, fstatus: r.status, note: r.notes }),
   },
+  finReports: {
+    key: 'finModel', get: (d) => [d.finModel], title: (r) => 'الملخص التنفيذي المالي — ' + (r.period || ''), status: (r) => r._mstatus || 'محدّث', setStatus: (r, s) => { r._mstatus = s; },
+    make: (f, me) => ({ id: 'fin1', period: f.title || '', updatedBy: me }),
+    load: (r) => ({ title: r.period, fstatus: r._mstatus }),
+  },
   reportLog: {
     key: 'regReports', get: (d) => d.regReports, title: (r) => r.title, status: (r) => r._mstatus || r.may || '—', setStatus: (r, s) => { r._mstatus = s; r.may = s; },
     make: (f, me) => ({ id: uid('rg'), n: '', title: f.title, dept: f.entity || '—', resp: f.respOwner || me, freq: f.docType || 'شهري', type: 'الأداء المالي', due: '7 من كل شهر', jan: '—', feb: '—', mar: '—', apr: '—', may: f.fstatus || 'قيد المراجعة', lastDate: '', approval: '', notes: '', _mstatus: f.fstatus || 'قيد المراجعة' }),
@@ -77,6 +82,7 @@ const COLLS: Record<string, MColl> = {
 };
 
 const SEC2COLL: Record<string, string> = {
+  finReports: 'finReports',
   correspondence: 'correspondence', followups: 'followups', projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
   minutes: 'minutes', minuteTasks: 'mtasks', committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves',
   auditReports: 'auditReps', reportLog: 'reportLog', myTasks: 'myTasks', reportCenter: 'retention',
@@ -101,6 +107,7 @@ export const OWNER_OF: Record<string, (r: any) => string> = {
   mtasks: (r) => r.owner || '',
   retReports: (r) => r.updatedBy || '',
   auditReps: (r) => r.resp || r.updatedBy || '',
+  finModel: () => 'هاجر هلول',
 };
 
 /** Match a record's owner string against the current member (tolerant of spelling
