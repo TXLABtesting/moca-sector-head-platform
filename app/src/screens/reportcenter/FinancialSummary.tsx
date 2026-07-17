@@ -2,8 +2,11 @@ import { useState, type CSSProperties } from 'react';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
-import { Drawer } from '../../components/ui';
+import { Drawer, Modal } from '../../components/ui';
+import { useCurrentUser } from '../../store/useCurrentUser';
+import { can } from '../../domain/permissions';
 import { entColors, agingColors, agingRisk, fmt, pct } from './shared';
+import type { FinModel } from '../../data/types';
 
 const sectionHead = (barColor: string, title: string, note?: string) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 13 }}>
@@ -22,8 +25,14 @@ export function FinancialSummary() {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const mAED = (v: number) => rl(fmt(v) + ' م.د', fmt(v) + 'M');
 
+  const cu = useCurrentUser();
+  // the responsible member gets Edit on inter-entity balance cards; the chair (and viewers) get Details only
+  const canEditRel = cu.type !== 'chair' && (can(cu, 'finReports', 'add') || can(cu, 'finReports', 'edit'));
+
   const [selEntity, setSelEntity] = useState<string | null>(null);
   const [selAging, setSelAging] = useState<string | null>(null);
+  const [relDetail, setRelDetail] = useState<number | null>(null);
+  const [relEdit, setRelEdit] = useState<number | null>(null);
 
   const finUtil = pct(FM.used, FM.budget);
   const entityCards = FM.entities.map((e) => {
@@ -210,9 +219,22 @@ export function FinancialSummary() {
                 </div>
               ))}
             </div>
+            <div style={{ display: 'flex', gap: 7, borderTop: '1px solid #f2f4f0', marginTop: 12, paddingTop: 11 }}>
+              <button onClick={() => setRelDetail(i)} style={{ flex: 1, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تفاصيل', 'Details')}</button>
+              {canEditRel && (
+                <button onClick={() => setRelEdit(i)} style={{ flex: 1, background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 9, padding: '8px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تعديل', 'Edit')}</button>
+              )}
+            </div>
           </div>
         ))}
       </div>
+
+      {relDetail !== null && (
+        <RelDetailModal index={relDetail} canEdit={canEditRel}
+          onEdit={() => { setRelDetail(null); setRelEdit(relDetail); }}
+          onClose={() => setRelDetail(null)} />
+      )}
+      {relEdit !== null && <RelEditModal index={relEdit} onClose={() => setRelEdit(null)} />}
 
       {/* AP aging */}
       {sectionHead('#b0433b', t('fin_aging'), t('fin_clickAging') + ' · ' + t('fin_totalAmount') + ': ' + fmt(agingTotal))}
@@ -322,5 +344,113 @@ export function FinancialSummary() {
         )}
       </Drawer>
     </div>
+  );
+}
+
+/* ---------------- inter-entity balance card: details ---------------- */
+function RelDetailModal({ index, canEdit, onEdit, onClose }: { index: number; canEdit: boolean; onEdit: () => void; onClose: () => void }) {
+  const { tr, lang } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const FM = useStore((s) => s.data.finModel);
+  const r = FM.related[index];
+  if (!r) return null;
+  const total = r.items.reduce((s, x) => s + x.v, 0);
+  const fromColor = entColors[r.from] || '#5b6b62';
+  const toColor = entColors[r.to] || '#5b6b62';
+  return (
+    <Modal open onClose={onClose} width={560}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, fontWeight: 800 }}>
+          <span style={{ color: fromColor }}>{r.from}</span>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: lang === 'en' ? 'none' : 'scaleX(-1)' }}><path d="M5 12h14m-6-6-6 6 6 6" /></svg>
+          <span style={{ color: toColor }}>{r.to}</span>
+        </div>
+        <span style={{ marginInlineStart: 'auto', fontSize: 12, fontWeight: 700, color: '#7a4d94', background: '#f3ecf6', borderRadius: 20, padding: '4px 12px' }}>{rl('أرصدة بين الجهات', 'Inter-entity balances')}</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 14 }}>{r.items.length} {rl('بند', 'items')} · {rl('القيم بالدرهم', 'Values in AED')}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {r.items.map((it, j) => (
+          <div key={j} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, background: '#f7f9f6', borderRadius: 11, padding: '11px 14px' }}>
+            <div style={{ fontSize: 12.5, color: '#3c4a42', lineHeight: 1.6 }}>{tr(it.n)}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: 'none' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#17211c', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", whiteSpace: 'nowrap' }}>{fmt(it.v)}</span>
+              <span style={{ fontSize: 10, color: '#9aa39b' }}>{total ? Math.round((it.v / total) * 100) + '%' : ''}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eef1ec', marginTop: 14, paddingTop: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: '#17211c' }}>{rl('الإجمالي', 'Total')}</span>
+        <span style={{ fontSize: 16, fontWeight: 800, color: '#1f4a37', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{fmt(total)}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+        {canEdit && (
+          <button onClick={onEdit} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تعديل', 'Edit')}</button>
+        )}
+        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إغلاق', 'Close')}</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---------------- inter-entity balance card: edit (responsible member only) ---------------- */
+function RelEditModal({ index, onClose }: { index: number; onClose: () => void }) {
+  const { lang } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const cu = useCurrentUser();
+  const FM = useStore((s) => s.data.finModel);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+  const r = FM.related[index];
+  const [items, setItems] = useState<{ n: string; v: string }[]>(() => (r ? r.items.map((x) => ({ n: x.n, v: String(x.v) })) : []));
+  if (!r) return null;
+  const numv = (v: string) => parseFloat(String(v).replace(/[^\d.-]/g, '')) || 0;
+  const total = items.reduce((s, x) => s + numv(x.v), 0);
+  const inputStyle: CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+
+  const save = () => {
+    const clean = items.map((x) => ({ n: x.n.trim(), v: numv(x.v) })).filter((x) => x.n);
+    if (!clean.length) { showToast(rl('أضف بنداً واحداً على الأقل', 'Add at least one item')); return; }
+    mutate((d) => {
+      const m = d.finModel as FinModel & { _mlog?: unknown[] };
+      const rr = m.related[index];
+      if (!rr) return;
+      rr.items = clean;
+      m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
+      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: 'تحديث أرصدة ' + rr.from + ' → ' + rr.to, by: cu.name });
+    });
+    showToast(rl('حُدّثت بنود البطاقة — تظهر لرئيس القطاع فوراً', 'Card items updated — visible to the Sector Head instantly'));
+    onClose();
+  };
+
+  return (
+    <Modal open onClose={onClose} width={620}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 16.5, fontWeight: 800, color: '#17211c' }}>{rl('تعديل أرصدة', 'Edit balances')} {r.from} ← {r.to}</h3>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rl('تُحفظ في نفس السجل الذي يراه رئيس القطاع — القيم بالدرهم.', 'Saved to the same record the Sector Head sees — values in AED.')}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 170px 26px', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#7d867f' }}>{rl('البند', 'Item')}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#7d867f' }}>{rl('القيمة (درهم)', 'Value (AED)')}</span><span />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        {items.map((it, j) => (
+          <div key={j} style={{ display: 'grid', gridTemplateColumns: '1.8fr 170px 26px', gap: 8, alignItems: 'center' }}>
+            <input value={it.n} onChange={(e) => setItems((p) => p.map((x, k) => (k === j ? { ...x, n: e.target.value } : x)))} style={inputStyle} />
+            <input value={it.v} onChange={(e) => setItems((p) => p.map((x, k) => (k === j ? { ...x, v: e.target.value } : x)))} style={inputStyle} />
+            <button type="button" onClick={() => setItems((p) => p.filter((_, k) => k !== j))} style={{ flex: 'none', width: 26, height: 26, border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 }}>✕</button>
+          </div>
+        ))}
+        <button type="button" onClick={() => setItems((p) => [...p, { n: '', v: '' }])} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '7px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', marginTop: 4 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة بند', 'Add item')}
+        </button>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#eef3f0', borderRadius: 10, padding: '10px 14px', marginTop: 14 }}>
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#1e4634' }}>{rl('الإجمالي (يُحسب تلقائياً)', 'Total (auto)')}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: '#1e4634', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{fmt(total)}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={save} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
+      </div>
+    </Modal>
   );
 }
