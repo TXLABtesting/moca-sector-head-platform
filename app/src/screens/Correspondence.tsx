@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { Fade, Modal } from '../components/ui';
 import { MobileFilters } from '../components/MobileFilters';
 import { Dropdown } from '../components/Dropdown';
@@ -6,6 +6,8 @@ import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useToast } from '../components/Toast';
+import { triggerDownload } from '../shared/fileGen';
+import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup, excelSerialToDate } from './reportcenter/templateIO';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -39,6 +41,61 @@ const emptyForm = (): FormState => ({
   followup: 'موزة المرزوقي', status: 'قيد المتابعة', priority: 'متوسطة', action: '', notes: '',
 });
 
+/* ---- template columns (order used by both Word key-value and Excel row headers) ---- */
+const CORR_COLS: { key: keyof FormState; ar: string; norm?: (v: string) => string }[] = [
+  { key: 'name', ar: 'اسم المستند' },
+  { key: 'entity', ar: 'الجهة المعنية' },
+  { key: 'dir', ar: 'التصنيف', norm: (v) => (v.includes('وارد') ? 'وارد' : 'صادر') },
+  { key: 'type', ar: 'نوع المستند', norm: (v) => DOC_TYPES.find((x) => v.includes(x)) || 'رسالة' },
+  { key: 'date', ar: 'التاريخ', norm: (v) => excelSerialToDate(v.trim()) },
+  { key: 'sender', ar: 'المرسل' },
+  { key: 'recipient', ar: 'المستلم' },
+  { key: 'followup', ar: 'المسؤول عن المتابعة' },
+  { key: 'status', ar: 'الوضع الحالي', norm: (v) => CORR_STATUSES.find((x) => v.includes(x)) || 'قيد المتابعة' },
+  { key: 'priority', ar: 'الأولوية', norm: (v) => PRIORITIES.find((x) => v.includes(x)) || 'متوسطة' },
+  { key: 'action', ar: 'الإجراء' },
+  { key: 'notes', ar: 'ملاحظات' },
+];
+
+const buildCorrDocx = () => makeDocx(
+  wP('قالب إضافة مستند — الصادر والوارد', { bold: true, size: 36 }) + wP('') +
+  wTbl(['الحقل', 'القيمة'], CORR_COLS.map((c) => [c.ar, c.key === 'dir' ? 'صادر' : (c.key === 'type' ? 'رسالة' : 'اكتب هنا')]))
+);
+/** Excel template: header row + a few blank rows — each ROW is one document (bulk import). */
+const buildCorrXlsx = () => makeXlsx([CORR_COLS.map((c) => c.ar), ...Array.from({ length: 3 }, () => CORR_COLS.map(() => ''))], 'مستندات');
+
+/** Parse an uploaded template into one or more documents.
+ *  - Excel/CSV with a header row → each following row is a document (bulk).
+ *  - Word key-value table → a single document. */
+function parseCorrFile(tables: string[][][]): Partial<FormState>[] {
+  const norm = (key: keyof FormState, raw: string): string => {
+    const c = CORR_COLS.find((x) => x.key === key);
+    const v = (raw || '').trim();
+    return c?.norm ? c.norm(v) : v;
+  };
+  // multi-column table (row-per-document)
+  for (const t of tables) {
+    const hi = t.findIndex((r) => r.filter((c) => CORR_COLS.some((col) => (c || '').includes(col.ar))).length >= 3);
+    if (hi < 0) continue;
+    const header = t[hi].map((c) => (c || '').trim());
+    const colOf = (col: { ar: string }) => header.findIndex((h) => h.includes(col.ar) || col.ar.includes(h));
+    const map = CORR_COLS.map((col) => ({ col, ci: colOf(col) }));
+    const docs: Partial<FormState>[] = [];
+    for (let i = hi + 1; i < t.length; i++) {
+      const row = t[i];
+      if (!row.some((c) => (c || '').trim())) continue;
+      const d: Partial<FormState> = {};
+      map.forEach(({ col, ci }) => { if (ci >= 0 && (row[ci] || '').trim()) (d as Record<string, string>)[col.key as string] = norm(col.key, row[ci]); });
+      if (d.name || d.entity || d.sender) docs.push(d);
+    }
+    if (docs.length) return docs;
+  }
+  // key-value fallback (single document)
+  const d: Partial<FormState> = {};
+  CORR_COLS.forEach((col) => { const v = kvLookup(tables, new RegExp('^' + col.ar)); if (v) (d as Record<string, string>)[col.key as string] = norm(col.key, v); });
+  return (d.name || d.entity || d.sender) ? [d] : [];
+}
+
 export function Correspondence() {
   const { page, params, goto } = useNav();
   const data = useStore((s) => s.data);
@@ -62,6 +119,9 @@ export function Correspondence() {
 
   const [modal, setModal] = useState<null | 'add' | 'edit'>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
+  const [parsedDocs, setParsedDocs] = useState<Partial<FormState>[] | null>(null);
+  const [parsedFrom, setParsedFrom] = useState('');
+  const impRef = useRef<HTMLInputElement>(null);
   const [docNote, setDocNote] = useState('');
 
   const opt = (arr: string[]) => arr.map((v) => ({ v, label: tr(v) }));
@@ -76,7 +136,50 @@ export function Correspondence() {
   const key = (d: string) => { const dt = parseAr(d); return dt ? dt.getTime() : 0; };
   filtered = filtered.slice().sort((a, b) => cSort === 'asc' ? key(a.date) - key(b.date) : key(b.date) - key(a.date));
 
-  const openAdd = () => { setForm(emptyForm()); setModal('add'); };
+  const openAdd = () => { setForm(emptyForm()); setParsedDocs(null); setParsedFrom(''); setModal('add'); };
+
+  // build a full correspondence record from a (partial) form
+  const recordFrom = (f: Partial<FormState>): Corr => {
+    const m = { ...emptyForm(), ...f } as FormState;
+    return {
+      ...(m as unknown as Corr),
+      id: 'c' + Math.floor(Math.random() * 1e9),
+      recvDate: m.date || '—',
+      needsAction: m.status !== 'مكتمل' && m.status !== 'مغلق',
+      attachment: (m as Record<string, string>).attachment || 'مرفق.pdf',
+      action: m.action || '—',
+      notes: m.notes || '—',
+    };
+  };
+
+  const onImport = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      if (!blocks) { showToast('تعذّرت قراءة الملف تلقائياً'); return; }
+      const docs = parseCorrFile(blocks.tables);
+      if (!docs.length) { showToast('لم يُتعرف على أي مستند في الملف — تحقق من مطابقة القالب'); return; }
+      setParsedFrom(file.name);
+      if (docs.length === 1) {
+        // one document → fill the form for review
+        setForm((f) => ({ ...f, ...docs[0] }));
+        setParsedDocs(null);
+        showToast('قُرئ المستند وعُبئت الحقول — راجعها قبل الحفظ');
+      } else {
+        // several documents → review list + import-all
+        setParsedDocs(docs);
+        showToast('قُرئ ' + docs.length + ' مستنداً — راجعها ثم استوردها');
+      }
+    } catch {
+      showToast('تعذّرت قراءة الملف تلقائياً');
+    }
+  };
+
+  const importAll = () => {
+    if (!parsedDocs || !parsedDocs.length) return;
+    mutate((d) => { parsedDocs.forEach((pd) => d.correspondence.unshift(recordFrom(pd))); });
+    showToast('تم استيراد ' + parsedDocs.length + ' مستنداً وإضافتها للسجل');
+    setParsedDocs(null); setParsedFrom(''); setModal(null);
+  };
   const openEdit = (id: string) => {
     const d = corr.find((x) => x.id === id);
     if (d) { setForm({ ...(d as unknown as FormState) }); setModal('edit'); }
@@ -312,6 +415,49 @@ export function Correspondence() {
           <button onClick={closeModal} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #e2e6df', background: '#f7f8f6', cursor: 'pointer', color: '#7d867f', fontSize: 16 }}>✕</button>
         </div>
         <div style={{ padding: '24px 26px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {modal === 'add' && (
+            <div style={{ gridColumn: '1/3' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
+                <button type="button" onClick={() => triggerDownload(buildCorrDocx(), 'Correspondence_Template.docx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+                  قالب Word
+                </button>
+                <button type="button" onClick={() => triggerDownload(buildCorrXlsx(), 'Correspondence_Template.xlsx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+                  قالب Excel
+                </button>
+                <input ref={impRef} type="file" accept=".doc,.docx,.xlsx,.xls,.csv,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onImport(f); e.target.value = ''; }} />
+                <button type="button" onClick={() => impRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>
+                  رفع ملف معبّأ (استيراد تلقائي)
+                </button>
+                <span style={{ fontSize: 10.5, color: '#7d867f' }}>يُقبل Word أو Excel — ملف Excel يمكن أن يحوي عدة مستندات (سطر لكل مستند).</span>
+              </div>
+              {!!parsedFrom && !parsedDocs && (
+                <div style={{ marginTop: 8, background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: '#1e4634' }}>قُرئت بيانات المستند من «{parsedFrom}» — راجعها وعدّلها قبل الحفظ.</div>
+              )}
+              {!!(parsedDocs && parsedDocs.length) && (
+                <div style={{ marginTop: 8, background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 12, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: '#1e4634' }}>قُرئ {parsedDocs.length} مستنداً من «{parsedFrom}» — جاهزة للاستيراد</span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button type="button" onClick={() => { setForm((f) => ({ ...f, ...parsedDocs[0] })); setParsedDocs(null); }} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>مراجعة أول مستند</button>
+                      <button type="button" onClick={importAll} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 14px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>استيراد الكل ({parsedDocs.length})</button>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 10, maxHeight: 150, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {parsedDocs.map((d, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #e6ece7', borderRadius: 9, padding: '7px 11px', fontSize: 11.5 }}>
+                        <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 5, padding: '2px 7px', background: d.dir === 'وارد' ? '#eef6f0' : '#e6eef6', color: d.dir === 'وارد' ? '#2e7d55' : '#3a6ea5' }}>{tr(String(d.dir || 'صادر'))}</span>
+                        <span style={{ flex: 1, minWidth: 0, color: '#17211c', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(String(d.name || '—'))}</span>
+                        <span style={{ color: '#9aa39b', flex: 'none' }}>{tr(String(d.entity || ''))}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ gridColumn: '1/3' }}><label style={labelStyle}>{t('fName')}</label>{txt('name')}</div>
           <div><label style={labelStyle}>{t('fEntity')}</label>{txt('entity')}</div>
           <div><label style={labelStyle}>{t('fCat')}</label><Dropdown value={form.dir} onChange={setF('dir')} options={[{ v: '', label: t('allDir') }, ...opt(['صادر', 'وارد'])]} opt={ddOpt} /></div>
