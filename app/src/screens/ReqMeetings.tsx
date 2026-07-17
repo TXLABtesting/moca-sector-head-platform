@@ -7,7 +7,7 @@ import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { useToast } from '../components/Toast';
 import { Dropdown } from '../components/Dropdown';
-import { Fade, Modal } from '../components/ui';
+import { Fade, Modal, Avatar } from '../components/ui';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
@@ -464,13 +464,15 @@ export function ReqMeetings() {
       {/* DETAIL POPUP (side drawer) */}
       {pd && createPortal(
         <div onClick={closePopup} style={{ position: 'fixed', inset: 0, background: 'rgba(23,33,28,.4)', zIndex: 96, display: 'flex', justifyContent: 'flex-start', animation: 'ovBg .2s ease' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 452, maxWidth: '94%', height: '100%', background: '#ffffff', boxShadow: '-8px 0 40px rgba(23,33,28,.18)', display: 'flex', flexDirection: 'column', animation: 'slideInX .28s ease', overflowY: 'auto' }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0ec' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, borderRadius: 20, padding: '4px 11px', background: pd.bg, color: pd.fg }}>{pd.statusLabel}</span>
-                <button onClick={closePopup} style={{ width: 32, height: 32, flex: 'none', borderRadius: 9, border: '1px solid #e2e6df', background: '#f7f8f6', cursor: 'pointer', color: '#7d867f', fontSize: 15 }}>✕</button>
+          <div onClick={(e) => e.stopPropagation()} className="aud-drawer" style={{ width: 480, maxWidth: '94%', height: '100%', background: '#ffffff', boxShadow: '-8px 0 40px rgba(23,33,28,.18)', display: 'flex', flexDirection: 'column', animation: 'slideInX .28s ease', overflowY: 'auto' }}>
+            <div style={{ padding: '18px 24px 20px', borderBottom: '1px solid #eef0ec', background: 'linear-gradient(160deg,#f7faf7,#eef4ef)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontWeight: 700, borderRadius: 20, padding: '5px 12px', background: pd.bg, color: pd.fg }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: pd.fg }} />{pd.statusLabel}
+                </span>
+                <button onClick={closePopup} aria-label={rl('إغلاق', 'Close')} style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, border: '1px solid #e2e6df', background: '#fff', cursor: 'pointer', color: '#7d867f', fontSize: 15 }}>✕</button>
               </div>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#17211c', lineHeight: 1.5 }}>{pd.subject}</h2>
+              <h2 style={{ margin: 0, fontSize: 17.5, fontWeight: 800, color: '#17211c', lineHeight: 1.5 }}>{pd.subject}</h2>
               {pd.isPending && chairDecide && !popupEdit && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
                   <button onClick={() => approveMeeting(pd.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
@@ -512,70 +514,98 @@ export function ReqMeetings() {
                 <MeetingFormFields key={pd.id} meetingId={pd.id} onDone={() => setPopupEdit(false)} onCancel={() => setPopupEdit(false)} />
               </div>
             ) : (
-            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: 150, background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
-                  <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 3 }}>{rl('الموعد المقترح', 'Proposed time')}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c', lineHeight: 1.5 }}>{pd.proposedDisp}</div>
-                </div>
-                <div style={{ flex: 1, minWidth: 150, background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
-                  <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 3 }}>{rl('الاعتماد', 'Decision')}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c', lineHeight: 1.5 }}>{pd.decisionLabel}</div>
-                </div>
-              </div>
-              {pd.hasNew && (
-                <div style={{ background: '#eef3f6', border: '1px solid #d8e4ee', borderRadius: 11, padding: '11px 13px' }}>
-                  <div style={{ fontSize: 10.5, color: '#2f6aa8', marginBottom: 3 }}>{rl('الموعد الجديد المقترح', 'New proposed time')}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#2f6aa8' }}>{pd.newDateDisp}</div>
-                </div>
-              )}
-              <div>
-                <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('الحضور', 'Attendees')}</div>
-                <div style={{ fontSize: 13, color: '#2a332d', lineHeight: 1.6 }}>{pd.attendees}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('الطلب بناءً على', 'Requested based on')}</div>
-                <div style={{ fontSize: 13, color: '#2a332d', lineHeight: 1.6 }}>{pd.basis}</div>
-              </div>
-              {(pd.locationDisp || pd.linkDisp) && (
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  {pd.locationDisp && (
-                    <div style={{ flex: 1, minWidth: 150, background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
-                      <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 3 }}>{rl('مكان الاجتماع', 'Location')}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c', lineHeight: 1.5 }}>{pd.locationDisp}</div>
-                    </div>
-                  )}
-                  {pd.linkDisp && (
-                    <div style={{ flex: 1, minWidth: 150, background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
-                      <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 3 }}>{rl('رابط الاجتماع الافتراضي', 'Online meeting link')}</div>
-                      <a href={pd.linkDisp} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 600, color: '#2f6aa8', wordBreak: 'break-all' }}>{pd.linkDisp}</a>
-                    </div>
-                  )}
-                </div>
-              )}
-              {pd.agendaList.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 6 }}>{rl('جدول الأعمال والمرفقات', 'Agenda & attachments')}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {pd.agendaList.map((a, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 9, padding: '8px 11px', fontSize: 12, color: '#2a332d' }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg>
-                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a}</span>
-                        <AttachmentDownload name={a} size={24} />
-                      </div>
-                    ))}
+            <div style={{ padding: '18px 24px 24px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+              {(() => {
+                const tileIcon = (d: string) => <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#7c9a88" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d={d} /></svg>;
+                const Tile = ({ icon, label, children, accent }: { icon: string; label: string; children: React.ReactNode; accent?: boolean }) => (
+                  <div style={{ flex: 1, minWidth: 150, background: accent ? '#eef3f6' : '#f6f8f4', border: '1px solid ' + (accent ? '#d8e4ee' : '#eef1ec'), borderRadius: 12, padding: '11px 13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: accent ? '#2f6aa8' : '#8a938c', fontWeight: 600, marginBottom: 5 }}>{tileIcon(icon)}{label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: accent ? '#2f6aa8' : '#17211c', lineHeight: 1.5 }}>{children}</div>
                   </div>
-                </div>
-              )}
-              <div>
-                <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('ملاحظات', 'Notes')}</div>
-                <div style={{ fontSize: 13, color: '#2a332d', lineHeight: 1.6 }}>{pd.notesDisp}</div>
-              </div>
-              {pd.isApproved && (
-                <button onClick={() => { try { window.open(outlookUrl(pd._raw), '_blank'); } catch { /* noop */ } }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: 11, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', marginTop: 'auto' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>{rl('إضافة إلى تقويم Outlook', 'Add to Outlook calendar')}
-                </button>
-              )}
+                );
+                const Section = ({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) => (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#8a938c', fontWeight: 700, marginBottom: 8 }}>{tileIcon(icon)}{label}</div>
+                    {children}
+                  </div>
+                );
+                const attendees = (pd.attendees || '').split(/[،,]/).map((x) => x.trim()).filter(Boolean);
+                const notesEmpty = !pd.notesDisp || pd.notesDisp === '—';
+                return (
+                  <>
+                    {/* schedule + decision */}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <Tile icon="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" label={rl('الموعد المقترح', 'Proposed time')}>{pd.proposedDisp}</Tile>
+                      <Tile icon="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8.5 12.5l2.5 2.5 4.5-5" label={rl('حالة الاعتماد', 'Decision')}>{pd.decisionLabel}</Tile>
+                    </div>
+                    {pd.hasNew && (
+                      <Tile icon="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" label={rl('الموعد الجديد المقترح', 'New proposed time')} accent>{pd.newDateDisp}</Tile>
+                    )}
+
+                    {/* location / link */}
+                    {(pd.locationDisp || pd.linkDisp) && (
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        {pd.locationDisp && <Tile icon="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z M12 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" label={rl('مكان الاجتماع', 'Location')}>{pd.locationDisp}</Tile>}
+                        {pd.linkDisp && (
+                          <div style={{ flex: 1, minWidth: 150, background: '#f6f8f4', border: '1px solid #eef1ec', borderRadius: 12, padding: '11px 13px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: '#8a938c', fontWeight: 600, marginBottom: 5 }}>{tileIcon('M9 15l6-6M10.5 6.5 12 5a4 4 0 0 1 6 6l-1.5 1.5M13.5 17.5 12 19a4 4 0 0 1-6-6l1.5-1.5')}{rl('رابط الاجتماع الافتراضي', 'Online meeting link')}</div>
+                            <a href={pd.linkDisp} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 700, color: '#2f6aa8', wordBreak: 'break-all' }}>{pd.linkDisp}</a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div style={{ height: 1, background: '#eef1ec' }} />
+
+                    {/* attendees as chips */}
+                    <Section icon="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" label={rl('الحضور', 'Attendees')}>
+                      {attendees.length ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                          {attendees.map((n, i) => (
+                            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#eef5f0', border: '1px solid #dcebe2', borderRadius: 20, padding: '4px 11px 4px 4px' }}>
+                              <Avatar name={n} size={22} />
+                              <span style={{ fontSize: 12, fontWeight: 600, color: '#2b4a3a' }}>{n}</span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : <span style={{ fontSize: 12.5, color: '#b3bcb4' }}>{rl('لم يُحدَّد الحضور', 'No attendees set')}</span>}
+                    </Section>
+
+                    {/* requested based on */}
+                    <Section icon="M4 4h16v14H7l-3 3V4Z M8 9h8M8 13h5" label={rl('الطلب بناءً على', 'Requested based on')}>
+                      <div style={{ fontSize: 13, color: '#2a332d', lineHeight: 1.6 }}>{pd.basis || '—'}</div>
+                    </Section>
+
+                    {/* agenda + attachments */}
+                    {pd.agendaList.length > 0 && (
+                      <Section icon="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z M14 2v6h6" label={rl('جدول الأعمال والمرفقات', 'Agenda & attachments')}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {pd.agendaList.map((a, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f6f8f4', border: '1px solid #eef1ec', borderRadius: 10, padding: '9px 11px', fontSize: 12, color: '#2a332d' }}>
+                              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg>
+                              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a}</span>
+                              <AttachmentDownload name={a} size={24} />
+                            </div>
+                          ))}
+                        </div>
+                      </Section>
+                    )}
+
+                    {/* notes */}
+                    <Section icon="M4 5h16M4 10h16M4 15h10" label={rl('ملاحظات', 'Notes')}>
+                      {notesEmpty
+                        ? <div style={{ fontSize: 12.5, color: '#b3bcb4', background: '#f6f8f4', border: '1px dashed #e2e8e0', borderRadius: 10, padding: '10px 12px' }}>{rl('لا توجد ملاحظات', 'No notes')}</div>
+                        : <div style={{ fontSize: 13, color: '#2a332d', lineHeight: 1.7, background: '#f6f8f4', borderRadius: 10, padding: '10px 12px' }}>{pd.notesDisp}</div>}
+                    </Section>
+
+                    {pd.isApproved && (
+                      <button onClick={() => { try { window.open(outlookUrl(pd._raw), '_blank'); } catch { /* noop */ } }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 11, padding: 12, fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', marginTop: 6 }}>
+                        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>{rl('إضافة إلى تقويم Outlook', 'Add to Outlook calendar')}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             )}
           </div>
