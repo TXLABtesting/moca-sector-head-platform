@@ -18,6 +18,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   const users = useStore((s) => s.users);
   const setCurrentUser = useStore((s) => s.setCurrentUser);
   const [roleOpen, setRoleOpen] = useState(false);
+  const [mSearchOpen, setMSearchOpen] = useState(false);
 
 
   const titles: Record<string, string> = {
@@ -67,7 +68,16 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{titles[page]}</h1>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 'none' }}>
+        {/* phone: search collapses into an icon that opens a full-width bar */}
+        <button onClick={() => setMSearchOpen((v) => !v)} className="hdr-search-btn" aria-label={t('searchPh')} style={{ width: 42, height: 42, flex: 'none', borderRadius: 12, border: '1px solid #ebeee9', background: mSearchOpen ? '#e9f0ec' : '#fff', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#1f4a37' }}>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
+        </button>
+        {mSearchOpen && (
+          <div className="hdr-msearch">
+            <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('searchPh')} />
+          </div>
+        )}
         <div className="hide-sm" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <svg style={{ position: 'absolute', pointerEvents: 'none', insetInlineStart: 12 }} width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('searchPh')} style={{ border: '1px solid #ebeee9', background: '#fff', borderRadius: 12, padding: '10px 14px', paddingInlineStart: 40, fontSize: 13, width: 240, outline: 'none', color: '#17211c', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }} />
@@ -75,9 +85,9 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         <div style={{ position: 'relative' }}>
           <button onClick={() => setRoleOpen((v) => !v)} title={lang === 'en' ? ct.en : ct.ar} style={{ height: 42, borderRadius: 12, border: '1px solid #ebeee9', background: '#fff', display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '0 12px 0 10px', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }}>
             <span style={{ width: 26, height: 26, flex: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ct.bg, color: ct.fg }}><Icon name={ct.icon} size={15} /></span>
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#17211c' }}>{cu.name}</span>
-              <span style={{ fontSize: 9.5, color: '#9aa39b' }}>{lang === 'en' ? ct.en : ct.ar}</span>
+            <span className="hdr-rt" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#17211c', whiteSpace: 'nowrap' }}>{cu.name}</span>
+              <span style={{ fontSize: 9.5, color: '#9aa39b', whiteSpace: 'nowrap' }}>{lang === 'en' ? ct.en : ct.ar}</span>
             </span>
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="m6 9 6 6 6-6" /></svg>
           </button>
@@ -106,7 +116,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         </div>
         <button onClick={toggleLang} style={{ height: 42, borderRadius: 12, border: '1px solid #ebeee9', background: '#fff', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', color: '#1f4a37', fontWeight: 700, fontSize: 12.5, padding: '0 14px', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }}>
           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 3.8 5.7 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.7-3.8-9S9.5 5.5 12 3Z" /></svg>
-          {lang === 'ar' ? 'EN' : 'ع'}
+          <span className="hdr-langtxt">{lang === 'ar' ? 'EN' : 'ع'}</span>
         </button>
         <NotificationsBell />
         <img src={asset('assets/logo.png')} alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} className="hide-sm" />

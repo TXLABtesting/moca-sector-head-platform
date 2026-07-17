@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Fade } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
+import { MobileFilters } from '../components/MobileFilters';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
@@ -63,14 +64,16 @@ export function Actions() {
   return (
     <Fade>
       <SectionAddButton section="followups" title={rl('الإجراءات والمتابعات', 'Actions & follow-ups')} desc={rl('كل الإجراءات المفتوحة عبر أقسام المنصة', 'All open actions across the platform')} />
-      <div style={{ background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22, boxShadow: '0 10px 36px -12px rgba(30,60,40,.18)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      <MobileFilters activeCount={(aPr ? 1 : 0) + (aStatus ? 1 : 0) + (aSrc ? 1 : 0)}
+        onClear={() => { setAPr(''); setAStatus(''); setASrc(''); }}
+        rowStyle={{ background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22, boxShadow: '0 10px 36px -12px rgba(30,60,40,.18)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12.5, color: '#7d867f', fontWeight: 500 }}>{rl('تصفية:', 'Filter:')}</span>
         <Dropdown value={aPr} options={prOpts} onChange={setAPr} opt={{ size: 'sm' }} />
         <Dropdown value={aStatus} options={stOpts} onChange={setAStatus} opt={{ size: 'sm' }} />
         <Dropdown value={aSrc} options={srcOpts} onChange={setASrc} opt={{ size: 'sm' }} />
-      </div>
+      </MobileFilters>
       <div style={{ background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22, boxShadow: '0 10px 36px -12px rgba(30,60,40,.18)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', overflow: 'hidden' }}>
-        <div className="trow" style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 12, padding: '13px 20px', background: 'rgba(255,255,255,.35)', borderBottom: '1px solid rgba(255,255,255,.5)', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
+        <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 12, padding: '13px 20px', background: 'rgba(255,255,255,.35)', borderBottom: '1px solid rgba(255,255,255,.5)', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
           <div>{rl('الإجراء', 'Action')}</div><div>{rl('المصدر', 'Source')}</div><div>{rl('المسؤول', 'Owner')}</div><div>{rl('الأولوية', 'Priority')}</div><div>{rl('الاستحقاق', 'Due')}</div><div>{rl('الحالة', 'Status')}</div>
         </div>
         {filtered.map((a) => {

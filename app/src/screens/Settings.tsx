@@ -114,6 +114,7 @@ export function Settings() {
               <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة مستخدم', 'Add user')}
             </button>
           </div>
+          <div className="adm-scroll"><div style={{ minWidth: 560 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.2fr 1.3fr 0.7fr', gap: 12, padding: '14px 8px 10px', borderBottom: '1px solid #eef0ec', fontSize: 10.5, fontWeight: 700, color: '#9aa39b', letterSpacing: '.03em' }}>
             <span>{rl('المستخدم', 'User')}</span><span>{rl('النوع', 'Type')}</span><span>{rl('النطاق', 'Scope')}</span><span style={{ textAlign: 'center' }}>{rl('الصلاحيات', 'Grants')}</span>
           </div>
@@ -134,6 +135,7 @@ export function Settings() {
               </div>
             );
           })}
+          </div></div>
         </div>
       )}
 
@@ -166,7 +168,7 @@ export function Settings() {
               );
             })}
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 720 }}>
             <div style={{ minWidth: 720 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(9,1fr)', gap: 6, padding: '0 4px 10px', borderBottom: '1px solid #eef0ec', fontSize: 10, fontWeight: 700, color: '#9aa39b' }}>
                 <span />
@@ -185,6 +187,7 @@ export function Settings() {
                   })}
                 </div>
               ))}
+          </div>
             </div>
           </div>
         </div>

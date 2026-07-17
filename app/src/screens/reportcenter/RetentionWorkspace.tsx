@@ -545,7 +545,7 @@ export function RetentionWorkspace() {
       </div>
 
       <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 6px rgba(23,40,32,.04),0 14px 34px -18px rgba(23,40,32,.14)' }}>
-        <div className="trow" style={{ display: 'grid', gridTemplateColumns: '90px 130px 1.4fr 1fr 1fr 190px', gap: 10, padding: '11px 16px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11, fontWeight: 700, color: '#7d867f' }}>
+        <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: '90px 130px 1.4fr 1fr 1fr 190px', gap: 10, padding: '11px 16px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11, fontWeight: 700, color: '#7d867f' }}>
           <div>السنة</div><div>الربع</div><div>حالة التقرير</div><div>آخر تحديث</div><div>من قام بالتحديث</div><div />
         </div>
         {reports.map((r) => {

@@ -259,7 +259,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
               <button onClick={() => { setNeedInt(!needInt); setLate(false); }} style={filterBtn(needInt, '#7a4d94', '#f3ecf6')}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 15 9l7 .5-5.4 4.6L18.5 21 12 17l-6.5 4 1.9-6.9L2 9.5 9 9z"></path></svg>{t('au_onlyNeedInt')}</button>
               <button onClick={resetKpi} style={{ border: '1px solid #e2e6df', background: '#fff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{t('au_clear')}</button>
             </div>
-            <div style={{ overflowX: 'auto' }}>
+            <div className="desk-only" style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 900 }}>
                 <thead><tr>
                   <th style={{ ...th, whiteSpace: 'nowrap' }}>{t('au_num')}</th>
@@ -285,6 +285,22 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
                 </tbody>
               </table>
               {rows.length === 0 && <div style={{ padding: 34, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>{t('au_noReport')}</div>}
+            </div>
+            {/* phone: observations as cards */}
+            <div className="mob-only" style={{ flexDirection: 'column', gap: 10 }}>
+              {rows.map((a) => (
+                <div key={a.id} style={{ border: '1px solid #eef1ec', borderRadius: 14, padding: '13px 14px', background: a._rowBg === 'transparent' ? '#fbfcfa' : a._rowBg, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: '#8a938c' }}>{a.num}</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, borderRadius: 20, padding: '3px 10px', background: a._bg, color: a._fg }}>{a.statusLabel}</span>
+                    <span style={{ marginInlineStart: 'auto', fontSize: 11, color: '#3c4a42', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", fontWeight: 700 }}>{a.due}</span>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#17211c', lineHeight: 1.5 }}>{a.area}</div>
+                  <div style={{ fontSize: 11.5, color: '#5b6b62' }}>{a.owner}</div>
+                  <button onClick={() => setSel(a.id)} style={{ alignSelf: 'flex-start', background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{t('au_viewDetails')}</button>
+                </div>
+              ))}
+              {rows.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>{t('au_noReport')}</div>}
             </div>
           </div>
         </>

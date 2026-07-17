@@ -176,7 +176,22 @@ export function ReportsRegister() {
       {/* table view */}
       {view === 'table' && (
         <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22)', overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
+          {/* phone: register rows as cards */}
+          <div className="mob-only" style={{ flexDirection: 'column', gap: 10, padding: 12 }}>
+            {rows.map((r) => (
+              <div key={r.id} style={{ border: '1px solid #eef1ec', borderRadius: 14, padding: '13px 14px', background: '#fbfcfa', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: '#17211c', lineHeight: 1.5 }}>{r.title}</div>
+                  <span style={{ flex: 'none', fontSize: 10, fontWeight: 700, color: r.curFg, background: r.curBg, borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>{r.curLabel}</span>
+                </div>
+                <div style={{ fontSize: 11, color: '#7d867f' }}>{r.type} · {r.freq} · {r.dept}</div>
+                <div style={{ fontSize: 11, color: '#9aa39b' }}>{r.resp}{r.lastDate !== '—' ? ' · ' + r.lastDate : ''}</div>
+                <button onClick={() => setSel(r.id)} style={{ alignSelf: 'flex-start', background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{t('rc_view')}</button>
+              </div>
+            ))}
+            {rowsAll.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>{t('noResults')}</div>}
+          </div>
+          <div className="desk-only" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
               <thead><tr style={{ background: '#f6f8f4' }}>
                 <th style={regTh}>{t('reg_report')}</th><th style={regTh}>{t('reg_type')}</th><th style={regTh}>{t('reg_freq')}</th><th style={regTh}>{t('reg_resp')}</th><th style={regTh}>{t('reg_dept')}</th><th style={regTh}>{t('reg_status')}</th><th style={regTh}>{t('reg_lastDate')}</th><th style={regTh}>{t('reg_action')}</th>

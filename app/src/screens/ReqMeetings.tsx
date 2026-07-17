@@ -73,7 +73,10 @@ export function ReqMeetings() {
   const rl = (a: string, b: string) => (L ? b : a);
 
   const [tableView, setTableView] = useState(false);
-  const [calMode, setCalMode] = useState<CalMode>('week');
+  // phones open on the uncluttered day view; wider screens keep the work-week grid
+  const [calMode, setCalMode] = useState<CalMode>(() => {
+    try { return window.matchMedia('(max-width: 640px)').matches ? 'day' : 'week'; } catch { return 'week'; }
+  });
   const [calAnchor, setCalAnchor] = useState('2026-07-06');
   const [popupId, setPopupId] = useState<string | null>(null);
   const [popupEdit, setPopupEdit] = useState(false);
@@ -438,7 +441,7 @@ export function ReqMeetings() {
       {/* TABLE */}
       {tableView && (
         <div style={{ background: '#ffffff', border: '1px solid #eef1ec', borderRadius: 22, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 16px 40px -18px rgba(23,40,32,.14)', overflow: 'hidden' }}>
-          <div className="trow" style={{ display: 'grid', gridTemplateColumns: tableCols, gap: 12, padding: '13px 20px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
+          <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: tableCols, gap: 12, padding: '13px 20px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
             <div>{t('rm_subject')}</div><div>{t('rm_attendees')}</div><div>{t('rm_basis')}</div><div>{t('rm_proposed')}</div><div>{t('rm_status')}</div><div>{t('rm_decision')}</div><div>{t('rm_notes')}</div>
           </div>
           {reqMeetings.map((raw) => {

@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { Fade, Modal } from '../components/ui';
+import { MobileFilters } from '../components/MobileFilters';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
@@ -58,7 +59,6 @@ export function Correspondence() {
   const [cStatus, setCStatus] = useState('');
   const [cDir, setCDir] = useState('');
   const [cSort, setCSort] = useState<'asc' | 'desc'>('desc');
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [modal, setModal] = useState<null | 'add' | 'edit'>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
@@ -234,14 +234,10 @@ export function Correspondence() {
         )}
       </div>
 
-      {/* mobile filter toggle */}
-      <div className="fbtn" onClick={() => setFiltersOpen((v) => !v)}>
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="17" x2="14" y2="17" /></svg>
-        <span>الفلاتر</span>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" style={{ marginInlineStart: 'auto', transition: 'transform .2s', transform: filtersOpen ? 'rotate(180deg)' : 'none' }}><path d="m6 9 6 6 6-6" /></svg>
-      </div>
-
-      <div className={'mfbar' + (filtersOpen ? '' : ' collapsed')} style={{ background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22, boxShadow: '0 10px 36px -12px rgba(30,60,40,.18)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* filters (bottom sheet on phones) */}
+      <MobileFilters activeCount={(cSearch ? 1 : 0) + (cDir ? 1 : 0) + (cStatus ? 1 : 0)}
+        onClear={() => { setCSearch(''); setCDir(''); setCStatus(''); }}
+        rowStyle={{ background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22, boxShadow: '0 10px 36px -12px rgba(30,60,40,.18)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1, minWidth: 200 }}>
           <svg style={{ position: 'absolute', insetInlineStart: 12 }} width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={1.9}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
           <input value={cSearch} onChange={(e) => setCSearch(e.target.value)} placeholder={t('corrSearchPh')} style={{ width: '100%', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', paddingInlineStart: 40, fontSize: 13, outline: 'none' }} />
@@ -253,12 +249,12 @@ export function Correspondence() {
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14m0 0 5-5m-5 5-5-5" /></svg>{tr('وارد')}
         </button>
         <Dropdown value={cStatus} onChange={setCStatus} options={[{ v: '', label: t('allStatuses') }, ...opt(CORR_STATUSES)]} opt={{ size: 'sm', minWidth: '150px' }} />
-      </div>
+      </MobileFilters>
 
       <div style={{ fontSize: 12.5, color: '#8a938c', marginBottom: 12 }}>{arPlural(filtered.length, { one: 'مستند واحد', two: 'مستندان', few: 'مستندات', many: 'مستنداً' })}</div>
 
       <div style={{ background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22, boxShadow: '0 10px 36px -12px rgba(30,60,40,.18)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', overflow: 'hidden' }}>
-        <div className="trow" style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '13px 20px', background: 'rgba(255,255,255,.35)', borderBottom: '1px solid rgba(255,255,255,.5)', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
+        <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '13px 20px', background: 'rgba(255,255,255,.35)', borderBottom: '1px solid rgba(255,255,255,.5)', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
           <div onClick={() => setCSort((s) => s === 'asc' ? 'desc' : 'asc')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, userSelect: 'none' }} title={t('thSortDate')}>
             <span>{t('thDate')}</span><span style={{ fontSize: 12, color: '#1f8a5b', fontWeight: 800 }}>{sortArrow}</span>
           </div>

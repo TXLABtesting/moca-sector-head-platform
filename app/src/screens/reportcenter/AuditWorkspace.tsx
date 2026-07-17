@@ -759,7 +759,7 @@ export function AuditWorkspace() {
       </div>
 
       <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 6px rgba(23,40,32,.04),0 14px 34px -18px rgba(23,40,32,.14)' }}>
-        <div className="trow" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.1fr 70px 90px 1.1fr 1fr 250px', gap: 10, padding: '11px 16px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11, fontWeight: 700, color: '#7d867f' }}>
+        <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.1fr 70px 90px 1.1fr 1fr 250px', gap: 10, padding: '11px 16px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11, fontWeight: 700, color: '#7d867f' }}>
           <div>التقرير</div><div>الوحدة</div><div>السنة</div><div>الدورية</div><div>الحالة</div><div>آخر تحديث</div><div />
         </div>
         {reports.map((r) => {

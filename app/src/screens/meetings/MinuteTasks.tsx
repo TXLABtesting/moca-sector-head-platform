@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Fade } from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { Dropdown } from '../../components/Dropdown';
+import { MobileFilters } from '../../components/MobileFilters';
 import { Modal, Drawer, Badge, Avatar } from '../../components/ui';
 import { useToast } from '../../components/Toast';
 import { useI18n } from '../../i18n/i18n';
@@ -275,30 +276,34 @@ export function MinuteTasks() {
         </div>
 
         {/* filters */}
-        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 16 }}>
+          <div style={{ position: 'relative', width: '100%' }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={2} style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
             <input value={mtSearch} onChange={(e) => setSearch(e.target.value)} placeholder={t('mt_search')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', paddingInlineStart: 34, fontSize: 12.5, fontFamily: 'inherit' }} />
           </div>
-          <Dropdown value={mtStatus} options={statusOpts} onChange={setStatus} opt={{ size: 'sm', minWidth: '118px' }} />
-          <Dropdown value={mtMeeting} options={meetingOpts} onChange={setMeeting} opt={{ size: 'sm', minWidth: '140px' }} />
-          <Dropdown value={mtOwner} options={ownerOpts} onChange={setOwner} opt={{ size: 'sm', minWidth: '120px' }} />
-          <Dropdown value={mtDept} options={deptOpts} onChange={setDept} opt={{ size: 'sm', minWidth: '120px' }} />
-          <button onClick={() => setSupport(!mtSupport)} style={supportBtnStyle}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7z" /></svg>
-            {t('mt_onlySupport')}
-          </button>
-          <button onClick={() => setDetailed(!mtDetailed)} style={detailBtnStyle}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" /></svg>
-            {mtDetailed ? rl('عرض مختصر', 'Concise view') : rl('عرض مفصّل', 'Detailed view')}
-          </button>
-          <button onClick={() => { setSearch(''); setStatus(''); setOwner(''); setDept(''); setMeeting(''); setSupport(false); }} style={{ border: '1px solid #e2e6df', background: '#ffffff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {t('mt_clear')}
-          </button>
+          <MobileFilters activeCount={(mtStatus ? 1 : 0) + (mtMeeting ? 1 : 0) + (mtOwner ? 1 : 0) + (mtDept ? 1 : 0) + (mtSupport ? 1 : 0)}
+            onClear={() => { setSearch(''); setStatus(''); setOwner(''); setDept(''); setMeeting(''); setSupport(false); }}
+            rowStyle={{ display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Dropdown value={mtStatus} options={statusOpts} onChange={setStatus} opt={{ size: 'sm', minWidth: '118px' }} />
+            <Dropdown value={mtMeeting} options={meetingOpts} onChange={setMeeting} opt={{ size: 'sm', minWidth: '140px' }} />
+            <Dropdown value={mtOwner} options={ownerOpts} onChange={setOwner} opt={{ size: 'sm', minWidth: '120px' }} />
+            <Dropdown value={mtDept} options={deptOpts} onChange={setDept} opt={{ size: 'sm', minWidth: '120px' }} />
+            <button onClick={() => setSupport(!mtSupport)} style={supportBtnStyle}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 3 7v6c0 5 3.8 8.4 9 9 5.2-.6 9-4 9-9V7z" /></svg>
+              {t('mt_onlySupport')}
+            </button>
+            <button onClick={() => setDetailed(!mtDetailed)} className="hide-sm" style={detailBtnStyle}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" /></svg>
+              {mtDetailed ? rl('عرض مختصر', 'Concise view') : rl('عرض مفصّل', 'Detailed view')}
+            </button>
+            <button onClick={() => { setSearch(''); setStatus(''); setOwner(''); setDept(''); setMeeting(''); setSupport(false); }} style={{ border: '1px solid #e2e6df', background: '#ffffff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t('mt_clear')}
+            </button>
+          </MobileFilters>
         </div>
 
-        {/* table */}
-        <div style={{ overflowX: 'auto' }}>
+        {/* table (desktop/tablet) */}
+        <div className="desk-only" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 900 }}>
             <thead>
               <tr>
@@ -330,6 +335,41 @@ export function MinuteTasks() {
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: '#9aa39b', fontSize: 13 }}>{t('mt_noResults')}</div>
           )}
+        </div>
+
+        {/* phone: each task as a touch-friendly card */}
+        <div className="mob-only" style={{ flexDirection: 'column', gap: 10 }}>
+          {shown.map((a) => {
+            const [sb, sf] = MTS[a.status] || ['#eee', '#555'];
+            const meta = a as MtaskMeta;
+            return (
+              <div key={a.id} style={{ border: '1px solid #eef1ec', borderRadius: 14, padding: '13px 14px', background: '#fbfcfa', display: 'flex', flexDirection: 'column', gap: 9 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 10.5, color: '#8a6a1f' }}>
+                  <span style={{ fontWeight: 800, background: '#fbf3df', borderRadius: 7, padding: '3px 9px' }}>{tr(a.meeting)}</span>
+                  <span style={{ color: '#9aa39b' }}>{dl(a.mDate)}</span>
+                </div>
+                <div onClick={() => setSelMtask(a.id)} style={{ fontSize: 13, fontWeight: 700, color: '#17211c', lineHeight: 1.55 }}>{tr(a.task)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 11, color: '#5b6b62' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Avatar name={a.owner} size={20} />{tr(a.owner)}</span>
+                  <span style={{ color: dueColorOf(a), fontWeight: 600 }}>{dl(a.due)}</span>
+                  {typeof a.prog === 'number' && a.prog > 0 && <span style={{ fontWeight: 800, color: '#1f4a37' }}>{a.prog}%</span>}
+                  {meta._mret ? <Badge bg="#f7e6e4" fg="#b0433b" style={{ fontSize: 9.5, padding: '2px 8px' }}>{tr('أعيد للتعديل')}</Badge>
+                    : meta._mrev ? <Badge bg="#fbf0d6" fg="#a9791f" style={{ fontSize: 9.5, padding: '2px 8px' }}>{tr('بانتظار مراجعة رئيس القطاع')}</Badge> : null}
+                </div>
+                <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #f2f4f0', paddingTop: 9 }}>
+                  {canStatus
+                    ? <Dropdown value={a.status} options={MT_STATUSES.map((st) => ({ v: st, label: tr(st) }))} onChange={(v) => setTaskStatus(a.id, v)} opt={{ size: 'sm', bg: sb, color: sf, weight: 700, borderColor: 'transparent' }} />
+                    : <Badge bg={sb} fg={sf}>{tr(a.status)}</Badge>}
+                  <button onClick={() => setSelMtask(a.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{rl('فتح', 'Open')}</button>
+                  {canAddEdit && <button onClick={() => setMtForm({ id: a.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 9, padding: '9px 15px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{rl('تعديل', 'Edit')}</button>}
+                  {canDirect && (
+                    <button onClick={() => openDirective(a.id)} style={{ background: '#fbf3df', color: '#8a6a1f', border: '1px solid #ecdcae', borderRadius: 9, padding: '9px 15px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{t('mt_addDirective')}</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 30, color: '#9aa39b', fontSize: 13 }}>{t('mt_noResults')}</div>}
         </div>
 
         {hasMore && (

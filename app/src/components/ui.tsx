@@ -54,12 +54,12 @@ export function Modal({ open, onClose, children, width = 520, padded = true }: {
   }, [open, onClose]);
   if (!open) return null;
   return createPortal(
-    <div onClick={onClose} style={{
+    <div onClick={onClose} className="modal-scrim" style={{
       position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(23,33,28,.4)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       animation: 'ovBg .18s ease', WebkitBackdropFilter: 'blur(2px)', backdropFilter: 'blur(2px)',
     }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
+      <div onClick={(e) => e.stopPropagation()} className="modal-card" style={{
         background: '#ffffff', borderRadius: 22, width, maxWidth: '100%', maxHeight: '90vh',
         overflowY: 'auto', boxShadow: '0 30px 80px -20px rgba(19,43,32,.5)',
         padding: padded ? '24px 26px' : 0, animation: 'ovCard .24s cubic-bezier(.22,1,.36,1)',

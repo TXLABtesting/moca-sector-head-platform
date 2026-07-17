@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Fade, Drawer, Avatar, Badge, Modal } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
+import { MobileFilters } from '../components/MobileFilters';
 import { DateField } from '../components/DateField';
 import { useToast } from '../components/Toast';
 import { useStore } from '../store/store';
@@ -366,12 +367,14 @@ export function TeamLeaves() {
           <button onClick={() => setView('timeline')} style={tab(view === 'timeline')}>{rl('الجدول الزمني', 'Timeline')}</button>
           <button onClick={() => setView('table')} style={tab(view === 'table')}>{rl('جدول', 'Table')}</button>
         </div>
-        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
+        <MobileFilters activeCount={(search ? 1 : 0) + (fMonth ? 1 : 0) + (fCat ? 1 : 0) + (fStatus ? 1 : 0) + (fType ? 1 : 0) + (fPhase ? 1 : 0) + (onlyConflict ? 1 : 0)}
+          onClear={() => { setSearch(''); setFMonth(''); setFCat(''); setFStatus(''); setFType(''); setFPhase(''); setOnlyConflict(false); }}
+          rowStyle={{ display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={2} style={{ position: 'absolute', insetInlineStart: 11 }} strokeLinecap="round"><circle cx={11} cy={11} r={7} /><path d="m20 20-3.5-3.5" /></svg>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={rl('بحث بالاسم أو الإدارة…', 'Search name or unit…')} style={{
               border: '1px solid #e2e6df', background: '#ffffff', borderRadius: 9, padding: '8px 12px', paddingInlineStart: 34,
-              fontSize: 12.5, fontFamily: 'inherit', width: 180, color: '#17211c',
+              fontSize: 12.5, fontFamily: 'inherit', width: '100%', minWidth: 180, boxSizing: 'border-box', color: '#17211c',
             }} />
           </div>
           <Dropdown value={fMonth} options={monthOpts} onChange={setFMonth} opt={{ size: 'sm', minWidth: '130px' }} />
@@ -381,7 +384,7 @@ export function TeamLeaves() {
           <Dropdown value={fPhase} options={phaseOpts} onChange={setFPhase} opt={{ size: 'sm', minWidth: '130px' }} />
           {checkChip(onlyConflict, rl('التعارضات فقط', 'Conflicts only'), () => { setOnlyConflict(!onlyConflict); setFStatus(''); })}
           {checkChip(fStatus === 'بانتظار الاعتماد', rl('بانتظار الاعتماد فقط', 'Pending only'), () => { setFStatus(fStatus === 'بانتظار الاعتماد' ? '' : 'بانتظار الاعتماد'); setOnlyConflict(false); })}
-        </div>
+        </MobileFilters>
       </div>
 
       {/* ===================== TIMELINE ===================== */}

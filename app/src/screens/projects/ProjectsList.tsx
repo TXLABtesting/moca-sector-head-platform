@@ -4,6 +4,7 @@ import { useI18n } from '../../i18n/i18n';
 import { useNav } from '../../store/nav';
 import { useToast } from '../../components/Toast';
 import { Fade, Avatar } from '../../components/ui';
+import { MobileFilters } from '../../components/MobileFilters';
 import { Dropdown } from '../../components/Dropdown';
 import { Icon } from '../../components/Icon';
 import { UNITS } from '../../shared/constants';
@@ -33,7 +34,6 @@ export function ProjectsList() {
   const [fSearch, setSearch] = useState('');
   const [fUnit, setFUnit] = useState('');
   const [fStatus, setFStatus] = useState('');
-  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const statusLabel = (s: string) =>
     s === 'يحتاج قرار' ? rl('بانتظار توجيه', 'Awaiting direction') : tr(s);
@@ -149,13 +149,10 @@ export function ProjectsList() {
         ))}
       </div>
 
-      {/* FILTERS (mobile-collapsible) */}
-      <button type="button" className="fbtn" onClick={() => setFiltersOpen((v) => !v)}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="17" x2="14" y2="17" /></svg>
-        <span>{rl('الفلاتر', 'Filters')}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginInlineStart: 'auto', transition: 'transform .2s', transform: filtersOpen ? 'rotate(180deg)' : 'none' }}><path d="m6 9 6 6 6-6" /></svg>
-      </button>
-      <div className={'mfbar' + (filtersOpen ? '' : ' collapsed')} style={{ background: '#ffffff', border: '1px solid #eef1ec', borderRadius: 16, boxShadow: '0 2px 6px rgba(23,40,32,.04)', padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 9, alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* FILTERS (bottom sheet on phones) */}
+      <MobileFilters activeCount={(fSearch ? 1 : 0) + (fUnit ? 1 : 0) + (fStatus ? 1 : 0)}
+        onClear={() => { setSearch(''); setFUnit(''); setFStatus(''); }}
+        rowStyle={{ background: '#ffffff', border: '1px solid #eef1ec', borderRadius: 16, boxShadow: '0 2px 6px rgba(23,40,32,.04)', padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 9, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1, minWidth: 180 }}>
           <svg style={{ position: 'absolute', insetInlineStart: 12 }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth="1.9"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
           <input value={fSearch} onChange={(e) => setSearch(e.target.value)} placeholder={t('projSearchPh')} style={inputStyle} />
@@ -171,7 +168,7 @@ export function ProjectsList() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
           {rl('إعادة تعيين الفلاتر', 'Reset filters')}
         </button>
-      </div>
+      </MobileFilters>
 
       {/* KANBAN BOARD */}
       <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 12, alignItems: 'flex-start' }}>

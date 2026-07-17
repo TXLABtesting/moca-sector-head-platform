@@ -323,7 +323,7 @@ export function RegisterWorkspace() {
       </div>
 
       <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 6px rgba(23,40,32,.04),0 14px 34px -18px rgba(23,40,32,.14)' }}>
-        <div className="trow" style={{ display: 'grid', gridTemplateColumns: '1.9fr 1fr 1fr 0.8fr 1.1fr 1.1fr 150px', gap: 10, padding: '11px 16px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11, fontWeight: 700, color: '#7d867f' }}>
+        <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: '1.9fr 1fr 1fr 0.8fr 1.1fr 1.1fr 150px', gap: 10, padding: '11px 16px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11, fontWeight: 700, color: '#7d867f' }}>
           <div>التقرير</div><div>الإدارة</div><div>المسؤول</div><div>الدورية</div><div>الحالة الحالية</div><div>سير العمل</div><div />
         </div>
         {shown.map((r) => {

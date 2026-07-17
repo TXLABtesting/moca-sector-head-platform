@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Fade, Avatar, Modal, Drawer } from '../components/ui';
+import { MobileFilters } from '../components/MobileFilters';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
@@ -77,7 +78,6 @@ export function OfficeTasks() {
   const [oLate, setOLate] = useState(false);
   const [oNoDue, setONoDue] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('board');
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selOtask, setSelOtask] = useState<string | null>(null);
   const { params } = useNav();
   useEffect(() => {
@@ -259,14 +259,10 @@ export function OfficeTasks() {
         )}
       </div>
 
-      {/* filters (mobile toggle button) */}
-      <button className="fbtn" onClick={() => setFiltersOpen((v) => !v)}>
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="10" y1="17" x2="14" y2="17" /></svg>
-        <span>{rl('الفلاتر', 'Filters')}</span>
-        <svg className="fchev" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" style={{ marginInlineStart: 'auto', transform: filtersOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><path d="m6 9 6 6 6-6" /></svg>
-      </button>
-
-      <div className={'mfbar' + (filtersOpen ? '' : ' collapsed')} style={{ background: '#ffffff', border: 'none', borderRadius: 16, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14)', padding: '14px 16px', marginBottom: 18, display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* filters (bottom sheet on phones) */}
+      <MobileFilters activeCount={(oSearch ? 1 : 0) + (oOwner ? 1 : 0) + (oStatus ? 1 : 0) + (oLate ? 1 : 0) + (oNoDue ? 1 : 0)}
+        onClear={() => { setOSearch(''); setOStatus(''); setOOwner(''); setOLate(false); setONoDue(false); }}
+        rowStyle={{ background: '#ffffff', border: 'none', borderRadius: 16, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14)', padding: '14px 16px', marginBottom: 18, display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={2} style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
           <input value={oSearch} onChange={(e) => setOSearch(e.target.value)} placeholder={t('ot_search')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', paddingInlineStart: 34, fontSize: 12.5, fontFamily: 'inherit' }} />
@@ -280,7 +276,7 @@ export function OfficeTasks() {
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>{t('ot_onlyNoDue')}
         </button>
         <button onClick={() => { setOSearch(''); setOStatus(''); setOOwner(''); setOLate(false); setONoDue(false); }} style={{ border: '1px solid #e2e6df', background: '#ffffff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('ot_clear')}</button>
-      </div>
+      </MobileFilters>
 
       {/* view toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, background: '#ffffff', borderRadius: 12, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14)', padding: 6, width: 'fit-content' }}>
@@ -430,7 +426,7 @@ export function OfficeTasks() {
       {/* TABLE VIEW */}
       {viewMode === 'table' && (
         <div style={{ background: '#ffffff', border: 'none', borderRadius: 22, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', overflow: 'hidden' }}>
-          <div className="trow" style={{ display: 'grid', gridTemplateColumns: '2.6fr 1.2fr 1.1fr 1.1fr 1fr 1.4fr', gap: 12, padding: '13px 20px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
+          <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: '2.6fr 1.2fr 1.1fr 1.1fr 1fr 1.4fr', gap: 12, padding: '13px 20px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11.5, fontWeight: 600, color: '#7d867f' }}>
             <div>{t('ot_task')}</div><div>{t('ot_owner')}</div><div>{t('ot_status')}</div><div>{t('ot_due')}</div><div>{t('ot_lastUpdate')}</div><div />
           </div>
           {rows.map((a) => (
