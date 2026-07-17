@@ -347,41 +347,71 @@ export function FinancialSummary() {
   );
 }
 
-/* ---------------- inter-entity balance card: details ---------------- */
+/* ---------------- inter-entity balance card: details (three-section breakdown) ---------------- */
+const relFmt = (v: number | null | undefined) => (v === null || v === undefined ? '—' : (v < 0 ? '(' + fmt(Math.abs(v)) + ')' : fmt(v)));
+const sectionSum = (rows: { v: number | null }[]) => rows.reduce((s, x) => s + (x.v || 0), 0);
+
 function RelDetailModal({ index, canEdit, onEdit, onClose }: { index: number; canEdit: boolean; onEdit: () => void; onClose: () => void }) {
   const { tr, lang } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const FM = useStore((s) => s.data.finModel);
   const r = FM.related[index];
   if (!r) return null;
-  const total = r.items.reduce((s, x) => s + x.v, 0);
   const fromColor = entColors[r.from] || '#5b6b62';
   const toColor = entColors[r.to] || '#5b6b62';
+  const sections = r.sections && r.sections.length ? r.sections : null;
+  const grand = sections ? sections.reduce((s, sec) => s + sectionSum(sec.rows), 0) : r.items.reduce((s, x) => s + x.v, 0);
+  const secBar: Record<string, string> = { 'تفاصيل جارى التسوية': '#c26a2b', 'عقود مرحلة من العام السابق': '#a9791f', 'أرصدة خلال العام الحالي': '#2b5c44' };
+
+  const SectionTable = ({ title, rows }: { title: string; rows: { n: string; v: number | null }[] }) => {
+    const sum = sectionSum(rows);
+    const bar = secBar[title] || '#c26a2b';
+    return (
+      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #f0e6dd', marginBottom: 12 }}>
+        <div style={{ background: bar, color: '#fff', fontSize: 12.5, fontWeight: 800, padding: '9px 13px' }}>{tr(title)}</div>
+        <div>
+          {rows.map((it, j) => (
+            <div key={j} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 13px', background: j % 2 ? '#fdf3ec' : '#fae9df' }}>
+              <span style={{ fontSize: 12, color: '#3c4a42', lineHeight: 1.5, direction: 'ltr', textAlign: 'start', unicodeBidi: 'plaintext' }}>{tr(it.n)}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: (it.v ?? 0) < 0 ? '#b0433b' : '#17211c', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", whiteSpace: 'nowrap', flex: 'none' }}>{relFmt(it.v)}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 13px', background: '#f6ddcd', borderTop: '1px solid #eec9ad' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#8a4b1e' }}>{rl('الإجمالي الفرعي', 'Subtotal')}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: sum < 0 ? '#b0433b' : '#8a4b1e', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{relFmt(sum)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <Modal open onClose={onClose} width={560}>
+    <Modal open onClose={onClose} width={620}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, fontWeight: 800 }}>
           <span style={{ color: fromColor }}>{r.from}</span>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: lang === 'en' ? 'none' : 'scaleX(-1)' }}><path d="M5 12h14m-6-6-6 6 6 6" /></svg>
           <span style={{ color: toColor }}>{r.to}</span>
         </div>
-        <span style={{ marginInlineStart: 'auto', fontSize: 12, fontWeight: 700, color: '#7a4d94', background: '#f3ecf6', borderRadius: 20, padding: '4px 12px' }}>{rl('أرصدة بين الجهات', 'Inter-entity balances')}</span>
+        <span style={{ marginInlineStart: 'auto', fontSize: 12, fontWeight: 700, color: '#7a4d94', background: '#f3ecf6', borderRadius: 20, padding: '4px 12px' }}>{rl('الأطراف ذات العلاقة', 'Related party')}</span>
       </div>
-      <div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 14 }}>{r.items.length} {rl('بند', 'items')} · {rl('القيم بالدرهم', 'Values in AED')}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {r.items.map((it, j) => (
-          <div key={j} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, background: '#f7f9f6', borderRadius: 11, padding: '11px 14px' }}>
-            <div style={{ fontSize: 12.5, color: '#3c4a42', lineHeight: 1.6 }}>{tr(it.n)}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: 'none' }}>
-              <span style={{ fontSize: 14, fontWeight: 800, color: '#17211c', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", whiteSpace: 'nowrap' }}>{fmt(it.v)}</span>
-              <span style={{ fontSize: 10, color: '#9aa39b' }}>{total ? Math.round((it.v / total) * 100) + '%' : ''}</span>
-            </div>
+      <div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 14 }}>{rl('تفصيل الأرصدة بين الجهتين — القيم بالدرهم، والأقواس تعني قيمة سالبة', 'Balance breakdown between the two entities — values in AED, parentheses = negative')}</div>
+
+      {sections ? sections.map((sec, i) => <SectionTable key={i} title={sec.title} rows={sec.rows} />)
+        : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {r.items.map((it, j) => (
+              <div key={j} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: '#f7f9f6', borderRadius: 11, padding: '11px 14px' }}>
+                <span style={{ fontSize: 12.5, color: '#3c4a42', lineHeight: 1.6 }}>{tr(it.n)}</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#17211c', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", whiteSpace: 'nowrap' }}>{relFmt(it.v)}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eef1ec', marginTop: 14, paddingTop: 12 }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#17211c' }}>{rl('الإجمالي', 'Total')}</span>
-        <span style={{ fontSize: 16, fontWeight: 800, color: '#1f4a37', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{fmt(total)}</span>
+        )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#eef3f0', borderRadius: 11, marginTop: 4, padding: '12px 15px' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: '#17211c' }}>{rl('إجمالي الأرصدة', 'Total balances')}</span>
+        <span style={{ fontSize: 17, fontWeight: 800, color: grand < 0 ? '#b0433b' : '#1f4a37', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{relFmt(grand)}</span>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
         {canEdit && (
@@ -394,58 +424,87 @@ function RelDetailModal({ index, canEdit, onEdit, onClose }: { index: number; ca
 }
 
 /* ---------------- inter-entity balance card: edit (responsible member only) ---------------- */
+const DEFAULT_SECTIONS = ['تفاصيل جارى التسوية', 'عقود مرحلة من العام السابق', 'أرصدة خلال العام الحالي'];
+interface EditRow { n: string; v: string }
+interface EditSection { title: string; rows: EditRow[] }
+
 function RelEditModal({ index, onClose }: { index: number; onClose: () => void }) {
-  const { lang } = useI18n();
+  const { tr, lang } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
   const FM = useStore((s) => s.data.finModel);
   const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
   const r = FM.related[index];
-  const [items, setItems] = useState<{ n: string; v: string }[]>(() => (r ? r.items.map((x) => ({ n: x.n, v: String(x.v) })) : []));
+  const numv = (v: string) => (v.trim() === '' || v.trim() === '—') ? null : (parseFloat(String(v).replace(/[()]/g, (m) => (m === '(' ? '-' : '')).replace(/[^\d.-]/g, '')) || 0);
+  const vStr = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v));
+  // initialise from sections when present, otherwise seed the three standard sections
+  const [secs, setSecs] = useState<EditSection[]>(() => {
+    if (r?.sections?.length) return r.sections.map((s) => ({ title: s.title, rows: s.rows.map((x) => ({ n: x.n, v: vStr(x.v) })) }));
+    if (r) {
+      const bySec: Record<string, EditRow[]> = {};
+      r.items.forEach((it) => { (bySec[DEFAULT_SECTIONS[2]] = bySec[DEFAULT_SECTIONS[2]] || []).push({ n: it.n, v: String(it.v) }); });
+      return DEFAULT_SECTIONS.map((t) => ({ title: t, rows: bySec[t] || [] }));
+    }
+    return DEFAULT_SECTIONS.map((t) => ({ title: t, rows: [] }));
+  });
   if (!r) return null;
-  const numv = (v: string) => parseFloat(String(v).replace(/[^\d.-]/g, '')) || 0;
-  const total = items.reduce((s, x) => s + numv(x.v), 0);
+
   const inputStyle: CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+  const setRow = (si: number, ri: number, k: keyof EditRow, val: string) => setSecs((p) => p.map((s, i) => i !== si ? s : { ...s, rows: s.rows.map((rw, j) => j === ri ? { ...rw, [k]: val } : rw) }));
+  const addRow = (si: number) => setSecs((p) => p.map((s, i) => i === si ? { ...s, rows: [...s.rows, { n: '', v: '' }] } : s));
+  const delRow = (si: number, ri: number) => setSecs((p) => p.map((s, i) => i === si ? { ...s, rows: s.rows.filter((_, j) => j !== ri) } : s));
+  const secSum = (rows: EditRow[]) => rows.reduce((s, x) => s + (numv(x.v) || 0), 0);
+  const grand = secs.reduce((s, sec) => s + secSum(sec.rows), 0);
+  const secBar: Record<string, string> = { 'تفاصيل جارى التسوية': '#c26a2b', 'عقود مرحلة من العام السابق': '#a9791f', 'أرصدة خلال العام الحالي': '#2b5c44' };
 
   const save = () => {
-    const clean = items.map((x) => ({ n: x.n.trim(), v: numv(x.v) })).filter((x) => x.n);
-    if (!clean.length) { showToast(rl('أضف بنداً واحداً على الأقل', 'Add at least one item')); return; }
+    const sections = secs.map((s) => ({ title: s.title, rows: s.rows.filter((x) => x.n.trim()).map((x) => ({ n: x.n.trim(), v: numv(x.v) })) })).filter((s) => s.rows.length);
+    if (!sections.length) { showToast(rl('أضف بنداً واحداً على الأقل', 'Add at least one item')); return; }
+    // keep the flat items = the three subtotals (used by the summary card and templates)
+    const items = sections.map((s) => ({ n: s.title, v: s.rows.reduce((a, x) => a + (x.v || 0), 0) }));
     mutate((d) => {
       const m = d.finModel as FinModel & { _mlog?: unknown[] };
       const rr = m.related[index];
       if (!rr) return;
-      rr.items = clean;
+      rr.sections = sections;
+      rr.items = items;
       m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
       (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: 'تحديث أرصدة ' + rr.from + ' → ' + rr.to, by: cu.name });
     });
-    showToast(rl('حُدّثت بنود البطاقة — تظهر لرئيس القطاع فوراً', 'Card items updated — visible to the Sector Head instantly'));
+    showToast(rl('حُدّثت تفاصيل الأطراف ذات العلاقة — تظهر لرئيس القطاع فوراً', 'Related-party details updated — visible to the Sector Head instantly'));
     onClose();
   };
 
   return (
-    <Modal open onClose={onClose} width={620}>
-      <h3 style={{ margin: '0 0 4px', fontSize: 16.5, fontWeight: 800, color: '#17211c' }}>{rl('تعديل أرصدة', 'Edit balances')} {r.from} ← {r.to}</h3>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rl('تُحفظ في نفس السجل الذي يراه رئيس القطاع — القيم بالدرهم.', 'Saved to the same record the Sector Head sees — values in AED.')}</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 170px 26px', gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#7d867f' }}>{rl('البند', 'Item')}</span>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#7d867f' }}>{rl('القيمة (درهم)', 'Value (AED)')}</span><span />
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {items.map((it, j) => (
-          <div key={j} style={{ display: 'grid', gridTemplateColumns: '1.8fr 170px 26px', gap: 8, alignItems: 'center' }}>
-            <input value={it.n} onChange={(e) => setItems((p) => p.map((x, k) => (k === j ? { ...x, n: e.target.value } : x)))} style={inputStyle} />
-            <input value={it.v} onChange={(e) => setItems((p) => p.map((x, k) => (k === j ? { ...x, v: e.target.value } : x)))} style={inputStyle} />
-            <button type="button" onClick={() => setItems((p) => p.filter((_, k) => k !== j))} style={{ flex: 'none', width: 26, height: 26, border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 }}>✕</button>
+    <Modal open onClose={onClose} width={680}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 16.5, fontWeight: 800, color: '#17211c' }}>{rl('تعديل أرصدة الأطراف ذات العلاقة', 'Edit related-party balances')} — {r.from} ← {r.to}</h3>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rl('تُحفظ في نفس السجل الذي يراه رئيس القطاع — القيم بالدرهم، واستخدم إشارة سالبة أو أقواس للقيم السالبة.', 'Saved to the same record the Sector Head sees — values in AED; use a minus sign or parentheses for negatives.')}</p>
+
+      {secs.map((sec, si) => (
+        <div key={si} style={{ border: '1px solid #f0e6dd', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+          <div style={{ background: secBar[sec.title] || '#c26a2b', color: '#fff', fontSize: 12.5, fontWeight: 800, padding: '9px 13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{tr(sec.title)}</span>
+            <span style={{ fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", fontSize: 12 }}>{relFmt(secSum(sec.rows))}</span>
           </div>
-        ))}
-        <button type="button" onClick={() => setItems((p) => [...p, { n: '', v: '' }])} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '7px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', marginTop: 4 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة بند', 'Add item')}
-        </button>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#eef3f0', borderRadius: 10, padding: '10px 14px', marginTop: 14 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#1e4634' }}>{rl('الإجمالي (يُحسب تلقائياً)', 'Total (auto)')}</span>
-        <span style={{ fontSize: 15, fontWeight: 800, color: '#1e4634', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{fmt(total)}</span>
+          <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {sec.rows.map((it, ri) => (
+              <div key={ri} style={{ display: 'grid', gridTemplateColumns: '1.9fr 150px 26px', gap: 8, alignItems: 'center' }}>
+                <input value={it.n} onChange={(e) => setRow(si, ri, 'n', e.target.value)} placeholder={rl('اسم البند', 'Item name')} style={{ ...inputStyle, direction: 'ltr', textAlign: 'start' }} />
+                <input value={it.v} onChange={(e) => setRow(si, ri, 'v', e.target.value)} placeholder="—" style={{ ...inputStyle, textAlign: 'center' }} />
+                <button type="button" onClick={() => delRow(si, ri)} style={{ flex: 'none', width: 26, height: 26, border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 }}>✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => addRow(si)} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '7px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', marginTop: 2 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة بند', 'Add item')}
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#eef3f0', borderRadius: 10, padding: '11px 15px' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#1e4634' }}>{rl('إجمالي الأرصدة (يُحسب تلقائياً)', 'Total balances (auto)')}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: grand < 0 ? '#b0433b' : '#1e4634', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{relFmt(grand)}</span>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>

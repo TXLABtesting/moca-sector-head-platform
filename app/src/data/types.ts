@@ -279,7 +279,16 @@ export interface FinEntity {
   overdue: number;
 }
 export interface RelatedItem { n: string; v: number }
-export interface RelatedParty { from: string; to: string; items: RelatedItem[] }
+/** A single line in a related-party breakdown section; v null = blank/unfilled. */
+export interface RelatedRow { n: string; v: number | null }
+/** A titled group of related-party lines (settlement / carried / current-year). */
+export interface RelatedSection { title: string; rows: RelatedRow[] }
+export interface RelatedParty {
+  from: string;
+  to: string;
+  items: RelatedItem[];
+  sections?: RelatedSection[]; // detailed three-part breakdown (optional)
+}
 export interface AgingItem {
   supplier: string;
   num: string;
