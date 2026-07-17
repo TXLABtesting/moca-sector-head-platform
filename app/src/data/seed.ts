@@ -4278,7 +4278,64 @@ export const seedData = ({
             "n": "أرصدة العام الحالي (عقود – رواتب)",
             "v": 188039
           }
-        ]
+        ],
+          "sections": [
+          {
+                    "title": "تفاصيل جارى التسوية",
+                    "rows": [
+                              {
+                                        "n": "Opening Balance-transactions to be settled",
+                                        "v": null
+                              }
+                    ]
+          },
+          {
+                    "title": "عقود مرحلة من العام السابق",
+                    "rows": [
+                              {
+                                        "n": "Opening Carried Forward Open Pos and Advance",
+                                        "v": 23873
+                              }
+                    ]
+          },
+          {
+                    "title": "أرصدة خلال العام الحالي",
+                    "rows": [
+                              {
+                                        "n": "Fund Received-Q1 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received-Q2 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received-Q3 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received-Q4 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Shared Cost- Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received- IT & Cybersecurity",
+                                        "v": 200000
+                              },
+                              {
+                                        "n": "Shared Cost- IT & Cybersecurity",
+                                        "v": -11961
+                              },
+                              {
+                                        "n": "Fund Received-2026 Projects & Initiatives",
+                                        "v": null
+                              }
+                    ]
+          }
+]
       },
       {
         "from": "MOCA",
@@ -4292,7 +4349,64 @@ export const seedData = ({
             "n": "أرصدة العام الحالي (عقود – رواتب)",
             "v": 752156
           }
-        ]
+        ],
+          "sections": [
+          {
+                    "title": "تفاصيل جارى التسوية",
+                    "rows": [
+                              {
+                                        "n": "Opening Balance-transactions to be settled",
+                                        "v": null
+                              }
+                    ]
+          },
+          {
+                    "title": "عقود مرحلة من العام السابق",
+                    "rows": [
+                              {
+                                        "n": "Opening Carried Forward Open Pos and Advance",
+                                        "v": 135283
+                              }
+                    ]
+          },
+          {
+                    "title": "أرصدة خلال العام الحالي",
+                    "rows": [
+                              {
+                                        "n": "Fund Received-Q1 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received-Q2 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received-Q3 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received-Q4 Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Shared Cost- Manpower",
+                                        "v": null
+                              },
+                              {
+                                        "n": "Fund Received- IT & Cybersecurity",
+                                        "v": 800000
+                              },
+                              {
+                                        "n": "Shared Cost- IT & Cybersecurity",
+                                        "v": -47844
+                              },
+                              {
+                                        "n": "Fund Received-2026 Projects & Initiatives",
+                                        "v": null
+                              }
+                    ]
+          }
+]
       }
     ],
     "relTotals": {
