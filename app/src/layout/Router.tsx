@@ -4,7 +4,6 @@ import { ChairDashboard } from '../screens/ChairDashboard';
 import { MemberDashboard } from '../screens/MemberDashboard';
 import { AdminDashboard } from '../screens/AdminDashboard';
 import { SectorDashboard } from '../screens/SectorDashboard';
-import { TeamOverview } from '../screens/TeamOverview';
 import { Projects } from '../screens/Projects';
 import { Meetings } from '../screens/Meetings';
 import { ReqMeetings } from '../screens/ReqMeetings';
@@ -14,7 +13,6 @@ import { Committees } from '../screens/Committees';
 import { ReportCenter } from '../screens/ReportCenter';
 import { OfficeTasks } from '../screens/OfficeTasks';
 import { TeamLeaves } from '../screens/TeamLeaves';
-import { TeamWorkspace } from '../screens/TeamWorkspace';
 import { Settings } from '../screens/Settings';
 import { NotificationsCenter } from '../screens/NotificationsCenter';
 
@@ -28,8 +26,6 @@ export function Router() {
         : cu.type === 'sysadmin' ? <AdminDashboard />
         : cu.type === 'sector' ? <SectorDashboard />
         : <MemberDashboard />;
-    case 'team':
-      return <TeamOverview />;
     case 'projects':
     case 'projectDetail':
       return <Projects />;
@@ -56,8 +52,6 @@ export function Router() {
       return <OfficeTasks />;
     case 'leaves':
       return <TeamLeaves />;
-    case 'workspace':
-      return <TeamWorkspace />;
     case 'settings':
       return <Settings />;
     case 'notifications':

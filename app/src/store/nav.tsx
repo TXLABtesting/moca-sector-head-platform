@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
 
 export type Page =
-  | 'dashboard' | 'team' | 'projects' | 'projectDetail'
+  | 'dashboard' | 'projects' | 'projectDetail'
   | 'meetings' | 'meetingDetail' | 'mtasks' | 'actions' | 'reqmeetings'
   | 'correspondence' | 'docDetail'
   | 'committees'
   | 'reportcenter' | 'reportDetail' | 'auditDetail' | 'finDetail' | 'reglog'
-  | 'otasks' | 'leaves' | 'workspace' | 'settings' | 'notifications';
+  | 'otasks' | 'leaves' | 'settings' | 'notifications';
 
 export interface NavParams {
   selProject?: string | null;

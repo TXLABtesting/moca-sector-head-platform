@@ -53,7 +53,7 @@ export function Shell() {
           {isSearching ? <GlobalSearch /> : <Router />}
         </main>
       </div>
-      <ExecutiveAssistant />
+      {(cu.type === 'chair' || canSee(cu, 'assistant')) && <ExecutiveAssistant />}
     </div>
   );
 }

@@ -41,11 +41,15 @@ function MinutesList() {
   const lateMt = mtasks.filter((a) => a.status === 'متأخر').length;
   const doneMt = mtasks.filter((a) => a.status === 'مكتمل').length;
 
+  // Minute-tasks live behind their own permission section; only expose the drilldowns
+  // to users who can actually open that page (otherwise the Shell guard bounces them).
+  const seeMt = cu.type === 'chair' || can(cu, 'minuteTasks', 'view');
+  const openMt = (p: Record<string, unknown> = {}) => (seeMt ? () => goto('mtasks', p) : undefined);
   const kpis = [
-    { value: meetings.length, label: t('minutesCount'), color: '#17211c', open: () => goto('mtasks', {}) },
-    { value: mtasks.length, label: rl('مهام الاجتماعات', 'Meeting tasks'), color: '#2f6aa8', open: () => goto('mtasks', {}) },
-    { value: lateMt, label: t('overdueActions'), color: '#b0433b', open: () => goto('mtasks', { mtStatus: 'متأخر' }) },
-    { value: doneMt, label: t('decisionsDone'), color: '#2e7d55', open: () => goto('mtasks', { mtStatus: 'مكتمل' }) },
+    { value: meetings.length, label: t('minutesCount'), color: '#17211c', open: openMt() },
+    { value: mtasks.length, label: rl('مهام الاجتماعات', 'Meeting tasks'), color: '#2f6aa8', open: openMt() },
+    { value: lateMt, label: t('overdueActions'), color: '#b0433b', open: openMt({ mtStatus: 'متأخر' }) },
+    { value: doneMt, label: t('decisionsDone'), color: '#2e7d55', open: openMt({ mtStatus: 'مكتمل' }) },
   ];
   const tile: CSSProperties = {
     background: 'rgba(255,255,255,.5)', border: '1px solid rgba(255,255,255,.65)', borderRadius: 22,
@@ -71,7 +75,7 @@ function MinutesList() {
       </div>
       <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
         {kpis.map((k, i) => (
-          <div key={i} onClick={k.open} style={tile}>
+          <div key={i} onClick={k.open} style={{ ...tile, cursor: k.open ? 'pointer' : 'default' }}>
             <div style={{ fontSize: 24, fontWeight: 700, color: k.color }}>{k.value}</div>
             <div style={{ fontSize: 14, color: '#7d867f', marginTop: 4 }}>{k.label}</div>
           </div>
@@ -110,6 +114,7 @@ function MinutesList() {
                     <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" /></svg>
                     {mt.attendees.length} {t('attendeesWord')}
                   </span>
+                  {seeMt && (
                   <span onClick={(e) => { e.stopPropagation(); goto('mtasks', { mtMeeting: mt.title }); }}
                     title={rl('فتح صفحة مهام محاضر الاجتماعات لهذا المحضر', 'Open the minutes-tasks page for this minute')}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', background: '#e9f0ec', color: '#1f4a37', cursor: 'pointer', border: '1px solid #d5e4da' }}>
@@ -117,6 +122,7 @@ function MinutesList() {
                     {mt.actions.length} {t('actionWord')}
                     <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'scaleX(-1)' }}><path d="M7 17 17 7M7 7h10v10" /></svg>
                   </span>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

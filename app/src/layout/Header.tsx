@@ -22,8 +22,8 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
 
 
   const titles: Record<string, string> = {
-    dashboard: t('t_dashboard'), workspace: rl('لوحة فريق المكتب', 'Office Team Workspace'),
-    committees: rl('اللجان وفرق العمل', 'Committees'), team: t('t_team'), projects: t('t_projects'),
+    dashboard: t('t_dashboard'),
+    committees: rl('اللجان وفرق العمل', 'Committees'), projects: t('t_projects'),
     projectDetail: t('t_projectDetail'), meetings: t('t_meetings'), meetingDetail: t('t_meetingDetail'),
     actions: t('t_actions'), reqmeetings: t('n_reqmeetings'), correspondence: t('t_correspondence'),
     docDetail: t('t_docDetail'), reportcenter: t('t_reportcenter'), reportDetail: t('rc_detailTitle'),
@@ -32,8 +32,8 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
     notifications: rl('مركز التنبيهات', 'Notifications Center'),
   };
   const crumbs: Record<string, string> = {
-    dashboard: t('c_dashboard'), workspace: rl('فريق المكتب', 'Office Team'),
-    committees: rl('قطاع الخدمات المركزية', 'Central Services Sector'), team: t('c_team'), projects: t('c_projects'),
+    dashboard: t('c_dashboard'),
+    committees: rl('قطاع الخدمات المركزية', 'Central Services Sector'), projects: t('c_projects'),
     projectDetail: t('c_projectDetail'), meetings: t('c_meetings'), meetingDetail: t('c_meetingDetail'),
     actions: t('c_actions'), reqmeetings: t('n_reqmeetings'), correspondence: t('c_correspondence'),
     docDetail: t('c_docDetail'), reportcenter: t('c_reportcenter'), reportDetail: t('rc_crumb'),

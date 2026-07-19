@@ -136,7 +136,7 @@ export function memberDefaultSection(userId: string): string {
 
 /** Sections this member can add to or edit (excludes non-editable/system sections). */
 export function editableSections(cu: SeedUser): string[] {
-  const skip: Record<string, number> = { dashboard: 1, assistant: 1, chairApproval: 1, permissions: 1 };
+  const skip: Record<string, number> = { dashboard: 1, assistant: 1, permissions: 1 };
   return SECTIONS.filter((s) => {
     if (skip[s.k]) return false;
     const letters = cu.g?.[s.k] || (cu.type === 'chair' ? 'ae' : '');
