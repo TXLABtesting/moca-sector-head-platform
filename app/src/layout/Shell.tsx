@@ -5,6 +5,9 @@ import { canSee } from '../domain/permissions';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { NAV_SECTION } from './navConfig';
+
+const REPORT_PAGES = new Set(['reportcenter', 'reportDetail', 'finDetail', 'reglog', 'auditDetail']);
+const REPORT_SECTIONS = ['reportCenter', 'reportLog', 'finReports', 'auditReports', 'recommendations'];
 import { Router } from './Router';
 import { GlobalSearch } from '../screens/GlobalSearch';
 import { ExecutiveAssistant } from '../screens/ExecutiveAssistant';
@@ -25,8 +28,15 @@ export function Shell() {
 
   // Redirect to dashboard when the current user loses access to the current page.
   useEffect(() => {
+    if (cu.type === 'chair') return;
+    // The Report Center hosts several sub-reports; allow its pages if any is visible,
+    // and let ReportCenter itself gate each individual report.
+    if (REPORT_PAGES.has(page)) {
+      if (!REPORT_SECTIONS.some((s) => canSee(cu, s))) goto('dashboard');
+      return;
+    }
     const sec = NAV_SECTION[page];
-    if (sec && sec !== 'dashboard' && cu.type !== 'chair' && !canSee(cu, sec)) {
+    if (sec && sec !== 'dashboard' && !canSee(cu, sec)) {
       goto('dashboard');
     }
   }, [cu, page, goto]);

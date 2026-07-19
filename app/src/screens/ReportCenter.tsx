@@ -15,6 +15,7 @@ import { RetentionWorkspace } from './reportcenter/RetentionWorkspace';
 import { SectionAddButton } from '../components/SectionAddButton';
 
 interface CardData {
+  section: string;
   cat: string; icon: string; statusLabel: string; stBg: string; stFg: string;
   title: string; period: string; freq: string; entity: string;
   ownerAr: string; ownerName: string; ownerRole: string;
@@ -35,6 +36,12 @@ export function ReportCenter() {
   const canApprove = can(cu, 'reportCenter', 'approve') || can(cu, 'auditReports', 'approve')
     || can(cu, 'finReports', 'approve') || can(cu, 'reportLog', 'approve');
 
+  // a sub-report is reachable only if the user may view its section (chair always may)
+  const mayView = (section: string) => cu.type === 'chair' || can(cu, section, 'view');
+  const DETAIL_SECTION: Record<string, string> = { auditDetail: 'auditReports', finDetail: 'finReports', reglog: 'reportLog', reportDetail: 'reportCenter' };
+  const detailSec = DETAIL_SECTION[page];
+  if (detailSec && !mayView(detailSec)) return <NoAccess onBack={() => goto('reportcenter')} rl={rl} />;
+
   if (page === 'auditDetail') {
     const manageAud = cu.type !== 'chair' && (can(cu, 'auditReports', 'add') || can(cu, 'auditReports', 'edit'));
     return <Fade>{manageAud ? <AuditWorkspace /> : <><SectionAddButton section="auditReports" header /><AuditReport canApprove={canApprove} /></>}</Fade>;
@@ -53,32 +60,38 @@ export function ReportCenter() {
   }
 
   // ---- HUB ----
-  const cards: CardData[] = [
+  const allCards: CardData[] = [
     {
+      section: 'finReports',
       cat: rl('التقارير المالية', 'Financial reports'), icon: 'bank', statusLabel: rl('محدّث', 'Updated'), stBg: '#e2f0e8', stFg: '#2e7d55',
       title: rl('الملخص التنفيذي المالي', 'Financial Executive Summary'), period: rl('حتى 30 مايو 2026', 'To 30 May 2026'), freq: rl('دوري', 'Periodic'), entity: rl('إدارة الخدمات المالية', 'Financial Services Dept.'),
       ownerAr: 'هاجر هلول', ownerName: rl('هاجر هلول', 'Hajar Halool'), ownerRole: rl('إداري - الإنجاز والمتابعة', 'Administrator - Achievement & Follow up'),
       updatedLabel: rl('آخر تحديث: مايو 2026', 'Updated: May 2026'), viewLabel: rl('عرض التقرير', 'View report'), downloadLabel: rl('تحميل الملف', 'Download file'), open: () => goto('finDetail'),
     },
     {
+      section: 'reportCenter',
       cat: rl('التقارير المالية', 'Financial reports'), icon: 'note', statusLabel: rl('مكتمل', 'Completed'), stBg: '#e2f0e8', stFg: '#2e7d55',
       title: rl('تقرير الدفعات المستبقاة', 'Retention Payments Report'), period: rl('الربع الثاني 2026', 'Q2 2026'), freq: rl('ربع سنوي', 'Quarterly'), entity: rl('إدارة الخدمات المالية', 'Financial Services Dept.'),
       ownerAr: 'حسن همام', ownerName: rl('حسن همام', 'Hasan Hammam'), ownerRole: rl('خبير الجودة والامتثال', 'Quality and Compliance Expert'),
       updatedLabel: rl('آخر تحديث: يونيو 2026', 'Updated: Jun 2026'), viewLabel: rl('عرض التقرير', 'View report'), downloadLabel: rl('تحميل آخر إصدار', 'Download latest'), open: () => goto('reportDetail'),
     },
     {
+      section: 'reportLog',
       cat: rl('سجل المتابعة', 'Tracking register'), icon: 'list', statusLabel: rl('سجل حي', 'Live register'), stBg: '#e6eef6', stFg: '#3a6ea5',
       title: rl('سجل التقارير', 'Reports Register'), period: rl('2026 · متابعة شهرية', '2026 · monthly tracking'), freq: rl('متعدد الدوريات', 'Mixed frequency'), entity: rl('كل الإدارات', 'All departments'),
       ownerAr: 'هاجر هلول', ownerName: rl('هاجر هلول', 'Hajar Halloul'), ownerRole: rl('إداري - الإنجاز والمتابعة', 'Admin – Delivery & Follow-up'),
       updatedLabel: rl('آخر تحديث: مايو 2026', 'Updated: May 2026'), viewLabel: rl('عرض السجل', 'View register'), downloadLabel: rl('تحميل السجل', 'Download register'), open: () => goto('reglog'),
     },
     {
+      section: 'auditReports',
       cat: rl('تقارير المتابعة والتدقيق', 'Follow-up & Audit reports'), icon: 'shield', statusLabel: rl('قيد المتابعة', 'Under follow-up'), stBg: '#fbf0d6', stFg: '#a9791f',
       title: rl('تقارير المتابعة والتدقيق', 'Follow-up & Audit reports'), period: rl('السنة 2025', 'Year 2025'), freq: rl('متابعة دورية / حسب الحاجة', 'Periodic / as needed'), entity: rl('إدارة الشؤون الإدارية', 'Admin Affairs Dept.'),
       ownerAr: 'حسن همام', ownerName: rl('حسن همام', 'Hasan Hammam'), ownerRole: rl('خبير الجودة والامتثال', 'Quality and Compliance Expert'),
       updatedLabel: rl('آخر تحديث: يونيو 2025', 'Updated: Jun 2025'), viewLabel: rl('عرض التقارير', 'View reports'), downloadLabel: rl('تحميل أحدث تقرير', 'Download latest'), open: () => goto('auditDetail'),
     },
   ];
+  // each user sees only the reports they can view (chair sees all)
+  const cards = allCards.filter((c) => cu.type === 'chair' || can(cu, c.section, 'view'));
 
   const chip = (key: 'period' | 'freq' | 'entity', label: string, value: string) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#3c4a42', background: '#f3f5f1', borderRadius: 8, padding: '5px 10px' }}>
@@ -92,6 +105,9 @@ export function ReportCenter() {
         <h1 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700, color: '#17211c' }}>{rl('مركز التقارير', 'Report Center')}</h1>
         <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{t('rc_intro')}</p>
       </div>
+      {cards.length === 0 && (
+        <div style={{ padding: 40, textAlign: 'center', fontSize: 13, color: '#9aa39b', background: '#f7f9f6', borderRadius: 16 }}>{rl('لا توجد تقارير متاحة ضمن صلاحياتك', 'No reports available within your permissions')}</div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(330px,1fr))', gap: 18 }}>
         {cards.map((r, i) => (
           <div key={i} style={{ background: '#fff', borderRadius: 22, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', padding: '22px 22px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -119,6 +135,21 @@ export function ReportCenter() {
             </div>
           </div>
         ))}
+      </div>
+    </Fade>
+  );
+}
+
+function NoAccess({ onBack, rl }: { onBack: () => void; rl: (a: string, b: string) => string }) {
+  return (
+    <Fade>
+      <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', padding: '44px 28px', textAlign: 'center', maxWidth: 460, margin: '40px auto' }}>
+        <div style={{ width: 54, height: 54, borderRadius: 15, background: '#f3ecf6', color: '#7a4d94', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+        </div>
+        <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#17211c' }}>{rl('لا تملك صلاحية الوصول لهذا التقرير', 'You don’t have access to this report')}</h3>
+        <p style={{ margin: '0 0 18px', fontSize: 12.5, color: '#7d867f', lineHeight: 1.7 }}>{rl('هذا التقرير خارج نطاق صلاحياتك في مركز التقارير.', 'This report is outside your Report Center permissions.')}</p>
+        <button onClick={onBack} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '10px 20px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('العودة لمركز التقارير', 'Back to Report Center')}</button>
       </div>
     </Fade>
   );

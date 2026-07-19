@@ -27,7 +27,11 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
   const leaveBadge = data.leaves.filter((l) => l.status === 'بانتظار الاعتماد').length;
 
   const activeKey = ACTIVE_MAP[page] || page;
-  const see = (key: string) => { const sec = NAV_SECTION[key]; return !sec || sec === 'dashboard' ? true : canSee(cu, sec); };
+  const see = (key: string) => {
+    // Report Center hosts several sub-reports; show it if any of them is visible.
+    if (key === 'reportcenter') return ['reportCenter', 'reportLog', 'finReports', 'auditReports', 'recommendations'].some((s) => canSee(cu, s));
+    const sec = NAV_SECTION[key]; return !sec || sec === 'dashboard' ? true : canSee(cu, sec);
+  };
 
   const navTasksLabel = cu.type === 'office' ? rl('مهامي', 'My tasks') : rl('مهام فريق المكتب', 'My team');
 

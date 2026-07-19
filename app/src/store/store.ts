@@ -85,8 +85,15 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 11,
+      version: 12,
       storage: createJSONStorage(safeStorage),
+      // Permission-model corrections ship in the seed (e.g. Report Center scoping).
+      // Refresh persisted users to the latest seed so the change applies on existing installs.
+      migrate: (persisted, from) => {
+        const s = persisted as Partial<AppState> | undefined;
+        if (s && typeof from === 'number' && from < 12) s.users = clone(SEED_USERS);
+        return s as AppState;
+      },
     }
   )
 );
