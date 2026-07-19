@@ -47,6 +47,10 @@ function kvRows(fm: FinModel, f?: Record<string, string>): [string, string][] {
     ['التشغيلية - المدفوع', g('opexP', fm.opex.paid)],
     ['الرأسمالية - المتوقع', g('capexE', fm.capex.expected)],
     ['الرأسمالية - المدفوع', g('capexP', fm.capex.paid)],
+    ['إجمالي الأرصدة بين الجهات', g('relAll', fm.relTotals.allPeriods)],
+    ['إجمالي جارى التسوية', g('relSettling', fm.relTotals.settling)],
+    ['عقود مرحلة من العام السابق', g('relPrior', fm.relTotals.prior)],
+    ['أرصدة العام الحالي', g('relCurrent', fm.relTotals.current)],
   ];
 }
 function buildFinDocx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
@@ -56,7 +60,9 @@ function buildFinDocx(fm: FinModel, projects: FinBigProject[], entities: FinEnti
     wP('المشاريع الكبرى', { bold: true, size: 28 }) +
     wTbl(['المشروع', 'المخصص (مليون درهم)', 'المدفوع (مليون درهم)'], projects.length ? projects.map((p) => [p.name, String(p.alloc), String(p.paid)]) : [['اكتب هنا', '', '']]) +
     wP('الجهات', { bold: true, size: 28 }) +
-    wTbl(['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'], entities.length ? entities.map((e) => [e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]) : [['اكتب هنا', '', '', '', '', '']]);
+    wTbl(['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'], entities.length ? entities.map((e) => [e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]) : [['اكتب هنا', '', '', '', '', '']]) +
+    wP('الأطراف ذات العلاقة', { bold: true, size: 28 }) +
+    wTbl(['من', 'إلى', 'البند', 'القيمة'], fm.related.length ? fm.related.flatMap((rp) => rp.items.map((it) => [rp.from, rp.to, it.n, String(it.v)])) : [['اكتب هنا', '', '', '']]);
   return makeDocx(body);
 }
 function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
@@ -65,6 +71,8 @@ function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEnti
   (projects.length ? projects : [{ name: '', alloc: 0, paid: 0 }]).forEach((p) => rows.push([p.name, String(p.alloc || ''), String(p.paid || '')]));
   rows.push([''], ['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق']);
   (entities.length ? entities : []).forEach((e) => rows.push([e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]));
+  rows.push([''], ['من', 'إلى', 'البند', 'القيمة']);
+  (fm.related.length ? fm.related : []).forEach((rp) => rp.items.forEach((it) => rows.push([rp.from, rp.to, it.n, String(it.v)])));
   return makeXlsx(rows, 'الملخص المالي');
 }
 
@@ -72,8 +80,10 @@ function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEnti
 interface FinParsed {
   period?: string; budget?: number; used?: number; commit?: number; commitPaid?: number;
   opexE?: number; opexP?: number; capexE?: number; capexP?: number;
+  relAll?: number; relSettling?: number; relPrior?: number; relCurrent?: number;
   projects?: { name: string; alloc: number; paid: number }[];
   entities?: { name: string; alloc: number; used: number; commit: number; paid: number; due: number }[];
+  related?: { from: string; to: string; items: { n: string; v: number }[] }[];
   missing: string[];
 }
 function sliceSection(tables: string[][][], head: (r: string[]) => boolean): string[][] {
@@ -85,7 +95,7 @@ function sliceSection(tables: string[][][], head: (r: string[]) => boolean): str
       const r = t[i];
       const first = (r[0] || '').trim();
       if (!first && !(r[1] || '').trim()) break;
-      if (/^(المشروع|الجهة|الحقل)$/.test(first)) break;
+      if (/^(المشروع|الجهة|الحقل|من)$/.test(first)) break;
       if (first) out.push(r);
     }
     if (out.length) return out;
@@ -111,6 +121,22 @@ function parseFinFile(tables: string[][][]): FinParsed {
   if (projRows.length) found.projects = projRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), paid: num(r[2] || '') })).filter((p) => p.name && p.name !== 'اكتب هنا');
   const entRows = sliceSection(tables, (r) => /^الجهة/.test((r[0] || '').trim()) && /المخصص/.test(r.join(' ')));
   if (entRows.length) found.entities = entRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), used: num(r[2] || ''), commit: num(r[3] || ''), paid: num(r[4] || ''), due: num(r[5] || '') })).filter((e) => e.name && e.name !== 'اكتب هنا');
+  found.relAll = kvNum(/^إجمالي الأرصدة بين الجهات/);
+  found.relSettling = kvNum(/^إجمالي جار[ىي] التسوية/);
+  found.relPrior = kvNum(/^عقود مرحلة من العام السابق/);
+  found.relCurrent = kvNum(/^أرصدة العام الحالي/);
+  const relRows = sliceSection(tables, (r) => /^من$/.test((r[0] || '').trim()) && /القيمة/.test(r.join(' ')));
+  if (relRows.length) {
+    const map = new Map<string, { from: string; to: string; items: { n: string; v: number }[] }>();
+    relRows.forEach((r) => {
+      const from = (r[0] || '').trim(); const to = (r[1] || '').trim(); const n = (r[2] || '').trim();
+      if (!from || !to || !n || from === 'اكتب هنا') return;
+      const key = from + '|' + to;
+      if (!map.has(key)) map.set(key, { from, to, items: [] });
+      map.get(key)!.items.push({ n, v: num(r[3] || '') });
+    });
+    if (map.size) found.related = [...map.values()];
+  }
   const KEYS: { k: keyof FinParsed; ar: string }[] = [
     { k: 'period', ar: 'الفترة' }, { k: 'budget', ar: 'الميزانية الإجمالية' }, { k: 'used', ar: 'المستخدم' },
     { k: 'commit', ar: 'الالتزامات' }, { k: 'commitPaid', ar: 'المدفوع من الالتزامات' },
@@ -147,7 +173,11 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
     commit: String(source.commit), commitPaid: String(source.commitPaid),
     opexE: String(source.opex.expected), opexP: String(source.opex.paid),
     capexE: String(source.capex.expected), capexP: String(source.capex.paid),
+    relAll: String(source.relTotals.allPeriods), relSettling: String(source.relTotals.settling),
+    relPrior: String(source.relTotals.prior), relCurrent: String(source.relTotals.current),
   });
+  const [rel, setRel] = useState<{ from: string; to: string; items: { n: string; v: number }[] }[]>(
+    () => source.related.map((rp) => ({ from: rp.from, to: rp.to, items: rp.items.map((x) => ({ n: x.n, v: x.v })) })));
   const [projects, setProjects] = useState<FinBigProject[]>(() => source.bigProjects.map((p) => ({ ...p })));
   const [ents, setEnts] = useState<{ name: string; alloc: number; used: number; commit: number; paid: number; due: number }[]>(
     () => source.entities.map((e) => ({ name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due })));
@@ -174,9 +204,14 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
         opexP: p.opexP !== undefined ? String(p.opexP) : prev.opexP,
         capexE: p.capexE !== undefined ? String(p.capexE) : prev.capexE,
         capexP: p.capexP !== undefined ? String(p.capexP) : prev.capexP,
+        relAll: p.relAll !== undefined ? String(p.relAll) : prev.relAll,
+        relSettling: p.relSettling !== undefined ? String(p.relSettling) : prev.relSettling,
+        relPrior: p.relPrior !== undefined ? String(p.relPrior) : prev.relPrior,
+        relCurrent: p.relCurrent !== undefined ? String(p.relCurrent) : prev.relCurrent,
       }));
       if (p.projects) setProjects(p.projects);
       if (p.entities) setEnts(p.entities);
+      if (p.related) setRel(p.related);
       setMissing(p.missing);
       setParsedFrom(file.name);
       showToast('قُرئ الملف وعُبئت الحقول — راجع البيانات قبل الحفظ');
@@ -209,6 +244,8 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
           : { code: e.name.slice(0, 4), name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due, opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 }, projects: [], overdue: 0 };
       });
       m.aging = aging.map((b) => ({ bucket: b.bucket, risk: b.risk, items: b.items.filter((it) => it.supplier.trim() || it.amount) }));
+      m.relTotals = { allPeriods: num(f.relAll), settling: num(f.relSettling), prior: num(f.relPrior), current: num(f.relCurrent) };
+      m.related = rel.filter((rp) => rp.from.trim() && rp.to.trim()).map((rp) => ({ from: rp.from.trim(), to: rp.to.trim(), items: rp.items.filter((it) => it.n.trim()).map((it) => ({ n: it.n.trim(), v: it.v })) }));
       m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
       if (send) { m._mstatus = 'بانتظار مراجعة رئيس القطاع'; m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id; }
       else if (!m._mrev && m._mstatus !== 'معتمد') m._mstatus = 'مسودة';
@@ -229,6 +266,8 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
   const th: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: '#7d867f', textAlign: 'start', padding: '4px 2px' };
   const setAgeItem = (bi: number, ii: number, k: keyof AgingBucket['items'][number], v: string) =>
     setAging((prev) => prev.map((b, i) => i !== bi ? b : { ...b, items: b.items.map((it, j) => j !== ii ? it : { ...it, [k]: k === 'amount' ? num(v) : v }) }));
+  const setRelItem = (ri: number, ii: number, k: 'n' | 'v', v: string) =>
+    setRel((prev) => prev.map((x, i) => i !== ri ? x : { ...x, items: x.items.map((it, j) => j !== ii ? it : { ...it, [k]: k === 'v' ? num(v) : v }) }));
 
   return (
     <Modal open onClose={onClose} width={840}>
@@ -309,6 +348,37 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
           ))}
           {addRowBtn('إضافة جهة', () => setEnts((prev) => [...prev, { name: '', alloc: 0, used: 0, commit: 0, paid: 0, due: 0 }]))}
         </div>
+      </div>
+
+      {secHead('الأطراف ذات العلاقة')}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div><Label>إجمالي الأرصدة بين الجهات</Label><input value={f.relAll} onChange={setI('relAll')} style={inputStyle} /></div>
+        <div><Label>إجمالي جارى التسوية</Label><input value={f.relSettling} onChange={setI('relSettling')} style={inputStyle} /></div>
+        <div><Label>عقود مرحلة من العام السابق</Label><input value={f.relPrior} onChange={setI('relPrior')} style={inputStyle} /></div>
+        <div><Label>أرصدة العام الحالي</Label><input value={f.relCurrent} onChange={setI('relCurrent')} style={inputStyle} /></div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {rel.map((rp, ri) => (
+          <div key={ri} style={{ border: '1px solid #efe6f2', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ background: '#f5eef7', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px', flexWrap: 'wrap' }}>
+              <input value={rp.from} onChange={(e) => setRel((prev) => prev.map((x, j) => j === ri ? { ...x, from: e.target.value } : x))} placeholder="من" style={{ ...inputStyle, width: 150, padding: '6px 10px' }} />
+              <span style={{ color: '#7a4d94', fontWeight: 800 }}>←</span>
+              <input value={rp.to} onChange={(e) => setRel((prev) => prev.map((x, j) => j === ri ? { ...x, to: e.target.value } : x))} placeholder="إلى" style={{ ...inputStyle, width: 150, padding: '6px 10px' }} />
+              <button type="button" onClick={() => setRel((prev) => prev.filter((_, j) => j !== ri))} style={{ ...rowBtn, width: 'auto', marginInlineStart: 'auto' }}>حذف الطرف ✕</button>
+            </div>
+            <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {rp.items.map((it, ii) => (
+                <div key={ii} style={{ display: 'grid', gridTemplateColumns: '2fr 150px 26px', gap: 8, alignItems: 'center' }}>
+                  <input value={it.n} onChange={(e) => setRelItem(ri, ii, 'n', e.target.value)} placeholder="اسم البند" style={{ ...inputStyle, direction: 'ltr', textAlign: 'start' }} />
+                  <input value={String(it.v ?? '')} onChange={(e) => setRelItem(ri, ii, 'v', e.target.value)} placeholder="القيمة" style={{ ...inputStyle, textAlign: 'center' }} />
+                  <button type="button" onClick={() => setRel((prev) => prev.map((x, j) => j !== ri ? x : { ...x, items: x.items.filter((_, k) => k !== ii) }))} style={rowBtn}>✕</button>
+                </div>
+              ))}
+              {addRowBtn('إضافة بند', () => setRel((prev) => prev.map((x, j) => j !== ri ? x : { ...x, items: [...x.items, { n: '', v: 0 }] })))}
+            </div>
+          </div>
+        ))}
+        {addRowBtn('إضافة طرف ذي علاقة', () => setRel((prev) => [...prev, { from: '', to: '', items: [] }]))}
       </div>
 
       {secHead('أعمار الذمم الدائنة')}
