@@ -304,6 +304,7 @@ export interface AgingItem {
 export interface AgingBucket { bucket: string; risk: string; items: AgingItem[] }
 export interface FinModel {
   id?: string;
+  year: string;
   lastUpdate?: string;
   updatedBy?: string;
   period: string;
@@ -431,7 +432,7 @@ export interface AppData {
   correspondence: Correspondence[];
   otasks: OfficeTask[];
   regReports: RegReport[];
-  finModel: FinModel;
+  finModels: FinModel[];
   reqMeetings: ReqMeeting[];
   committees: Committee[];
   retReports: RetReport[];

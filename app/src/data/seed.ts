@@ -3754,8 +3754,9 @@ export const seedData = ({
       "notes": ""
     }
   ],
-  "finModel": {
+  "finModels": [{
     "id": "fin1",
+    "year": "2026",
     "period": "حتى 30 مايو 2026",
     "budget": 100,
     "used": 20,
@@ -4587,7 +4588,7 @@ export const seedData = ({
         ]
       }
     ]
-  },
+  }],
   "retReports": [
     {
       "id": "ret2", "year": "2026", "quarter": "الربع الثاني", "date": "30 يونيو 2026", "status": "معتمد",

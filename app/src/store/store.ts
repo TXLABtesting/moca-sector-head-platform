@@ -85,13 +85,18 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 13,
+      version: 14,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
       migrate: (persisted, from) => {
-        const s = persisted as Partial<AppState> | undefined;
+        const s = persisted as (Partial<AppState> & { data?: any }) | undefined;
         if (s && typeof from === 'number' && from < 13) s.users = clone(SEED_USERS);
+        // v14: the single finModel became a per-year finModels array.
+        if (s && s.data && !s.data.finModels) {
+          s.data.finModels = s.data.finModel ? [{ ...s.data.finModel, year: s.data.finModel.year || '2026' }] : clone(seedData.finModels);
+          delete s.data.finModel;
+        }
         return s as AppState;
       },
     }

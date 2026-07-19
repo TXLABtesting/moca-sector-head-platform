@@ -6,6 +6,7 @@ import { Drawer, Modal } from '../../components/ui';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { entColors, agingColors, agingRisk, fmt, pct } from './shared';
+import { financeYears, finForYear, defaultFinYear } from './financeYears';
 import type { FinModel } from '../../data/types';
 
 const sectionHead = (barColor: string, title: string, note?: string) => (
@@ -18,9 +19,9 @@ const sectionHead = (barColor: string, title: string, note?: string) => (
 const cardSh = '0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22)';
 const finTh: CSSProperties = { padding: '11px 16px', fontSize: 11, color: '#7d867f', fontWeight: 700, textAlign: 'start' };
 
-export function FinancialSummary() {
+export function FinancialSummary({ year: yearProp, onYearChange }: { year?: string; onYearChange?: (y: string) => void } = {}) {
   const { t, tr, lang } = useI18n();
-  const FM = useStore((s) => s.data.finModel);
+  const finModels = useStore((s) => s.data.finModels);
   const { showToast } = useToast();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const mAED = (v: number) => rl(fmt(v) + ' م.د', fmt(v) + 'M');
@@ -33,6 +34,36 @@ export function FinancialSummary() {
   const [selAging, setSelAging] = useState<string | null>(null);
   const [relDetail, setRelDetail] = useState<number | null>(null);
   const [relEdit, setRelEdit] = useState<number | null>(null);
+
+  const years = financeYears(finModels);
+  const [yearLocal, setYearLocal] = useState(yearProp || defaultFinYear(finModels));
+  const year = yearProp ?? yearLocal;
+  const setYear = (y: string) => { setYearLocal(y); onYearChange?.(y); };
+  const FM = finForYear(finModels, year);
+
+  const yearFilter = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', background: 'rgba(255,255,255,.08)', borderRadius: 12, padding: 5 }}>
+      {years.map((y) => {
+        const on = y === year;
+        return <button key={y} onClick={() => setYear(y)} style={{ borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: on ? '#e9c877' : 'transparent', color: on ? '#132b20' : '#cfe0d5' }}>{y}</button>;
+      })}
+    </div>
+  );
+
+  if (!FM) {
+    return (
+      <div style={{ animation: 'fadeUp .16s ease' }}>
+        <div style={{ background: 'linear-gradient(120deg,#132b20,#1f4a37 55%,#2b5c44)', borderRadius: 22, padding: '24px 26px', color: '#eaf1ec', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t('fin_title')}</h2>
+            <div style={{ fontSize: 12.5, color: '#bcd2c3', marginTop: 3 }}>{rl('السنة', 'Year')} {year}</div>
+          </div>
+          {yearFilter}
+        </div>
+        <div style={{ padding: 48, textAlign: 'center', fontSize: 14, color: '#9aa39b', background: '#f7f9f6', borderRadius: 16 }}>{rl('لا يوجد ملخص مالي لسنة ' + year + ' بعد.', 'No financial summary for ' + year + ' yet.')}</div>
+      </div>
+    );
+  }
 
   const finUtil = pct(FM.used, FM.budget);
   const entityCards = FM.entities.map((e) => {
@@ -79,7 +110,7 @@ export function FinancialSummary() {
     { label: rl('إجمالي المبالغ جارى تسويتها', 'Total amounts under settlement'), value: fmt(relT.settling) + rl(' درهم', ' AED'), tone: 'amber' },
   ].map((r) => ({ label: r.label, value: r.value, dot: r.tone === 'red' ? '#b0433b' : '#a9791f', bg: r.tone === 'red' ? '#faf0ef' : '#fbf7ee' }));
 
-  const period = rl('حتى 30 مايو 2026', 'to 30 May 2026');
+  const period = tr(FM.period);
   const entityPanel = (() => { if (!selEntity) return null; const e = FM.entities.find((x) => x.code === selEntity); if (!e) return null; const col = entColors[e.code] || '#1f4a37'; return { code: e.code, name: tr(e.name), color: col, alloc: mAED(e.alloc), used: mAED(e.used), remain: mAED(e.alloc - e.used), utilLabel: pct(e.used, e.alloc) + '%', commit: mAED(e.commit), paid: mAED(e.paid), due: mAED(e.due), opExpected: mAED(e.opex.expected), opPaid: mAED(e.opex.paid), capExpected: mAED(e.capex.expected), capPaid: mAED(e.capex.paid), overdue: e.overdue, overdueLabel: rl(e.overdue + ' عقد متأخر', e.overdue + ' overdue contracts'), projects: e.projects.map((p) => ({ name: tr(p.name), alloc: mAED(p.alloc), paid: mAED(p.paid), spentLabel: pct(p.paid, p.alloc) + '%' })) }; })();
 
   return (
@@ -91,6 +122,7 @@ export function FinancialSummary() {
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t('fin_title')}</h2>
           <div style={{ fontSize: 12.5, color: '#bcd2c3', marginTop: 3 }}>{t('rc_period')} · {period} · {t('rc_crumb')}</div>
         </div>
+        {yearFilter}
         <button onClick={() => showToast(rl('يبدأ تنزيل ملف الملخص التنفيذي المالي', 'Downloading financial summary'))} style={{ background: '#e9c877', color: '#3a2c08', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"></path></svg>{t('fin_download')}</button>
       </div>
 
@@ -230,11 +262,11 @@ export function FinancialSummary() {
       </div>
 
       {relDetail !== null && (
-        <RelDetailModal index={relDetail} canEdit={canEditRel}
+        <RelDetailModal year={year} index={relDetail} canEdit={canEditRel}
           onEdit={() => { setRelDetail(null); setRelEdit(relDetail); }}
           onClose={() => setRelDetail(null)} />
       )}
-      {relEdit !== null && <RelEditModal index={relEdit} onClose={() => setRelEdit(null)} />}
+      {relEdit !== null && <RelEditModal year={year} index={relEdit} onClose={() => setRelEdit(null)} />}
 
       {/* AP aging */}
       {sectionHead('#b0433b', t('fin_aging'), t('fin_clickAging') + ' · ' + t('fin_totalAmount') + ': ' + fmt(agingTotal))}
@@ -351,11 +383,11 @@ export function FinancialSummary() {
 const relFmt = (v: number | null | undefined) => (v === null || v === undefined ? '—' : (v < 0 ? '(' + fmt(Math.abs(v)) + ')' : fmt(v)));
 const sectionSum = (rows: { v: number | null }[]) => rows.reduce((s, x) => s + (x.v || 0), 0);
 
-function RelDetailModal({ index, canEdit, onEdit, onClose }: { index: number; canEdit: boolean; onEdit: () => void; onClose: () => void }) {
+function RelDetailModal({ year, index, canEdit, onEdit, onClose }: { year: string; index: number; canEdit: boolean; onEdit: () => void; onClose: () => void }) {
   const { tr, lang } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
-  const FM = useStore((s) => s.data.finModel);
-  const r = FM.related[index];
+  const FM = useStore((s) => finForYear(s.data.finModels, year));
+  const r = FM?.related[index];
   if (!r) return null;
   const fromColor = entColors[r.from] || '#5b6b62';
   const toColor = entColors[r.to] || '#5b6b62';
@@ -428,14 +460,14 @@ const DEFAULT_SECTIONS = ['تفاصيل جارى التسوية', 'عقود مر
 interface EditRow { n: string; v: string }
 interface EditSection { title: string; rows: EditRow[] }
 
-function RelEditModal({ index, onClose }: { index: number; onClose: () => void }) {
+function RelEditModal({ year, index, onClose }: { year: string; index: number; onClose: () => void }) {
   const { tr, lang } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
-  const FM = useStore((s) => s.data.finModel);
+  const FM = useStore((s) => finForYear(s.data.finModels, year));
   const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
-  const r = FM.related[index];
+  const r = FM?.related[index];
   const numv = (v: string) => (v.trim() === '' || v.trim() === '—') ? null : (parseFloat(String(v).replace(/[()]/g, (m) => (m === '(' ? '-' : '')).replace(/[^\d.-]/g, '')) || 0);
   const vStr = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v));
   // initialise from sections when present, otherwise seed the three standard sections
@@ -464,7 +496,8 @@ function RelEditModal({ index, onClose }: { index: number; onClose: () => void }
     // keep the flat items = the three subtotals (used by the summary card and templates)
     const items = sections.map((s) => ({ n: s.title, v: s.rows.reduce((a, x) => a + (x.v || 0), 0) }));
     mutate((d) => {
-      const m = d.finModel as FinModel & { _mlog?: unknown[] };
+      const m = d.finModels.find((x) => x.year === year) as (FinModel & { _mlog?: unknown[] }) | undefined;
+      if (!m) return;
       const rr = m.related[index];
       if (!rr) return;
       rr.sections = sections;

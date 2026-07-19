@@ -7,8 +7,9 @@ import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { triggerDownload } from '../../shared/fileGen';
 import { FinancialSummary } from './FinancialSummary';
+import { financeYears, finForYear, defaultFinYear } from './financeYears';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup } from './templateIO';
-import type { FinModel, FinBigProject, FinEntity } from '../../data/types';
+import type { FinModel, FinBigProject, FinEntity, AgingBucket } from '../../data/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -31,8 +32,9 @@ const secHead = (t: string, warn?: boolean) => (
 );
 const fmt = (n: number) => (n || 0).toLocaleString('en-US');
 const num = (v: string) => parseFloat(String(v).replace(/[^\d.-]/g, '')) || 0;
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
-/* ---------------- template: pre-filled with the CURRENT summary data ---------------- */
+/* ---------------- template ---------------- */
 function kvRows(fm: FinModel, f?: Record<string, string>): [string, string][] {
   const g = (k: string, v: number | string) => String(f?.[k] ?? v ?? '');
   return [
@@ -74,8 +76,6 @@ interface FinParsed {
   entities?: { name: string; alloc: number; used: number; commit: number; paid: number; due: number }[];
   missing: string[];
 }
-/** Slice section rows out of tables: rows following a header row that matches
- *  `head`, stopping at the next header-like row or an empty row. */
 function sliceSection(tables: string[][][], head: (r: string[]) => boolean): string[][] {
   for (const t of tables) {
     const hi = t.findIndex(head);
@@ -121,23 +121,37 @@ function parseFinFile(tables: string[][][]): FinParsed {
   return found;
 }
 
-/* ---------------- the edit form ---------------- */
-function FinForm({ onClose }: { onClose: () => void }) {
+const blankFin = (year: string): FinModel => ({
+  id: 'fin' + Math.floor(Math.random() * 1e9), year, period: 'حتى نهاية ' + year,
+  budget: 0, used: 0, remain: 0, commit: 0, commitPaid: 0, commitDue: 0,
+  opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 },
+  bigProjects: [], entities: [], related: [], relTotals: { allPeriods: 0, settling: 0, prior: 0, current: 0 }, aging: [],
+});
+
+/* ---------------- the edit / create form ---------------- */
+function FinForm({ year, create, onClose }: { year: string; create: boolean; onClose: () => void }) {
   const cu = useCurrentUser();
-  const fm = useStore((s) => s.data.finModel);
+  const finModels = useStore((s) => s.data.finModels);
   const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const existing = finForYear(finModels, year);
+  const latest = [...finModels].sort((a, b) => b.year.localeCompare(a.year))[0];
+  // source of initial values: the year's own summary when editing, else the most recent one to clone.
+  const source: FinModel = existing || latest || blankFin(year);
+
   const [f, setF] = useState<Record<string, string>>({
-    period: fm.period, budget: String(fm.budget), used: String(fm.used),
-    commit: String(fm.commit), commitPaid: String(fm.commitPaid),
-    opexE: String(fm.opex.expected), opexP: String(fm.opex.paid),
-    capexE: String(fm.capex.expected), capexP: String(fm.capex.paid),
+    period: create ? 'حتى نهاية ' + year : source.period,
+    budget: String(source.budget), used: String(source.used),
+    commit: String(source.commit), commitPaid: String(source.commitPaid),
+    opexE: String(source.opex.expected), opexP: String(source.opex.paid),
+    capexE: String(source.capex.expected), capexP: String(source.capex.paid),
   });
-  const [projects, setProjects] = useState<FinBigProject[]>(() => fm.bigProjects.map((p) => ({ ...p })));
+  const [projects, setProjects] = useState<FinBigProject[]>(() => source.bigProjects.map((p) => ({ ...p })));
   const [ents, setEnts] = useState<{ name: string; alloc: number; used: number; commit: number; paid: number; due: number }[]>(
-    () => fm.entities.map((e) => ({ name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due })));
+    () => source.entities.map((e) => ({ name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due })));
+  const [aging, setAging] = useState<AgingBucket[]>(() => clone(source.aging || []));
   const [missing, setMissing] = useState<string[]>([]);
   const [parsedFrom, setParsedFrom] = useState('');
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -174,27 +188,33 @@ function FinForm({ onClose }: { onClose: () => void }) {
   const save = (send: boolean) => {
     if (!(f.period || '').trim()) { showToast('يرجى إدخال الفترة'); return; }
     mutate((d) => {
-      const m = d.finModel as FinModel & { _mstatus?: string; _mrev?: boolean; _mret?: string; _mowner?: string; _mlog?: unknown[] };
-      m.id = m.id || 'fin1';
+      let m = d.finModels.find((x) => x.year === year) as (FinModel & { _mstatus?: string; _mrev?: boolean; _mret?: string; _mowner?: string; _mlog?: unknown[] }) | undefined;
+      if (!m) {
+        // create: clone the source (entities' nested breakdown, related parties, aging) then override.
+        const base = clone(existing || latest || blankFin(year)) as FinModel & { _mstatus?: string; _mrev?: boolean; _mret?: string; _mowner?: string; _mlog?: unknown[] };
+        m = { ...base, id: 'fin' + Math.floor(Math.random() * 1e9), year };
+        m._mstatus = undefined; m._mrev = false; m._mret = ''; m._mowner = cu.id; m._mlog = [];
+        d.finModels.unshift(m);
+      }
       m.period = f.period.trim();
       m.budget = num(f.budget); m.used = num(f.used); m.remain = num(f.budget) - num(f.used);
       m.commit = num(f.commit); m.commitPaid = num(f.commitPaid); m.commitDue = num(f.commit) - num(f.commitPaid);
       m.opex = { ...m.opex, expected: num(f.opexE), paid: num(f.opexP), due: num(f.opexE) - num(f.opexP) };
       m.capex = { ...m.capex, expected: num(f.capexE), paid: num(f.capexP), due: num(f.capexE) - num(f.capexP) };
       m.bigProjects = projects.filter((p) => p.name.trim()).map((p) => ({ ...p, alloc: +p.alloc || 0, paid: +p.paid || 0 }));
-      // merge edited entity figures back, preserving nested breakdowns of existing entities
       m.entities = ents.filter((e) => e.name.trim()).map((e) => {
-        const old = fm.entities.find((x) => x.name === e.name);
+        const old = source.entities.find((x) => x.name === e.name) || m!.entities.find((x) => x.name === e.name);
         return old
           ? { ...old, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due }
           : { code: e.name.slice(0, 4), name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due, opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 }, projects: [], overdue: 0 };
       });
+      m.aging = aging.map((b) => ({ bucket: b.bucket, risk: b.risk, items: b.items.filter((it) => it.supplier.trim() || it.amount) }));
       m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
       if (send) { m._mstatus = 'بانتظار مراجعة رئيس القطاع'; m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id; }
       else if (!m._mrev && m._mstatus !== 'معتمد') m._mstatus = 'مسودة';
-      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : 'تحديث بيانات الملخص المالي', sent: !!send, by: cu.name });
+      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (create ? 'إنشاء ملخص مالي لسنة ' + year : 'تحديث بيانات الملخص المالي'), sent: !!send, by: cu.name });
     });
-    showToast(send ? 'أُرسل الملخص المالي لرئيس القطاع للمراجعة' : 'حُفظت بيانات الملخص المالي');
+    showToast(send ? 'أُرسل الملخص المالي لرئيس القطاع للمراجعة' : (create ? 'أُنشئ ملخص مالي لسنة ' + year : 'حُفظت بيانات الملخص المالي'));
     onClose();
   };
 
@@ -207,19 +227,20 @@ function FinForm({ onClose }: { onClose: () => void }) {
     </button>
   );
   const th: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: '#7d867f', textAlign: 'start', padding: '4px 2px' };
+  const setAgeItem = (bi: number, ii: number, k: keyof AgingBucket['items'][number], v: string) =>
+    setAging((prev) => prev.map((b, i) => i !== bi ? b : { ...b, items: b.items.map((it, j) => j !== ii ? it : { ...it, [k]: k === 'amount' ? num(v) : v }) }));
 
   return (
-    <Modal open onClose={onClose} width={820}>
-      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>تعديل بيانات الملخص التنفيذي المالي</h3>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>تُحفظ في نفس السجل الذي يراه رئيس القطاع في مركز التقارير.</p>
+    <Modal open onClose={onClose} width={840}>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{create ? 'إنشاء ملخص مالي جديد — سنة ' + year : 'تعديل بيانات الملخص التنفيذي المالي — ' + year}</h3>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{create ? 'يبدأ بنسخة من آخر سنة — عدّل الأرقام ثم احفظ أو أرسل للمراجعة.' : 'تُحفظ في نفس السجل الذي يراه رئيس القطاع في مركز التقارير.'}</p>
 
-      {/* template: download filled with current data / upload updated */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
-        <button type="button" onClick={() => triggerDownload(buildFinDocx({ ...fm, period: f.period }, projects, ents as never), 'Financial_Summary_Template.docx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+        <button type="button" onClick={() => triggerDownload(buildFinDocx({ ...source, period: f.period }, projects, ents as never), 'Financial_Summary_Template.docx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
-          تحميل قالب Word ببيانات الملخص الحالية
+          تحميل قالب Word
         </button>
-        <button type="button" onClick={() => triggerDownload(buildFinXlsx({ ...fm, period: f.period }, projects, ents as never), 'Financial_Summary_Template.xlsx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+        <button type="button" onClick={() => triggerDownload(buildFinXlsx({ ...source, period: f.period }, projects, ents as never), 'Financial_Summary_Template.xlsx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
           تحميل قالب Excel
         </button>
@@ -290,6 +311,40 @@ function FinForm({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      {secHead('أعمار الذمم الدائنة')}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {aging.length === 0 && <div style={{ fontSize: 12, color: '#9aa39b', background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 10, padding: '10px 13px' }}>لا توجد فئات أعمار — أضف فئة لتسجيل الذمم المتأخرة.</div>}
+        {aging.map((b, bi) => (
+          <div key={bi} style={{ border: '1px solid #f0e6dd', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ background: '#faf3ec', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 13px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 800, color: '#8a4b1e' }}>فئة {b.bucket} يوم</span>
+              <input value={b.risk} onChange={(e) => setAging((prev) => prev.map((x, j) => (j === bi ? { ...x, risk: e.target.value } : x)))} placeholder="مستوى الخطورة" style={{ ...inputStyle, width: 140, padding: '6px 10px' }} />
+              <button type="button" onClick={() => setAging((prev) => prev.filter((_, j) => j !== bi))} style={{ ...rowBtn, marginInlineStart: 'auto' }}>حذف الفئة ✕</button>
+            </div>
+            <div style={{ padding: '10px 12px', overflowX: 'auto' }}>
+              <div style={{ minWidth: 760, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 90px 1fr 120px 1fr 1fr 26px', gap: 7 }}>
+                  <span style={th}>المورّد</span><span style={th}>الجهة</span><span style={th}>العقد</span><span style={th}>المبلغ</span><span style={th}>الحالة</span><span style={th}>ملاحظات</span><span />
+                </div>
+                {b.items.map((it, ii) => (
+                  <div key={ii} style={{ display: 'grid', gridTemplateColumns: '1.4fr 90px 1fr 120px 1fr 1fr 26px', gap: 7, alignItems: 'center' }}>
+                    <input value={it.supplier} onChange={(e) => setAgeItem(bi, ii, 'supplier', e.target.value)} style={inputStyle} />
+                    <input value={it.entity} onChange={(e) => setAgeItem(bi, ii, 'entity', e.target.value)} style={inputStyle} />
+                    <input value={it.contract} onChange={(e) => setAgeItem(bi, ii, 'contract', e.target.value)} style={inputStyle} />
+                    <input value={String(it.amount || '')} onChange={(e) => setAgeItem(bi, ii, 'amount', e.target.value)} style={inputStyle} />
+                    <input value={it.status} onChange={(e) => setAgeItem(bi, ii, 'status', e.target.value)} style={inputStyle} />
+                    <input value={it.notes} onChange={(e) => setAgeItem(bi, ii, 'notes', e.target.value)} style={inputStyle} />
+                    <button type="button" onClick={() => setAging((prev) => prev.map((x, j) => j !== bi ? x : { ...x, items: x.items.filter((_, k) => k !== ii) }))} style={rowBtn}>✕</button>
+                  </div>
+                ))}
+                {addRowBtn('إضافة بند', () => setAging((prev) => prev.map((x, j) => j !== bi ? x : { ...x, items: [...x.items, { supplier: '', num: '', entity: '', contract: '', amount: 0, status: '', notes: '' }] })))}
+              </div>
+            </div>
+          </div>
+        ))}
+        {addRowBtn('إضافة فئة أعمار', () => setAging((prev) => [...prev, { bucket: ['0-30', '31-60', '61-90', '91-180', '181+'][prev.length] || 'جديد', risk: 'منخفض', items: [] }]))}
+      </div>
+
       <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
         <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ كمسودة</button>
@@ -303,10 +358,14 @@ function FinForm({ onClose }: { onClose: () => void }) {
 export function FinanceWorkspace() {
   const { tr, dl } = useI18n();
   const cu = useCurrentUser();
-  const fm = useStore((s) => s.data.finModel);
+  const finModels = useStore((s) => s.data.finModels);
   const manage = cu.type !== 'chair' && (can(cu, 'finReports', 'add') || can(cu, 'finReports', 'edit'));
-  const [formOpen, setFormOpen] = useState(false);
-  const meta = fm as FinModel & { _mstatus?: string; _mret?: string };
+  const years = financeYears(finModels);
+  const [year, setYear] = useState(defaultFinYear(finModels));
+  const [form, setForm] = useState<{ year: string; create: boolean } | null>(null);
+
+  const fm = finForYear(finModels, year);
+  const meta = (fm || {}) as FinModel & { _mstatus?: string; _mret?: string };
   const wf = meta._mret ? 'أعيد للتعديل' : (meta._mstatus || 'محدّث');
   const [wb, wfg] = WSTC[wf] || ['#eceeeb', '#6d7973'];
 
@@ -316,29 +375,34 @@ export function FinanceWorkspace() {
         <div style={{ minWidth: 0, flex: '1 1 260px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: '#17211c' }}>الملخص التنفيذي المالي</h1>
-            <Badge bg={wb} fg={wfg} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(wf)}</Badge>
+            {fm && <Badge bg={wb} fg={wfg} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(wf)}</Badge>}
           </div>
           <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#7d867f' }}>
-            سجل مشترك واحد يظهر لرئيس القطاع فوراً{fm.lastUpdate ? ' · آخر تحديث: ' + dl(fm.lastUpdate) + (fm.updatedBy ? ' بواسطة ' + tr(fm.updatedBy) : '') : ''}
+            سجل مشترك واحد لكل سنة يظهر لرئيس القطاع فوراً{fm?.lastUpdate ? ' · آخر تحديث: ' + dl(fm.lastUpdate) + (fm.updatedBy ? ' بواسطة ' + tr(fm.updatedBy) : '') : ''}
           </p>
         </div>
         {manage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
-            <button onClick={() => setFormOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-              تعديل بيانات الملخص
-            </button>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {fm
+              ? <button onClick={() => setForm({ year, create: false })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                  تعديل بيانات الملخص
+                </button>
+              : <button onClick={() => setForm({ year, create: true })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                  إنشاء ملخص لسنة {year}
+                </button>}
           </div>
         )}
       </div>
-      {!!(meta._mret && meta._mret.trim()) && (
+      {!!(fm && meta._mret && meta._mret.trim()) && (
         <div style={{ background: '#fdf3f2', border: '1.5px solid #e7b8b3', borderRadius: 11, padding: '11px 13px', marginBottom: 14 }}>
           <div style={{ fontSize: 11, color: '#b0433b', fontWeight: 800, marginBottom: 3 }}>أُعيد للتعديل من رئيس القطاع — سبب الإرجاع</div>
           <div style={{ fontSize: 12.5, color: '#9a3a2b', lineHeight: 1.7 }}>{meta._mret}</div>
         </div>
       )}
-      <FinancialSummary />
-      {formOpen && <FinForm onClose={() => setFormOpen(false)} />}
+      <FinancialSummary year={year} onYearChange={setYear} />
+      {form && <FinForm year={form.year} create={form.create} onClose={() => setForm(null)} />}
     </div>
   );
 }

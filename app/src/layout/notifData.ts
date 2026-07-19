@@ -35,7 +35,7 @@ const TARGET: Record<string, (id: string) => { page: Page; params?: NavParams }>
   retReports: () => ({ page: 'reportDetail' }),
   mtasks: (id) => ({ page: 'mtasks', params: { selMtask: id } }),
   auditReps: () => ({ page: 'auditDetail' }),
-  finModel: () => ({ page: 'finDetail' }),
+  finModels: () => ({ page: 'finDetail' }),
 };
 
 export const KIND_LABELS: { k: NotifKind; ar: string; en: string }[] = [

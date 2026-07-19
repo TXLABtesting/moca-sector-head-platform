@@ -50,8 +50,8 @@ const COLLS: Record<string, MColl> = {
     load: (r) => ({ title: r.title, entity: r.unit, docType: r.period, respOwner: r.resp, fstatus: r.status, note: r.notes }),
   },
   finReports: {
-    key: 'finModel', get: (d) => [d.finModel], title: (r) => 'الملخص التنفيذي المالي — ' + (r.period || ''), status: (r) => r._mstatus || 'محدّث', setStatus: (r, s) => { r._mstatus = s; },
-    make: (f, me) => ({ id: 'fin1', period: f.title || '', updatedBy: me }),
+    key: 'finModels', get: (d) => d.finModels, title: (r) => 'الملخص التنفيذي المالي — ' + (r.year || r.period || ''), status: (r) => r._mstatus || 'محدّث', setStatus: (r, s) => { r._mstatus = s; },
+    make: (f, me) => ({ id: 'fin' + Math.floor(Math.random() * 1e9), year: f.title || '', period: f.title || '', updatedBy: me, budget: 0, used: 0, remain: 0, commit: 0, commitPaid: 0, commitDue: 0, opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 }, bigProjects: [], entities: [], related: [], relTotals: { allPeriods: 0, settling: 0, prior: 0, current: 0 }, aging: [] }),
     load: (r) => ({ title: r.period, fstatus: r._mstatus }),
   },
   reportLog: {
@@ -102,7 +102,7 @@ export const OWNER_OF: Record<string, (r: any) => string> = {
   mtasks: (r) => r.owner || '',
   retReports: (r) => r.updatedBy || '',
   auditReps: (r) => r.resp || r.updatedBy || '',
-  finModel: () => 'هاجر هلول',
+  finModels: () => 'هاجر هلول',
 };
 
 /** Match a record's owner string against the current member (tolerant of spelling
