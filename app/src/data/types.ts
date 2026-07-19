@@ -258,6 +258,9 @@ export interface RegReport {
   mar: string;
   apr: string;
   may: string;
+  // Receipt status per year, keyed by frequency-based period (e.g. m1..m12, q1..q4, h1..h2, y1, b1..b26).
+  // Falls back to the legacy jan..may fields for year 2026 when a period is absent.
+  periods?: Record<string, Record<string, string>>;
   lastDate: string;
   approval: string;
   notes: string;

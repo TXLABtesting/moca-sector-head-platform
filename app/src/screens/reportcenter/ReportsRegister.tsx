@@ -6,10 +6,8 @@ import { Dropdown } from '../../components/Dropdown';
 import { Drawer } from '../../components/ui';
 import type { RegReport } from '../../data/types';
 import { REGST } from './shared';
+import { LEGACY_YEAR, periodsForFreq, periodStatus, currentStatus, registerYears } from './reportPeriods';
 
-const MONTHS: [string, keyof RegReport, string][] = [
-  ['jan', 'jan', 'يناير'], ['feb', 'feb', 'فبراير'], ['mar', 'mar', 'مارس'], ['apr', 'apr', 'أبريل'], ['may', 'may', 'مايو'],
-];
 const PAGE = 15;
 const regTh: CSSProperties = { padding: '12px 14px', fontSize: 11, color: '#7d867f', fontWeight: 700, textAlign: 'start' };
 
@@ -25,20 +23,20 @@ export function ReportsRegister() {
   const [type, setType] = useState('');
   const [freq, setFreq] = useState('');
   const [resp, setResp] = useState('');
-  const [month, setMonth] = useState('');
   const [status, setStatus] = useState('');
   const [late, setLate] = useState(false);
-  const [view, setView] = useState<'table' | 'monthly'>('table');
+  const [year, setYear] = useState(LEGACY_YEAR);
+  const [view, setView] = useState<'table' | 'periods'>('table');
   const [sel, setSel] = useState<string | null>(null);
   const [limit, setLimit] = useState(PAGE);
 
-  const regCur = (r: RegReport) => (r.may && r.may !== '—') ? r.may : (r.apr && r.apr !== '—' ? r.apr : (r.mar && r.mar !== '—' ? r.mar : r.feb));
-  const regDisp = (r: RegReport) => month ? (r[month as keyof RegReport] as string) : regCur(r);
+  const years = registerYears(RG);
+  const regCur = (r: RegReport) => currentStatus(r, year);
   const isReceived = (s: string) => s === 'معتمد' || s === 'تم التسليم';
   const regNeedFollow = (s: string) => s === 'لم يستلم' || s === 'بانتظار الاعتماد' || s === 'قيد المراجعة';
   const cnt = (f: (r: RegReport) => boolean) => RG.filter(f).length;
 
-  // KPIs
+  // KPIs (for the selected year)
   type KpiKind = 'all' | 'late' | 'freqShahri' | string;
   const kpis: { label: string; value: number; accent: string; fk: KpiKind }[] = [
     { label: rl('إجمالي التقارير', 'Total reports'), value: RG.length, accent: '#1f4a37', fk: 'all' },
@@ -47,7 +45,7 @@ export function ReportsRegister() {
     { label: rl('بانتظار الاعتماد', 'Pending approval'), value: cnt((r) => regCur(r) === 'بانتظار الاعتماد'), accent: '#a9791f', fk: 'بانتظار الاعتماد' },
     { label: rl('قيد المراجعة', 'Under review'), value: cnt((r) => regCur(r) === 'قيد المراجعة'), accent: '#3a6ea5', fk: 'قيد المراجعة' },
     { label: rl('متأخرة', 'Overdue'), value: cnt((r) => regCur(r) === 'لم يستلم'), accent: '#9a2f2a', fk: 'late' },
-    { label: rl('مستحقة هذا الشهر', 'Due this month'), value: cnt((r) => r.freq === 'شهري' && !isReceived(regCur(r)) && regCur(r) !== 'مدمج' && regCur(r) !== 'غير مطلوب'), accent: '#7a4d94', fk: 'freqShahri' },
+    { label: rl('مستحقة شهرياً', 'Monthly due'), value: cnt((r) => r.freq === 'شهري' && !isReceived(regCur(r)) && regCur(r) !== 'مدمج' && regCur(r) !== 'غير مطلوب'), accent: '#7a4d94', fk: 'freqShahri' },
   ];
   const kpiActive = (fk: KpiKind) => fk === 'all' ? (!status && !late && !freq) : fk === 'late' ? late : fk === 'freqShahri' ? freq === 'شهري' : status === fk;
   const clearBasics = () => { setDept(''); setType(''); setResp(''); setSearch(''); };
@@ -61,19 +59,19 @@ export function ReportsRegister() {
 
   // decorate
   const decReg = (r: RegReport) => {
-    const cur = regDisp(r); const [cb, cf] = REGST[cur] || REGST['—'];
-    const months = MONTHS.map(([key, field, arLabel]) => {
-      const s = r[field] as string; const [b, f] = REGST[s] || REGST['—'];
-      return { key, label: tr(arLabel), short: s === '—' ? '—' : tr(s), bg: b, fg: f };
+    const cur = regCur(r); const [cb, cf] = REGST[cur] || REGST['—'];
+    const periods = periodsForFreq(r.freq).map((p) => {
+      const s = periodStatus(r, year, p.key); const [b, f] = REGST[s] || REGST['—'];
+      return { key: p.key, label: tr(p.label), short: s === '—' ? '—' : tr(s), bg: b, fg: f };
     });
     return { ...r, title: tr(r.title), type: tr(r.type), freq: tr(r.freq), resp: tr(r.resp), dept: tr(r.dept), due: tr(r.due),
       notes: r.notes ? tr(r.notes) : '—', approval: r.approval ? tr(r.approval) : '—', hasApproval: !!r.approval,
-      curLabel: cur === '—' ? '—' : tr(cur), curBg: cb, curFg: cf, months, lastDate: r.lastDate ? dl(r.lastDate) : '—', needsFollow: regNeedFollow(cur) };
+      curLabel: cur === '—' ? '—' : tr(cur), curBg: cb, curFg: cf, periods, lastDate: r.lastDate ? dl(r.lastDate) : '—', needsFollow: regNeedFollow(cur) };
   };
 
   const rq = search.trim();
   const filtered = RG.filter((r) => {
-    const cur = regDisp(r);
+    const cur = regCur(r);
     if (dept && r.dept !== dept) return false;
     if (type && r.type !== type) return false;
     if (freq && r.freq !== freq) return false;
@@ -88,10 +86,21 @@ export function ReportsRegister() {
   const needFollow = RG.filter((r) => regNeedFollow(regCur(r))).map(decReg);
   const selDetail = sel ? decReg(RG.find((r) => r.id === sel)!) : null;
 
-  // actions
+  // actions — mark the latest tracked period of the selected year
+  const latestKey = (r: RegReport) => {
+    const ps = periodsForFreq(r.freq);
+    if (!ps.length) return null;
+    for (let i = ps.length - 1; i >= 0; i--) if (periodStatus(r, year, ps[i].key) !== '—') return ps[i].key;
+    return ps[0].key;
+  };
+  const setLatest = (id: string, st: string) => mutate((d) => {
+    const r = d.regReports.find((x) => x.id === id); if (!r) return;
+    const k = latestKey(r); if (!k) return;
+    r.periods = r.periods || {}; r.periods[year] = r.periods[year] || {}; r.periods[year][k] = st;
+  });
   const reqUpdate = () => showToast(rl('تم إرسال طلب تحديث إلى المسؤول عن التقرير', 'Update request sent'));
-  const markReceived = (id: string) => { mutate((d) => { const r = d.regReports.find((x) => x.id === id); if (r) r.may = 'تم التسليم'; }); showToast(rl('تم وضع علامة: تم الاستلام', 'Marked received')); };
-  const markApproved = (id: string) => { mutate((d) => { const r = d.regReports.find((x) => x.id === id); if (r) r.may = 'معتمد'; }); showToast('تم وضع علامة: معتمد'); };
+  const markReceived = (id: string) => { setLatest(id, 'تم التسليم'); showToast(rl('تم وضع علامة: تم الاستلام', 'Marked received')); };
+  const markApproved = (id: string) => { setLatest(id, 'معتمد'); showToast('تم وضع علامة: معتمد'); };
   const addDirective = (id: string) => { const txt = window.prompt && window.prompt('اكتب التوجيه:'); if (txt) { mutate((d) => { const r = d.regReports.find((x) => x.id === id); if (r) r.notes = (r.notes ? r.notes + ' — ' : '') + txt; }); showToast('تمت إضافة التوجيه'); } };
 
   const uniq = (k: keyof RegReport) => [...new Set(RG.map((r) => r[k]).filter(Boolean) as string[])];
@@ -99,7 +108,6 @@ export function ReportsRegister() {
   const typeOpts = [{ v: '', label: rl('كل الأنواع', 'All types') }, ...uniq('type').map((d) => ({ v: d, label: tr(d) }))];
   const freqOpts = [{ v: '', label: rl('كل الدوريات', 'All frequencies') }, ...uniq('freq').map((d) => ({ v: d, label: tr(d) }))];
   const respOpts = [{ v: '', label: rl('كل المسؤولين', 'All owners') }, ...uniq('resp').map((d) => ({ v: d, label: tr(d) }))];
-  const monthOpts = [{ v: '', label: rl('الحالة الحالية', 'Current status') }, { v: 'jan', label: rl('يناير', 'Jan') }, { v: 'feb', label: rl('فبراير', 'Feb') }, { v: 'mar', label: rl('مارس', 'Mar') }, { v: 'apr', label: rl('أبريل', 'Apr') }, { v: 'may', label: rl('مايو', 'May') }];
   const statusOpts = [{ v: '', label: t('allStatuses') }, ...['معتمد', 'تم التسليم', 'بانتظار الاعتماد', 'لم يستلم', 'قيد المراجعة', 'مدمج', 'غير مطلوب'].map((s) => ({ v: s, label: tr(s) }))];
   const ddBg = '#f9faf8';
 
@@ -113,6 +121,13 @@ export function ReportsRegister() {
         <div style={{ flex: 1, minWidth: 200 }}>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t('reg_title')}</h2>
           <div style={{ fontSize: 12.5, color: '#bcd2c3', marginTop: 3 }}>{t('reg_intro')}</div>
+        </div>
+        {/* year filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', background: 'rgba(255,255,255,.08)', borderRadius: 12, padding: 5 }}>
+          {years.map((y) => {
+            const on = y === year;
+            return <button key={y} onClick={() => { setYear(y); setLimit(PAGE); }} style={{ borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: on ? '#e9c877' : 'transparent', color: on ? '#132b20' : '#cfe0d5' }}>{y}</button>;
+          })}
         </div>
       </div>
 
@@ -162,13 +177,12 @@ export function ReportsRegister() {
           <Dropdown value={type} options={typeOpts} onChange={(v) => { setType(v); setLimit(PAGE); }} opt={{ size: 'sm', minWidth: '112px', bg: ddBg }} />
           <Dropdown value={freq} options={freqOpts} onChange={(v) => { setFreq(v); setLimit(PAGE); }} opt={{ size: 'sm', minWidth: '110px', bg: ddBg }} />
           <Dropdown value={resp} options={respOpts} onChange={(v) => { setResp(v); setLimit(PAGE); }} opt={{ size: 'sm', minWidth: '120px', bg: ddBg }} />
-          <Dropdown value={month} options={monthOpts} onChange={(v) => { setMonth(v); setLimit(PAGE); }} opt={{ size: 'sm', minWidth: '104px', bg: ddBg }} />
           <Dropdown value={status} options={statusOpts} onChange={(v) => { setStatus(v); setLimit(PAGE); }} opt={{ size: 'sm', minWidth: '116px', bg: ddBg }} />
           <button onClick={() => { setLate(!late); setLimit(PAGE); }} style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: '1px solid ' + (late ? '#b0433b' : '#e2e6df'), background: late ? '#faf0ef' : '#fff', color: late ? '#b0433b' : '#7d867f' }}>{t('reg_late')}</button>
           <div style={{ flex: 1 }}></div>
           <div style={{ display: 'flex', gap: 7 }}>
             <button onClick={() => setView('table')} style={viewBtn(view === 'table')}>{t('reg_tableView')}</button>
-            <button onClick={() => setView('monthly')} style={viewBtn(view === 'monthly')}>{t('reg_monthlyView')}</button>
+            <button onClick={() => setView('periods')} style={viewBtn(view === 'periods')}>{rl('حسب الفترات', 'By period')}</button>
           </div>
         </div>
       </div>
@@ -194,7 +208,7 @@ export function ReportsRegister() {
           <div className="desk-only" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
               <thead><tr style={{ background: '#f6f8f4' }}>
-                <th style={regTh}>{t('reg_report')}</th><th style={regTh}>{t('reg_type')}</th><th style={regTh}>{t('reg_freq')}</th><th style={regTh}>{t('reg_resp')}</th><th style={regTh}>{t('reg_dept')}</th><th style={regTh}>{t('reg_status')}</th><th style={regTh}>{t('reg_lastDate')}</th><th style={regTh}>{t('reg_action')}</th>
+                <th style={regTh}>{t('reg_report')}</th><th style={regTh}>{t('reg_type')}</th><th style={regTh}>{t('reg_freq')}</th><th style={regTh}>{t('reg_resp')}</th><th style={regTh}>{t('reg_dept')}</th><th style={regTh}>{t('reg_status')} ({year})</th><th style={regTh}>{t('reg_lastDate')}</th><th style={regTh}>{t('reg_action')}</th>
               </tr></thead>
               <tbody>
                 {rows.map((r) => (
@@ -221,31 +235,30 @@ export function ReportsRegister() {
         </div>
       )}
 
-      {/* monthly view */}
-      {view === 'monthly' && (
+      {/* by-period view: each report shows its own frequency's periods for the selected year */}
+      {view === 'periods' && (
         <div style={{ background: '#fff', borderRadius: 18, boxShadow: '0 1px 2px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.22)', overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
-              <thead><tr style={{ background: '#f6f8f4' }}>
-                <th style={{ ...regTh, position: 'sticky', insetInlineStart: 0, background: '#f6f8f4' }}>{t('reg_report')}</th>
-                <th style={{ padding: '12px 10px', fontSize: 11, color: '#7d867f', fontWeight: 700 }}>يناير</th>
-                <th style={{ padding: '12px 10px', fontSize: 11, color: '#7d867f', fontWeight: 700 }}>فبراير</th>
-                <th style={{ padding: '12px 10px', fontSize: 11, color: '#7d867f', fontWeight: 700 }}>مارس</th>
-                <th style={{ padding: '12px 10px', fontSize: 11, color: '#7d867f', fontWeight: 700 }}>أبريل</th>
-                <th style={{ padding: '12px 10px', fontSize: 11, color: '#7d867f', fontWeight: 700 }}>مايو</th>
-              </tr></thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} onClick={() => setSel(r.id)} style={{ borderTop: '1px solid #f2f4f0', cursor: 'pointer' }}>
-                    <td style={{ padding: '11px 14px', fontSize: 11.5, fontWeight: 600, color: '#17211c', maxWidth: 300, background: '#fff' }}>{r.title}</td>
-                    {r.months.map((m) => (
-                      <td key={m.key} style={{ padding: '9px 8px', textAlign: 'center' }}><span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 700, color: m.fg, background: m.bg, borderRadius: 14, padding: '3px 8px', whiteSpace: 'nowrap' }}>{m.short}</span></td>
+          {rows.map((r) => (
+            <div key={r.id} onClick={() => setSel(r.id)} style={{ borderTop: '1px solid #f2f4f0', padding: '13px 16px', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#17211c' }}>{r.title}</span>
+                <span style={{ fontSize: 10.5, color: '#9aa39b' }}>{r.freq} · {r.dept}</span>
+                <span style={{ marginInlineStart: 'auto', fontSize: 10, fontWeight: 700, color: r.curFg, background: r.curBg, borderRadius: 20, padding: '3px 10px' }}>{r.curLabel}</span>
+              </div>
+              {r.periods.length === 0
+                ? <span style={{ fontSize: 11, color: '#b8bfb6' }}>{rl('حسب الحاجة — لا فترات ثابتة', 'On demand — no fixed periods')}</span>
+                : (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {r.periods.map((m) => (
+                      <span key={m.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, color: m.fg, background: m.bg, borderRadius: 8, padding: '4px 9px' }}>
+                        <span style={{ color: '#9aa39b', fontWeight: 600 }}>{m.label}</span>{m.short}
+                      </span>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  </div>
+                )}
+            </div>
+          ))}
+          {rowsAll.length === 0 && <div style={{ padding: 36, textAlign: 'center', color: '#9aa39b', fontSize: 13 }}>{t('noResults')}</div>}
           {limit < rowsAll.length && (
             <div style={{ padding: '14px', textAlign: 'center', borderTop: '1px solid #f2f4f0' }}>
               <button onClick={() => setLimit(limit + PAGE)} style={{ background: '#f0f2ee', color: '#1f4a37', border: '1px solid #e2e6df', borderRadius: 10, padding: '9px 20px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{rl('عرض المزيد', 'Show more')} ({rowsAll.length - limit})</button>
@@ -264,7 +277,7 @@ export function ReportsRegister() {
                 <button onClick={() => setSel(null)} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none', borderRadius: 9, width: 34, height: 34, cursor: 'pointer', fontSize: 18 }}>✕</button>
               </div>
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.5 }}>{selDetail.title}</h2>
-              <div style={{ fontSize: 12, color: '#bcd2c3', marginTop: 6 }}>{selDetail.type} · {selDetail.freq}</div>
+              <div style={{ fontSize: 12, color: '#bcd2c3', marginTop: 6 }}>{selDetail.type} · {selDetail.freq} · {year}</div>
             </div>
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -282,12 +295,16 @@ export function ReportsRegister() {
                 {selDetail.hasApproval && <Row label={t('reg_approval')} value={selDetail.approval} valueColor="#7a4d94" />}
               </div>
               <div style={{ background: '#fff', borderRadius: 15, padding: '16px 18px' }}>
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: '#17211c' }}>{t('reg_deliveryLog')}</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  {selDetail.months.map((m) => (
-                    <div key={m.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: 12, color: '#7d867f' }}>{m.label}</span><span style={{ fontSize: 10.5, fontWeight: 700, color: m.fg, background: m.bg, borderRadius: 20, padding: '3px 11px' }}>{m.short}</span></div>
-                  ))}
-                </div>
+                <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: '#17211c' }}>{rl('سجل الاستلام', 'Receipt log')} — {year}</h4>
+                {selDetail.periods.length === 0
+                  ? <div style={{ fontSize: 12, color: '#7d867f' }}>{rl('حسب الحاجة — لا فترات ثابتة', 'On demand — no fixed periods')}</div>
+                  : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                      {selDetail.periods.map((m) => (
+                        <div key={m.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: 12, color: '#7d867f' }}>{m.label}</span><span style={{ fontSize: 10.5, fontWeight: 700, color: m.fg, background: m.bg, borderRadius: 20, padding: '3px 11px' }}>{m.short}</span></div>
+                      ))}
+                    </div>
+                  )}
               </div>
               <div style={{ background: '#fff', borderRadius: 15, padding: '16px 18px' }}>
                 <h4 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 800, color: '#17211c' }}>{t('reg_notes')}</h4>

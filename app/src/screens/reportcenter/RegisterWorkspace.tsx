@@ -11,15 +11,15 @@ import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { triggerDownload } from '../../shared/fileGen';
 import { REGST } from './shared';
+import { REG_FREQS, LEGACY_YEAR, periodsForFreq, periodStatus, currentStatus, registerYears } from './reportPeriods';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup, excelSerialToDate } from './templateIO';
 import type { RegReport } from '../../data/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const REG_STATUSES = ['—', 'معتمد', 'تم التسليم', 'بانتظار الاعتماد', 'لم يستلم', 'قيد المراجعة', 'مدمج', 'غير مطلوب'];
-const FREQS = ['شهري', 'ربع سنوي', 'نصف سنوي', 'سنوي', 'حسب الحاجة'];
-const MONTH_FIELDS: { k: 'jan' | 'feb' | 'mar' | 'apr' | 'may'; ar: string }[] = [
-  { k: 'jan', ar: 'يناير' }, { k: 'feb', ar: 'فبراير' }, { k: 'mar', ar: 'مارس' }, { k: 'apr', ar: 'أبريل' }, { k: 'may', ar: 'مايو' },
+const MONTH_FIELDS: { k: 'jan' | 'feb' | 'mar' | 'apr' | 'may'; pk: string; ar: string }[] = [
+  { k: 'jan', pk: 'm1', ar: 'يناير' }, { k: 'feb', pk: 'm2', ar: 'فبراير' }, { k: 'mar', pk: 'm3', ar: 'مارس' }, { k: 'apr', pk: 'm4', ar: 'أبريل' }, { k: 'may', pk: 'm5', ar: 'مايو' },
 ];
 const WSTC: Record<string, [string, string]> = {
   'مسودة': ['#eceeeb', '#6d7973'],
@@ -61,7 +61,7 @@ const dlRegTemplateXlsx = () => triggerDownload(makeXlsx(TPL_ROWS, 'قالب ا�
 
 interface RegParsed {
   title?: string; type?: string; dept?: string; resp?: string; freq?: string; due?: string;
-  months?: Partial<Record<'jan' | 'feb' | 'mar' | 'apr' | 'may', string>>; notes?: string;
+  months?: Record<string, string>; notes?: string;
   missing: string[];
 }
 function parseRegFile(tables: string[][][]): RegParsed {
@@ -71,13 +71,13 @@ function parseRegFile(tables: string[][][]): RegParsed {
   found.dept = kvLookup(tables, /^الإدارة/);
   found.resp = kvLookup(tables, /^المسؤول/);
   const fr = kvLookup(tables, /^الدورية/);
-  if (fr) { const f = FREQS.find((x) => fr.includes(x)); if (f) found.freq = f; }
+  if (fr) { const f = REG_FREQS.find((x) => fr.includes(x)); if (f) found.freq = f; }
   const due = kvLookup(tables, /^موعد الاستحقاق/);
   if (due) found.due = excelSerialToDate(due);
-  const months: RegParsed['months'] = {};
-  MONTH_FIELDS.forEach(({ k, ar }) => {
+  const months: Record<string, string> = {};
+  MONTH_FIELDS.forEach(({ pk, ar }) => {
     const v = kvLookup(tables, new RegExp('^حالة ' + ar));
-    if (v) { const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s)) || (v.trim() === '—' ? '—' : undefined); if (st) months[k] = st; }
+    if (v) { const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s)) || (v.trim() === '—' ? '—' : undefined); if (st) months[pk] = st; }
   });
   if (Object.keys(months).length) found.months = months;
   found.notes = kvLookup(tables, /^ملاحظات/);
@@ -91,7 +91,7 @@ function parseRegFile(tables: string[][][]): RegParsed {
 }
 
 /* ---------------- add / edit form ---------------- */
-function RegForm({ regId, onClose }: { regId: string | null; onClose: () => void }) {
+function RegForm({ regId, initYear, onClose }: { regId: string | null; initYear: string; onClose: () => void }) {
   const { tr } = useI18n();
   const cu = useCurrentUser();
   const data = useStore((s) => s.data);
@@ -102,14 +102,32 @@ function RegForm({ regId, onClose }: { regId: string | null; onClose: () => void
   const existing = regId ? data.regReports.find((r) => r.id === regId) : null;
   const pool = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]));
   const depts = [...new Set(data.regReports.map((r) => r.dept).filter(Boolean))];
+  const years = registerYears(data.regReports);
+  const [fyear, setFyear] = useState(initYear);
   const [f, setF] = useState<Record<string, string>>(() => existing
-    ? { title: existing.title, type: existing.type, dept: existing.dept, resp: existing.resp, freq: existing.freq, due: existing.due, lastDate: existing.lastDate || '', notes: existing.notes || '', jan: existing.jan, feb: existing.feb, mar: existing.mar, apr: existing.apr, may: existing.may }
-    : { title: '', type: 'الأداء المالي', dept: depts[0] || '—', resp: cu.name, freq: 'شهري', due: '7 من كل شهر', lastDate: '', notes: '', jan: '—', feb: '—', mar: '—', apr: '—', may: '—' });
+    ? { title: existing.title, type: existing.type, dept: existing.dept, resp: existing.resp, freq: existing.freq, due: existing.due, lastDate: existing.lastDate || '', notes: existing.notes || '' }
+    : { title: '', type: 'الأداء المالي', dept: depts[0] || '—', resp: cu.name, freq: 'شهري', due: '7 من كل شهر', lastDate: '', notes: '' });
+
+  // receipt status per period key, for the year being edited
+  const loadPstat = (freq: string, yr: string): Record<string, string> => {
+    const out: Record<string, string> = {};
+    periodsForFreq(freq).forEach((p) => { out[p.key] = existing ? periodStatus(existing, yr, p.key) : '—'; });
+    return out;
+  };
+  const [pstat, setPstat] = useState<Record<string, string>>(() => loadPstat(existing?.freq || 'شهري', initYear));
+
+  const changeFreq = (freq: string) => {
+    setF((p) => ({ ...p, freq }));
+    setPstat((prev) => { const np: Record<string, string> = {}; periodsForFreq(freq).forEach((p) => { np[p.key] = prev[p.key] ?? '—'; }); return np; });
+  };
+  const changeYear = (yr: string) => { setFyear(yr); setPstat(loadPstat(f.freq, yr)); };
+
   const [atts, setAtts] = useState<string[]>(() => existing?.attachments ? [...existing.attachments] : []);
   const [missing, setMissing] = useState<string[]>([]);
   const [parsedFrom, setParsedFrom] = useState('');
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
   const deptOpts = [...new Set([...depts, (f.dept || '').trim()])].filter(Boolean);
+  const periods = periodsForFreq(f.freq);
 
   const onUpload = async (file: File) => {
     try {
@@ -121,8 +139,9 @@ function RegForm({ regId, onClose }: { regId: string | null; onClose: () => void
         title: parsed.title ?? p.title, type: parsed.type ?? p.type, dept: parsed.dept ?? p.dept,
         resp: parsed.resp ?? p.resp, freq: parsed.freq ?? p.freq, due: parsed.due ?? p.due,
         notes: parsed.notes ?? p.notes,
-        ...(parsed.months || {}),
       }));
+      if (parsed.freq) changeFreq(parsed.freq);
+      if (parsed.months) setPstat((prev) => ({ ...prev, ...parsed.months }));
       setMissing(parsed.missing);
       setParsedFrom(file.name);
       setAtts((p) => (p.includes(file.name) ? p : [...p, file.name]));
@@ -139,14 +158,15 @@ function RegForm({ regId, onClose }: { regId: string | null; onClose: () => void
       let r: RegReport & { _mstatus?: string; _mowner?: string; _mrev?: boolean; _mret?: string; _mlog?: unknown[] };
       if (existing) r = d.regReports.find((x) => x.id === regId)! as never;
       else {
-        r = { id: 'rg' + Math.floor(Math.random() * 1e9), n: String(d.regReports.length + 1), title: '', type: '', due: '', freq: '', resp: '', dept: '', jan: '—', feb: '—', mar: '—', apr: '—', may: '—', lastDate: '', approval: '', notes: '' };
+        r = { id: 'rg' + Math.floor(Math.random() * 1e9), n: String(d.regReports.length + 1), title: '', type: '', due: '', freq: '', resp: '', dept: '', jan: '—', feb: '—', mar: '—', apr: '—', may: '—', periods: {}, lastDate: '', approval: '', notes: '' };
         d.regReports.unshift(r);
         r._mowner = cu.id;
       }
       if (!r) return;
       r.title = f.title.trim(); r.type = (f.type || '').trim(); r.dept = (f.dept || '').trim();
       r.resp = f.resp || cu.name; r.freq = f.freq; r.due = (f.due || '').trim();
-      r.jan = f.jan; r.feb = f.feb; r.mar = f.mar; r.apr = f.apr; r.may = f.may;
+      r.periods = r.periods || {};
+      r.periods[fyear] = { ...pstat };
       r.lastDate = (f.lastDate || '').trim(); r.notes = (f.notes || '').trim();
       r.attachments = atts;
       if (send) { r._mstatus = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
@@ -197,17 +217,31 @@ function RegForm({ regId, onClose }: { regId: string | null; onClose: () => void
         <div><Label>نوع التقرير</Label><input value={f.type} onChange={setI('type')} style={{ ...inputStyle, ...warnStyle('نوع التقرير') }} /></div>
         <div><Label>الإدارة</Label><Dropdown value={f.dept} options={deptOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, dept: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px' }} /></div>
         <div><Label>المسؤول</Label><Dropdown value={f.resp} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setF((p) => ({ ...p, resp: v }))} opt={{ block: true, size: 'sm' }} /></div>
-        <div><Label>الدورية</Label><Dropdown value={f.freq} options={FREQS.map((x) => ({ v: x, label: tr(x) }))} onChange={(v) => setF((p) => ({ ...p, freq: v }))} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>الدورية</Label><Dropdown value={f.freq} options={REG_FREQS.map((x) => ({ v: x, label: tr(x) }))} onChange={changeFreq} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>موعد الاستحقاق</Label><input value={f.due} onChange={setI('due')} placeholder="مثال: 7 من كل شهر" style={{ ...inputStyle, ...warnStyle('موعد الاستحقاق') }} /></div>
         <div><Label>تاريخ آخر تسليم</Label><DateField value={f.lastDate} onChange={(v) => setF((p) => ({ ...p, lastDate: v }))} /></div>
       </div>
 
-      {secHead('حالة التسليم الشهرية', needs('حالات الأشهر'))}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }} className="rg5">
-        {MONTH_FIELDS.map(({ k, ar }) => (
-          <div key={k}><Label>{ar}</Label><Dropdown value={f[k]} options={REG_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, [k]: v }))} opt={{ block: true, size: 'sm' }} /></div>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', margin: '18px 0 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 5, height: 16, borderRadius: 4, background: '#1e4634' }} />
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: '#17211c' }}>{f.freq === 'حسب الحاجة' ? 'حالة الاستلام' : 'حالة استلام التقرير حسب الدورية'}</span>
+          {needs('حالات الأشهر') && <span style={{ fontSize: 10, fontWeight: 800, color: '#a9791f', background: '#fbf2df', borderRadius: 20, padding: '2px 10px' }}>راجع الحالات</span>}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7d867f' }}>سنة التتبع</span>
+          <Dropdown value={fyear} options={years.map((y) => ({ v: y, label: y }))} onChange={changeYear} opt={{ size: 'sm', minWidth: '96px' }} />
+        </div>
       </div>
+      {f.freq === 'حسب الحاجة'
+        ? <div style={{ background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 11, padding: '12px 14px', fontSize: 12, color: '#7d867f', lineHeight: 1.7 }}>تقرير «حسب الحاجة» — يُتابع استلامه دون جدول دوري ثابت. سجّل تاريخ آخر تسليم وأي ملاحظات أدناه.</div>
+        : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(132px,1fr))', gap: 10, maxHeight: periods.length > 12 ? 280 : undefined, overflowY: periods.length > 12 ? 'auto' : undefined }}>
+            {periods.map((p) => (
+              <div key={p.key}><Label>{p.label}</Label><Dropdown value={pstat[p.key] || '—'} options={REG_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setPstat((prev) => ({ ...prev, [p.key]: v }))} opt={{ block: true, size: 'sm' }} /></div>
+            ))}
+          </div>
+        )}
 
       {secHead('ملاحظات', needs('الملاحظات'))}
       <textarea value={f.notes} onChange={setI('notes')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
@@ -225,15 +259,18 @@ function RegForm({ regId, onClose }: { regId: string | null; onClose: () => void
 }
 
 /* ---------------- entry view ---------------- */
-function RegView({ regId, onEdit, onClose }: { regId: string; onEdit: () => void; onClose: () => void }) {
+function RegView({ regId, initYear, onEdit, onClose }: { regId: string; initYear: string; onEdit: () => void; onClose: () => void }) {
   const { tr, dl } = useI18n();
   const data = useStore((s) => s.data);
   const r = data.regReports.find((x) => x.id === regId);
+  const [vyear, setVyear] = useState(initYear);
   if (!r) return null;
+  const years = registerYears(data.regReports);
   const meta = r as RegReport & { _mstatus?: string; _mret?: string; _mlog?: { at: string; to?: string; by?: string }[] };
   const wf = meta._mret ? 'أعيد للتعديل' : (meta._mstatus || '');
-  const cur = (r.may && r.may !== '—') ? r.may : (r.apr && r.apr !== '—' ? r.apr : r.mar);
+  const cur = currentStatus(r, vyear);
   const [cb, cf] = REGST[cur] || REGST['—'];
+  const periods = periodsForFreq(r.freq);
   const box: React.CSSProperties = { background: '#f7f9f6', borderRadius: 11, padding: '10px 13px' };
   return (
     <Modal open onClose={onClose} width={640}>
@@ -257,13 +294,26 @@ function RegView({ regId, onEdit, onClose }: { regId: string; onEdit: () => void
           تعديل التقرير
         </button>
       </div>
-      {secHead('سجل التسليم الشهري')}
-      <div style={{ ...box, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {MONTH_FIELDS.map(({ k, ar }) => {
-          const s = r[k] as string; const [b, fg] = REGST[s] || REGST['—'];
-          return <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: 12, color: '#7d867f' }}>{tr(ar)}</span><Badge bg={b} fg={fg} style={{ fontSize: 10, padding: '3px 11px' }}>{s === '—' ? '—' : tr(s)}</Badge></div>;
-        })}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', margin: '18px 0 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 5, height: 16, borderRadius: 4, background: '#1e4634' }} />
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: '#17211c' }}>{r.freq === 'حسب الحاجة' ? 'حالة الاستلام' : 'سجل الاستلام حسب الدورية'}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7d867f' }}>السنة</span>
+          <Dropdown value={vyear} options={years.map((y) => ({ v: y, label: y }))} onChange={setVyear} opt={{ size: 'sm', minWidth: '92px' }} />
+        </div>
       </div>
+      {periods.length === 0
+        ? <div style={{ ...box, fontSize: 12, color: '#7d867f', lineHeight: 1.7 }}>تقرير حسب الحاجة — يُتابع استلامه دون جدول دوري ثابت.</div>
+        : (
+          <div style={{ ...box, display: 'grid', gridTemplateColumns: periods.length > 6 ? 'repeat(auto-fill,minmax(150px,1fr))' : '1fr', gap: 8 }}>
+            {periods.map((p) => {
+              const s = periodStatus(r, vyear, p.key); const [b, fg] = REGST[s] || REGST['—'];
+              return <div key={p.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ fontSize: 12, color: '#7d867f' }}>{tr(p.label)}</span><Badge bg={b} fg={fg} style={{ fontSize: 10, padding: '3px 11px' }}>{s === '—' ? '—' : tr(s)}</Badge></div>;
+            })}
+          </div>
+        )}
       {!!(r.notes && r.notes.trim()) && (<>{secHead('ملاحظات')}<div style={{ ...box, fontSize: 12.5, color: '#2a332d', lineHeight: 1.7 }}>{tr(r.notes)}</div></>)}
       {!!(r.attachments && r.attachments.length) && (<>{secHead('المرفقات')}
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>{r.attachments.map((x, i) => (
@@ -292,21 +342,22 @@ export function RegisterWorkspace() {
   const manage = cu.type !== 'chair' && (can(cu, 'reportLog', 'add') || can(cu, 'reportLog', 'edit'));
 
   const [search, setSearch] = useState('');
+  const [year, setYear] = useState(LEGACY_YEAR);
   const [openId, setOpenId] = useState<string | null>(null);
   const [formId, setFormId] = useState<{ id: string | null } | null>(null);
   const [limit, setLimit] = useState(15);
 
+  const years = registerYears(data.regReports);
   const q = search.trim();
   const rows = data.regReports.filter((r) => !q || r.title.includes(q) || r.dept.includes(q) || r.resp.includes(q) || r.type.includes(q));
   const shown = rows.slice(0, limit);
-  const cur = (r: RegReport) => (r.may && r.may !== '—') ? r.may : (r.apr && r.apr !== '—' ? r.apr : (r.mar && r.mar !== '—' ? r.mar : r.feb));
 
   return (
     <div>
       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
         <div style={{ minWidth: 0, flex: '1 1 260px' }}>
           <h1 style={{ margin: '0 0 4px', fontSize: 21, fontWeight: 800, color: '#17211c' }}>سجل التقارير</h1>
-          <p style={{ margin: 0, fontSize: 12.5, color: '#7d867f' }}>إدارة تقارير السجل وحالات تسليمها الشهرية — سجل مشترك واحد يظهر لرئيس القطاع فوراً.</p>
+          <p style={{ margin: 0, fontSize: 12.5, color: '#7d867f' }}>إدارة تقارير السجل وحالات استلامها حسب دورية كل تقرير — سجل مشترك واحد يظهر لرئيس القطاع فوراً.</p>
         </div>
         {manage && (
           <div className="page-head-action" style={{ flex: 'none' }}>
@@ -318,18 +369,27 @@ export function RegisterWorkspace() {
         )}
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 16, padding: '13px 16px', boxShadow: '0 2px 6px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.18)', marginBottom: 14 }}>
-        <input value={search} onChange={(e) => { setSearch(e.target.value); setLimit(15); }} placeholder="ابحث باسم التقرير أو الإدارة أو المسؤول…" style={inputStyle} />
+      <div style={{ background: '#fff', borderRadius: 16, padding: '13px 16px', boxShadow: '0 2px 6px rgba(23,40,32,.04),0 12px 26px -18px rgba(23,40,32,.18)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <input value={search} onChange={(e) => { setSearch(e.target.value); setLimit(15); }} placeholder="ابحث باسم التقرير أو الإدارة أو المسؤول…" style={{ ...inputStyle, flex: 1, minWidth: 200 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: 'none' }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7d867f' }}>السنة</span>
+          <div style={{ display: 'flex', gap: 5 }}>
+            {years.map((y) => {
+              const on = y === year;
+              return <button key={y} onClick={() => { setYear(y); setLimit(15); }} style={{ borderRadius: 9, padding: '8px 13px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: '1px solid ' + (on ? '#1e4634' : '#e2e6df'), background: on ? '#1e4634' : '#fff', color: on ? '#fff' : '#7d867f' }}>{y}</button>;
+            })}
+          </div>
+        </div>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 6px rgba(23,40,32,.04),0 14px 34px -18px rgba(23,40,32,.14)' }}>
         <div className="trow thead" style={{ display: 'grid', gridTemplateColumns: '1.9fr 1fr 1fr 0.8fr 1.1fr 1.1fr 150px', gap: 10, padding: '11px 16px', background: '#f7f9f6', borderBottom: '1px solid #eef1ec', fontSize: 11, fontWeight: 700, color: '#7d867f' }}>
-          <div>التقرير</div><div>الإدارة</div><div>المسؤول</div><div>الدورية</div><div>الحالة الحالية</div><div>سير العمل</div><div />
+          <div>التقرير</div><div>الإدارة</div><div>المسؤول</div><div>الدورية</div><div>الحالة الحالية ({year})</div><div>سير العمل</div><div />
         </div>
         {shown.map((r) => {
           const meta = r as RegReport & { _mstatus?: string; _mret?: string };
           const wf = meta._mret ? 'أعيد للتعديل' : (meta._mstatus || '');
-          const c = cur(r); const [cb, cf] = REGST[c] || REGST['—'];
+          const c = currentStatus(r, year); const [cb, cf] = REGST[c] || REGST['—'];
           const [wb, wfg] = WSTC[wf] || ['#f4f6f2', '#9aa39b'];
           return (
             <div key={r.id} className="trow" style={{ display: 'grid', gridTemplateColumns: '1.9fr 1fr 1fr 0.8fr 1.1fr 1.1fr 150px', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f2f4f0', alignItems: 'center' }}>
@@ -354,8 +414,8 @@ export function RegisterWorkspace() {
         )}
       </div>
 
-      {openId && !formId && <RegView regId={openId} onEdit={() => setFormId({ id: openId })} onClose={() => setOpenId(null)} />}
-      {formId && <RegForm regId={formId.id} onClose={() => setFormId(null)} />}
+      {openId && !formId && <RegView regId={openId} initYear={year} onEdit={() => setFormId({ id: openId })} onClose={() => setOpenId(null)} />}
+      {formId && <RegForm regId={formId.id} initYear={year} onClose={() => setFormId(null)} />}
     </div>
   );
 }
