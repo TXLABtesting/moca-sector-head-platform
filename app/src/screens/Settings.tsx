@@ -229,9 +229,9 @@ export function Settings() {
                 'Click a column header to apply that action to every section, or the “All” column to fill a whole row. Granting any action auto-enables “View”.')}
           </p>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflow: 'auto', maxHeight: '60vh', borderRadius: 12, border: '1px solid #f0f2ee' }}>
             <div style={{ minWidth: 780 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(9,1fr) 0.9fr', gap: 6, padding: '0 4px 10px', borderBottom: '1px solid #eef0ec', fontSize: 10, fontWeight: 700, color: '#9aa39b' }}>
+              <div style={{ position: 'sticky', top: 0, zIndex: 3, display: 'grid', gridTemplateColumns: '1.8fr repeat(9,1fr) 0.9fr', gap: 6, padding: '11px 4px 10px', borderBottom: '1px solid #e0e5df', background: '#fff', boxShadow: '0 6px 10px -8px rgba(23,40,32,.18)', fontSize: 10, fontWeight: 700, color: '#9aa39b' }}>
                 <span />
                 {ACTIONS.map((a) => {
                   const colAll = !locked && SECTIONS.every((s) => puPerms[s.k]?.has(a.k));
