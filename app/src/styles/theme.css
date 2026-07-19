@@ -97,6 +97,12 @@ select, input, textarea, button { font-family: inherit; }
 .menu-btn { display: none; }
 .app-scrim { display: none; }
 
+/* Grid tracks default to a min-content floor, so an over-wide item in one
+   column can starve a sibling column down to a sliver (e.g. the directives
+   rail collapsing behind the main content). Zeroing the items' automatic
+   minimum lets the fr ratios hold and inner content truncate as intended. */
+.rg2 > *, .rg3 > *, .rg4 > *, .rg5 > * { min-width: 0; }
+
 /* regkpi grid */
 .regkpi { display: grid; grid-template-columns: repeat(7, 1fr); }
 .regkpi > div:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(23,40,32,.07), 0 18px 34px -18px rgba(23,40,32,.3); }
@@ -170,7 +176,7 @@ select, input, textarea, button { font-family: inherit; }
   .regkpi, .lv-kpis, .ov-stats { grid-template-columns: repeat(2, 1fr) !important; }
   .rgm { grid-template-columns: 1fr !important; }
   .fin-aging-grid { grid-template-columns: repeat(2, 1fr) !important; }
-  .app-main { padding: 14px 14px 44px !important; }
+  .app-main { padding: 14px 14px 96px !important; }
   .hide-sm { display: none !important; }
   header.app-header { padding: 0 12px !important; gap: 8px; }
   header.app-header h1 { font-size: clamp(14px, 4.2vw, 17px) !important; }

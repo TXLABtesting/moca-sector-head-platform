@@ -39,7 +39,7 @@ export function Shell() {
       <div className={'app-scrim' + (menuOpen ? ' open' : '')} onClick={() => setMenuOpen(false)} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Header onOpenMenu={() => setMenuOpen(true)} />
-        <main className="app-scroll app-main" style={{ flex: 1, overflowY: 'auto', padding: '26px 28px 48px' }}>
+        <main className="app-scroll app-main" style={{ flex: 1, overflowY: 'auto', padding: '26px 28px 104px' }}>
           {isSearching ? <GlobalSearch /> : <Router />}
         </main>
       </div>

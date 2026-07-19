@@ -93,7 +93,7 @@ export function ExecutiveAssistant() {
   return (
     <>
       {!open && (
-        <button onClick={() => setOpen(true)} className="asst-fab" aria-label={rl('المساعد التنفيذي', 'Executive Assistant')} style={{ position: 'fixed', zIndex: 205, insetInlineEnd: 24, bottom: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 58, height: 58, padding: 0, border: 'none', borderRadius: '50%', cursor: 'pointer', background: 'linear-gradient(135deg,#1e4634,#132b20)', color: '#fff' }}>
+        <button onClick={() => setOpen(true)} className="asst-fab" aria-label={rl('المساعد التنفيذي', 'Executive Assistant')} style={{ position: 'fixed', zIndex: 205, insetInlineEnd: 24, bottom: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 58, height: 58, padding: 0, border: 'none', borderRadius: '50%', cursor: 'pointer', background: 'linear-gradient(135deg,#1e4634,#132b20)', color: '#fff', boxShadow: '0 0 0 4px rgba(247,250,246,.92), 0 16px 34px -10px rgba(19,43,32,.6), 0 5px 14px -4px rgba(19,43,32,.4)' }}>
           <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z" /><path d="M18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" /></svg>
           {badge > 0 && <span className="asst-fab-badge">{badge > 99 ? '99+' : badge}</span>}
         </button>
