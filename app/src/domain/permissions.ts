@@ -38,7 +38,7 @@ export const SECTIONS: SectionDef[] = [
   { k: 'reportCenter', ar: 'مركز التقارير', en: 'Report center', icon: 'chart' },
   { k: 'reportLog', ar: 'سجل التقارير', en: 'Report log', icon: 'list' },
   { k: 'finReports', ar: 'التقارير المالية', en: 'Financial reports', icon: 'bank' },
-  { k: 'auditReports', ar: 'تقارير المتابعة والتدقيق', en: 'Audit reports', icon: 'chart' },
+  { k: 'auditReports', ar: 'تقرير المتابعة - مكتب التدقيق', en: 'Follow-up Report — Audit Office', icon: 'chart' },
   { k: 'recommendations', ar: 'الملاحظات والتوصيات', en: 'Notes & recommendations', icon: 'note' },
   { k: 'leaves', ar: 'تخطيط إجازات الفريق', en: 'Team leave planning', icon: 'calendar' },
   { k: 'assistant', ar: 'المساعد التنفيذي', en: 'Executive assistant', icon: 'tick' },

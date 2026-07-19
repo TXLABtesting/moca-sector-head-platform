@@ -182,7 +182,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
           <div style={{ background: 'linear-gradient(120deg,#1e4634,#2b5c44)', borderRadius: 22, padding: '24px 26px', color: '#eaf1ec', marginBottom: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 18 }}>
             <div style={{ flex: 1, minWidth: 240 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(233,200,119,.22)', color: '#f0d488', borderRadius: 20, padding: '5px 12px' }}>{rl('تقارير المتابعة والتدقيق', 'Follow-up & Audit reports')}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(233,200,119,.22)', color: '#f0d488', borderRadius: 20, padding: '5px 12px' }}>{rl('تقرير المتابعة - مكتب التدقيق', 'Follow-up Report — Audit Office')}</span>
                 <span style={{ fontSize: 11, fontWeight: 700, background: (REPC[selReport.status] || REPC['قيد المتابعة'])[0], color: (REPC[selReport.status] || REPC['قيد المتابعة'])[1], borderRadius: 20, padding: '5px 12px' }}>{tr(selReport.status)}</span>
               </div>
               <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.4 }}>{tr(selReport.title)}</h2>

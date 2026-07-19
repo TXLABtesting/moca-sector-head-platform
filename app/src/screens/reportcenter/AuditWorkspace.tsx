@@ -88,7 +88,7 @@ function buildAuditTemplateDocx(): Blob {
   const ph = 'اكتب هنا';
   const bullets = (n: number) => Array.from({ length: n }, () => wP('- ' + ph)).join('');
   const body =
-    wP('قالب ملاحظة تقرير المتابعة والتدقيق', { bold: true, size: 36 }) +
+    wP('قالب ملاحظة — تقرير المتابعة - مكتب التدقيق', { bold: true, size: 36 }) +
     wP('') +
     wTbl(['الحقل', 'القيمة'], [
       ['الوحدة التنظيمية', ph],
@@ -353,7 +353,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
 
   return (
     <Modal open onClose={onClose} width={760}>
-      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? 'تعديل تقرير المتابعة والتدقيق' : 'إضافة تقرير جديد'}</h3>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? 'تعديل تقرير المتابعة - مكتب التدقيق' : 'إضافة تقرير جديد'}</h3>
       <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>يُحفظ في نفس السجل الذي يراه رئيس القطاع في مركز التقارير — لا يُنشأ سجل مكرر عند التعديل.</p>
 
       {/* template download / upload — fills the report unit and the observation data below */}
@@ -745,7 +745,7 @@ export function AuditWorkspace() {
     <div>
       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
         <div style={{ minWidth: 0, flex: '1 1 260px' }}>
-          <h1 style={{ margin: '0 0 4px', fontSize: 21, fontWeight: 800, color: '#17211c' }}>تقارير المتابعة والتدقيق</h1>
+          <h1 style={{ margin: '0 0 4px', fontSize: 21, fontWeight: 800, color: '#17211c' }}>تقرير المتابعة - مكتب التدقيق</h1>
           <p style={{ margin: 0, fontSize: 12.5, color: '#7d867f' }}>إدارة التقارير الدورية وتقارير الحاجة وملاحظاتها — سجل مشترك واحد يظهر لرئيس القطاع فوراً.</p>
         </div>
         {manage && (

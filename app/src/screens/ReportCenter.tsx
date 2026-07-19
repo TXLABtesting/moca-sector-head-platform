@@ -84,8 +84,8 @@ export function ReportCenter() {
     },
     {
       section: 'auditReports',
-      cat: rl('تقارير المتابعة والتدقيق', 'Follow-up & Audit reports'), icon: 'shield', statusLabel: rl('قيد المتابعة', 'Under follow-up'), stBg: '#fbf0d6', stFg: '#a9791f',
-      title: rl('تقارير المتابعة والتدقيق', 'Follow-up & Audit reports'), period: rl('السنة 2025', 'Year 2025'), freq: rl('متابعة دورية / حسب الحاجة', 'Periodic / as needed'), entity: rl('إدارة الشؤون الإدارية', 'Admin Affairs Dept.'),
+      cat: rl('تقرير المتابعة - مكتب التدقيق', 'Follow-up Report — Audit Office'), icon: 'shield', statusLabel: rl('قيد المتابعة', 'Under follow-up'), stBg: '#fbf0d6', stFg: '#a9791f',
+      title: rl('تقرير المتابعة - مكتب التدقيق', 'Follow-up Report — Audit Office'), period: rl('السنة 2025', 'Year 2025'), freq: rl('متابعة دورية / حسب الحاجة', 'Periodic / as needed'), entity: rl('إدارة الشؤون الإدارية', 'Admin Affairs Dept.'),
       ownerAr: 'حسن همام', ownerName: rl('حسن همام', 'Hasan Hammam'), ownerRole: rl('خبير الجودة والامتثال', 'Quality and Compliance Expert'),
       updatedLabel: rl('آخر تحديث: يونيو 2025', 'Updated: Jun 2025'), viewLabel: rl('عرض التقارير', 'View reports'), downloadLabel: rl('تحميل أحدث تقرير', 'Download latest'), open: () => goto('auditDetail'),
     },
