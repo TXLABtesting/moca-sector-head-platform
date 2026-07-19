@@ -74,7 +74,6 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
   const audClosed = audit.filter((a) => a.status === 'مغلق').length;
   const audProg = audit.filter((a) => a.status === 'قيد التنفيذ').length;
   const audLateN = audit.filter((a) => a.status === 'متأخر').length;
-  const audNeedIntN = audit.filter(audFlag).length;
   const arq = famSearch.trim();
   const reportsList = AUDIT_REG.filter((r) => {
     if (repStatus && r.status !== repStatus) return false;
@@ -100,10 +99,9 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
     { label: rl('الملاحظات المغلقة', 'Closed'), value: audClosed, icon: 'tick', bg: '#e2f0e8', fg: '#2e7d55', accent: '#2e7d55', kind: 'مغلق' },
     { label: rl('جاري العمل', 'In progress'), value: audProg, icon: 'timer', bg: '#fbf0d6', fg: '#a9791f', accent: '#a9791f', kind: 'قيد التنفيذ' },
     { label: rl('المتأخرة', 'Overdue'), value: audLateN, icon: 'pin', bg: '#f7e6e4', fg: '#b0433b', accent: '#b0433b', kind: 'متأخر' },
-    { label: rl('تحتاج تدخل', 'Needs attention'), value: audNeedIntN, icon: 'star', bg: '#f3ecf6', fg: '#7a4d94', accent: '#7a4d94', kind: 'needint' },
   ];
-  const kpiActive = (kind: string) => kind === 'needint' ? needInt : (kind === 'all' ? (!status && !needInt) : (status === kind && !needInt));
-  const kpiClick = (kind: string) => { clearFilters(); if (kind === 'needint') setNeedInt(true); else if (kind !== 'all') setStatus(kind); };
+  const kpiActive = (kind: string) => kind === 'all' ? (!status && !needInt) : (status === kind && !needInt);
+  const kpiClick = (kind: string) => { clearFilters(); if (kind !== 'all') setStatus(kind); };
 
   // follow-up top 3
   const follow = audit.filter(audFlag)
