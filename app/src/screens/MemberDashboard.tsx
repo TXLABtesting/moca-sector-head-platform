@@ -5,11 +5,11 @@ import { useStore } from '../store/store';
 import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { useCurrentUser } from '../store/useCurrentUser';
+import { useNav, type Page } from '../store/nav';
 import { WFS, SECTIONS } from '../domain/permissions';
 import { MEMBER_DIRECTIVES, MEMBER_RECENT } from '../domain/workflow';
 import { mColl, editableCollections, OWNER_OF, ownedBy, FINAL_STATUSES } from './member/workflow';
 import { MemberForm } from './member/MemberForm';
-import { ItemDrawer, type DrawerTarget } from './member/ItemDrawer';
 import { DemoHint } from '../components/DemoHint';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -19,6 +19,20 @@ interface Item {
   review: boolean; returned: boolean; reason: string;
   isWork: boolean; own: boolean; logLine: string;
 }
+
+/** Which page a dashboard item opens in, so a click lands the member in the
+ *  actual area where the work happens instead of a side panel. Real records
+ *  deep-link to their detail page (with the id); everything else — and all
+ *  ad-hoc work items — go to the section's list page. */
+const SECTION_PAGE: Record<string, Page> = {
+  minutes: 'meetings', minuteTasks: 'mtasks',
+  committees: 'committees', committeeDecisions: 'committees',
+  correspondence: 'correspondence', followups: 'actions',
+  projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
+  leaves: 'leaves', myTasks: 'otasks',
+  auditReports: 'reportcenter', reportLog: 'reglog', finReports: 'finDetail',
+  reportCenter: 'reportcenter', recommendations: 'reportcenter',
+};
 
 type CardKey = 'open' | 'updating' | 'sent' | 'returned' | 'late' | 'done';
 
@@ -31,9 +45,21 @@ export function MemberDashboard() {
   const mutate = useStore((s) => s.mutate);
   const mutateWork = useStore((s) => s.mutateWork);
   const { showToast } = useToast();
+  const { goto } = useNav();
   const [form, setForm] = useState<{ section: string; editId: string | null } | null>(null);
-  const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
   const [card, setCard] = useState<CardKey>('open');
+
+  /** Navigate to the area that owns this item so the member can act on it there. */
+  const openItem = (it: { sec: string; id: string; isWork: boolean }) => {
+    if (!it.isWork) {
+      const key = mColl(it.sec)?.key;
+      if (key === 'projects') return goto('projectDetail', { selProject: it.id });
+      if (key === 'meetings') return goto('meetingDetail', { selMeeting: it.id });
+      if (key === 'correspondence') return goto('docDetail', { selDoc: it.id });
+      if (key === 'committees') return goto('committees', { selCommittee: it.id });
+    }
+    goto(SECTION_PAGE[it.sec] || 'dashboard');
+  };
 
   const wf = (st: string): [string, string] => WFS[st] || WFS['مسودة'];
   const secName = (k: string) => { const s = SECTIONS.find((x) => x.k === k); return s ? (lang === 'en' ? s.en : s.ar) : k; };
@@ -93,7 +119,6 @@ export function MemberDashboard() {
         if (r) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; (r._mlog = r._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار مراجعة رئيس القطاع', sent: true, by: cu.name }); }
       });
     }
-    setDrawer(null);
     showToast(rl('تم إرسال البند لمراجعة رئيس القطاع', 'Sent for Sector Head review'));
   };
 
@@ -142,14 +167,14 @@ export function MemberDashboard() {
             const [bg, fg] = wf(it.status);
             return (
               <div key={(it.isWork ? 'w' : 'r') + it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fbfcfb', border: '1px solid #eef1ec', borderRadius: 12, padding: '11px 13px' }}>
-                <div onClick={() => setDrawer({ id: it.id, sec: it.sec, isWork: it.isWork })} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                <div onClick={() => openItem(it)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c', lineHeight: 1.5 }}>{tr(it.title)}</div>
                   <div style={{ fontSize: 10.5, color: '#9aa39b', marginTop: 2 }}>
                     {secName(it.sec)}{it.logLine ? ' · ↻ ' + tr(it.logLine) : ''}
                   </div>
                 </div>
                 <span style={{ flex: 'none', fontSize: 9.5, fontWeight: 700, borderRadius: 20, padding: '3px 10px', background: bg, color: fg }}>{tr(it.status)}</span>
-                <button onClick={() => setDrawer({ id: it.id, sec: it.sec, isWork: it.isWork })} style={{ ...btnGhost, padding: '6px 11px', fontSize: 11 }}>{rl('السجل', 'History')}</button>
+                <button onClick={() => openItem(it)} style={{ ...btnGhost, padding: '6px 11px', fontSize: 11 }}>{rl('فتح', 'Open')}</button>
                 <button onClick={() => setForm({ section: it.sec, editId: it.id })} style={{ ...btnGhost, padding: '6px 11px', fontSize: 11 }}>{rl('تعديل', 'Edit')}</button>
                 {!it.review && it.status !== 'معتمد' && it.status !== 'مكتمل' && (
                   <button onClick={() => sendForReview(it)} style={{ ...btnPrimary, padding: '6px 11px', fontSize: 11 }}>{rl('إرسال', 'Send')}</button>
@@ -183,7 +208,7 @@ export function MemberDashboard() {
                       const [bg, fg] = wf(it.status);
                       return (
                         <div key={(it.isWork ? 'w' : 'r') + it.id} style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #eef1ec', borderRadius: 11, padding: '9px 11px' }}>
-                          <div onClick={() => setDrawer({ id: it.id, sec: it.sec, isWork: it.isWork })} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                          <div onClick={() => openItem(it)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
                             <div style={{ fontSize: 12.5, fontWeight: 600, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr(it.title)}</div>
                           </div>
                           <span style={{ flex: 'none', fontSize: 9.5, fontWeight: 700, borderRadius: 20, padding: '3px 9px', background: bg, color: fg }}>{tr(it.status)}</span>
@@ -224,9 +249,6 @@ export function MemberDashboard() {
       </div>
 
       {form && <MemberForm open onClose={() => setForm(null)} section={form.section} editId={form.editId} />}
-      <ItemDrawer target={drawer} onClose={() => setDrawer(null)} canSend
-        onEdit={(t) => { setDrawer(null); setForm({ section: t.sec, editId: t.id }); }}
-        onSend={(t) => sendForReview(t)} />
     </Fade>
   );
 }
