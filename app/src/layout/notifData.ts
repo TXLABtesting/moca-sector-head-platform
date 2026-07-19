@@ -20,7 +20,7 @@ export interface Notif {
 interface WorkItem { id: string; owner: string; section: string; title: string; status: string; reason?: string }
 
 /** Collections that carry the member↔chair loop (one section per collection). */
-const SCAN_SECS = ['correspondence', 'followups', 'projects', 'minutes', 'minuteTasks', 'committees', 'leaves', 'auditReports', 'reportLog', 'finReports', 'myTasks', 'reportCenter'];
+const SCAN_SECS = ['correspondence', 'projects', 'minutes', 'minuteTasks', 'committees', 'leaves', 'auditReports', 'reportLog', 'finReports', 'myTasks', 'reportCenter'];
 
 /** Where a notification lands: the exact item where a detail exists, else the section page. */
 const TARGET: Record<string, (id: string) => { page: Page; params?: NavParams }> = {
@@ -32,7 +32,6 @@ const TARGET: Record<string, (id: string) => { page: Page; params?: NavParams }>
   leaves: (id) => ({ page: 'leaves', params: { selLeave: id } }),
   audit: () => ({ page: 'auditDetail' }),
   regReports: () => ({ page: 'reglog' }),
-  actions: () => ({ page: 'actions' }),
   retReports: () => ({ page: 'reportDetail' }),
   mtasks: (id) => ({ page: 'mtasks', params: { selMtask: id } }),
   auditReps: () => ({ page: 'auditDetail' }),

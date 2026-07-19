@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useMemo, useRef, type
 
 export type Page =
   | 'dashboard' | 'projects' | 'projectDetail'
-  | 'meetings' | 'meetingDetail' | 'mtasks' | 'actions' | 'reqmeetings'
+  | 'meetings' | 'meetingDetail' | 'mtasks' | 'reqmeetings'
   | 'correspondence' | 'docDetail'
   | 'committees'
   | 'reportcenter' | 'reportDetail' | 'auditDetail' | 'finDetail' | 'reglog'

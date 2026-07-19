@@ -27,7 +27,7 @@ interface Item {
 const SECTION_PAGE: Record<string, Page> = {
   minutes: 'meetings', minuteTasks: 'mtasks',
   committees: 'committees', committeeDecisions: 'committees',
-  correspondence: 'correspondence', followups: 'actions',
+  correspondence: 'correspondence',
   projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
   leaves: 'leaves', myTasks: 'otasks',
   auditReports: 'reportcenter', reportLog: 'reglog', finReports: 'finDetail',

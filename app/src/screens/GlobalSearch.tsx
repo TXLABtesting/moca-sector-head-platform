@@ -18,7 +18,6 @@ export function GlobalSearch() {
   data.projects.filter((p) => match(p.name)).forEach((p) => results.push({ kind: rl('مشروع', 'Project'), title: tr(p.name), sub: tr(p.owner) + ' · ' + tr(p.status), open: () => goto('projectDetail', { selProject: p.id }) }));
   data.correspondence.filter((c) => match(c.name) || match(c.entity)).forEach((c) => results.push({ kind: rl('مستند', 'Document'), title: tr(c.name), sub: tr(c.entity) + ' · ' + tr(c.dir), open: () => goto('docDetail', { selDoc: c.id }) }));
   data.meetings.filter((m) => match(m.title)).forEach((m) => results.push({ kind: rl('محضر', 'Minutes'), title: tr(m.title), sub: tr(m.owner), open: () => goto('meetingDetail', { selMeeting: m.id }) }));
-  data.actions.filter((a) => match(a.title)).forEach((a) => results.push({ kind: rl('إجراء', 'Action'), title: tr(a.title), sub: tr(a.source), open: () => goto('actions') }));
   data.mtasks.filter((m) => match(m.task)).forEach((m) => results.push({ kind: rl('مهمة محضر', 'Minute task'), title: tr(m.task), sub: tr(m.meeting), open: () => goto('mtasks') }));
   data.otasks.filter((o) => match(o.title)).forEach((o) => results.push({ kind: rl('مهمة مكتب', 'Office task'), title: tr(o.title), sub: tr(o.owner) + ' · ' + tr(o.dept), open: () => goto('otasks') }));
   data.committees.filter((c) => match(c.name)).forEach((c) => results.push({ kind: rl('لجنة', 'Committee'), title: tr(c.name), sub: tr(c.rapporteur), open: () => goto('committees') }));

@@ -32,7 +32,6 @@ export const NAV_SECTION: Record<string, string | undefined> = {
   otasks: 'myTasks',
   leaves: 'leaves',
   settings: 'permissions',
-  actions: 'followups',
 };
 
 export const BADGE_STYLE = {

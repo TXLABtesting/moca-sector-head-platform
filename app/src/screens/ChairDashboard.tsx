@@ -8,7 +8,7 @@ import { PS } from '../shared/constants';
 import { DemoHint } from '../components/DemoHint';
 import { mColl } from './member/workflow';
 
-type Tab = 'approvals' | 'updates' | 'minutes' | 'follow' | 'corr' | 'committees';
+type Tab = 'approvals' | 'updates' | 'minutes' | 'corr' | 'committees';
 
 interface Note { label: string; v: string; bg: string; bd: string; lFg: string; vFg: string }
 interface Meta { k: string; v: string; iconD: string }
@@ -71,14 +71,6 @@ export function ChairDashboard() {
   // ---- helpers ----
   const projBF = (status: string): string[] => (PS as Record<string, readonly string[]>)[status] as string[] || ['#eee', '#555'];
   const corrDir = (dir: string) => (dir === 'صادر' ? ['#e6eef6', '#3a6ea5'] : ['#eef6f0', '#2e7d55']);
-  const oNoDue = (tk: { end?: string }) => !tk.end || !String(tk.end).trim();
-  const oNeedsAttn = (tk: { status: string; end?: string }) => tk.status !== 'مكتمل' && (tk.status === 'متأخر' || tk.status === 'يحتاج توجيه' || tk.status === 'بانتظار اعتماد' || oNoDue(tk));
-
-  const SCM: Record<string, [string, string]> = {
-    'مكتمل': ['#e2f0e8', '#2e7d55'], 'قيد التنفيذ': ['#fbf0d6', '#a9791f'], 'متأخر': ['#f7e6e4', '#b0433b'],
-    'لم يبدأ': ['#eceae6', '#8a8078'], 'يحتاج توجيه': ['#f7ece0', '#c26a2b'], 'بانتظار اعتماد': ['#e6eef6', '#2f6aa8'], 'مستمر': ['#e6eef6', '#2f6aa8'],
-  };
-  const stC = (s: string) => { const c = SCM[s] || ['#f2f4f0', '#6d7973']; return { label: tr(s), bg: c[0], fg: c[1] }; };
 
   // ---- approvals ----
   const apprList: Row[] = [];
@@ -121,37 +113,6 @@ export function ChairDashboard() {
     actions: [view(openMtg(m.meeting))],
   }));
 
-  // ---- follow-ups ----
-  const folList: Row[] = [];
-  data.otasks.filter(oNeedsAttn).forEach((tk) => {
-    const sc = stC(tk.status);
-    folList.push({ tag: sc.label, tagBg: sc.bg, tagFg: sc.fg, title: tr(tk.title),
-      notes: [NOTE(rl('النوع', 'Type'), rl('مهمة مكتب', 'Office task'), 'blue')],
-      meta: [MI(rl('المسؤول', 'Owner'), tr(tk.owner), 'owner'), MI(rl('الاستحقاق', 'Due'), tk.end ? dl(tk.end) : rl('بدون موعد', 'No date'), 'date')].filter((m) => m.v),
-      actions: [view(() => goto('otasks'))] });
-  });
-  data.projects.filter((p) => p.status === 'متأخر').forEach((p) => {
-    const sc = stC('متأخر');
-    folList.push({ tag: sc.label, tagBg: sc.bg, tagFg: sc.fg, title: tr(p.name),
-      notes: [NOTE(rl('النوع', 'Type'), rl('مشروع', 'Project'), 'blue'), NOTE(rl('الخطوة القادمة', 'Next step'), tr(p.nextStep), 'gold')],
-      meta: [MI(rl('المسؤول', 'Owner'), tr(p.owner), 'owner')].filter((m) => m.v),
-      actions: [view(openProject(p.id))] });
-  });
-  data.mtasks.slice(0, 6).forEach((m) => {
-    const sc = stC(m.status);
-    folList.push({ tag: sc.label, tagBg: sc.bg, tagFg: sc.fg, title: tr(m.task),
-      notes: [NOTE(rl('النوع', 'Type'), rl('مهمة محضر', 'Minute task'), 'blue'), NOTE(rl('المحضر', 'Meeting'), tr(m.meeting), 'gold')],
-      meta: [MI(rl('الجهة', 'Dept'), tr(m.dept), 'entity'), MI(rl('التاريخ', 'Date'), dl(m.mDate), 'date')].filter((x) => x.v),
-      actions: [view(openMtg(m.meeting))] });
-  });
-  (data.audit || []).filter((a) => a.status !== 'مغلق').slice(0, 4).forEach((a) => {
-    const sc = stC(a.status);
-    folList.push({ tag: sc.label, tagBg: sc.bg, tagFg: sc.fg, title: rl('ملاحظة تدقيق: ', 'Audit note: ') + tr(a.area),
-      notes: [NOTE(rl('النوع', 'Type'), rl('تدقيق', 'Audit'), 'blue')],
-      meta: [MI(rl('المسؤول', 'Owner'), tr(a.owner), 'owner'), MI(rl('تاريخ الإغلاق', 'Due'), tr(a.due), 'date')].filter((m) => m.v),
-      actions: [view(() => goto('reportcenter'))] });
-  });
-
   // ---- correspondence ----
   const corrRows: Row[] = data.correspondence.filter((c) => c.needsAction).slice(0, 10).map((c) => {
     const [bg, fg] = corrDir(c.dir);
@@ -178,18 +139,17 @@ export function ChairDashboard() {
     approvals: { title: rl('اعتماد رئيس القطاع', 'Chair approvals'), sub: rl('بنود بانتظار اعتمادك', 'Items awaiting your approval'), accent: '#b0433b', icBg: '#f7e6e4', icFg: '#b0433b', count: apprList.length, rows: apprList.slice(0, 10), hint: rl('ما يحتاج اعتمادك فقط: بدء مشروع، اكتمال مشروع، تمديد موعد نهائي، أو اعتماد إجازة.', 'Approval-only items: project start, project completion, deadline extension, or leave approval.'), icon: <IcoApprovals /> },
     updates: { title: rl('تحديثات المشاريع', 'Project updates'), sub: rl('آخر تحديثات المشاريع النشطة', 'Latest active project updates'), accent: '#3a6ea5', icBg: '#e9f0f6', icFg: '#3a6ea5', count: data.projects.length, rows: updRows, hint: rl('تحديثات كل المشاريع: الحالة ونسبة الإنجاز والخطوة القادمة.', 'All project updates: status, progress and next step.'), icon: <IcoBars /> },
     minutes: { title: rl('محاضر الاجتماعات', 'Meeting minutes'), sub: rl('المهام والقرارات الناتجة', 'Resulting tasks & decisions'), accent: '#7a4d94', icBg: '#f3ecf6', icFg: '#7a4d94', count: data.mtasks.length, rows: minRows, hint: rl('المهام الناتجة عن الاجتماعات والمسؤول عنها وحالتها.', 'Tasks resulting from meetings, their owners and status.'), icon: <IcoDoc /> },
-    follow: { title: rl('المتابعات', 'Follow-ups'), sub: rl('بنود مفتوحة تحتاج متابعة', 'Open items needing follow-up'), accent: '#a9791f', icBg: '#fbf3df', icFg: '#a9791f', count: folList.length, rows: folList.slice(0, 12), hint: rl('بنود مفتوحة من مختلف الأقسام — وسم كل بند يوضّح نوعه: مهمة مكتب، مشروع، مهمة محضر، أو تدقيق.', 'Open items across departments — each tag shows its type.'), icon: <IcoCheck /> },
     corr: { title: rl('الصادر والوارد', 'Correspondence'), sub: rl('مراسلات تحتاج إجراء', 'Correspondence needing action'), accent: '#2e7d55', icBg: '#e2f0e8', icFg: '#2e7d55', count: data.correspondence.filter((c) => c.needsAction).length, rows: corrRows, hint: rl('المستندات الصادرة والواردة التي تحتاج متابعة أو إجراء.', 'Outgoing/incoming documents needing follow-up.'), icon: <IcoMail /> },
     committees: { title: rl('اللجان وفرق العمل', 'Committees & teams'), sub: rl('اللجان ومهامها المفتوحة', 'Committees and their open tasks'), accent: '#2b8a8a', icBg: '#e4f2f2', icFg: '#2b8a8a', count: (data.committees || []).length, rows: commRows, hint: rl('اللجان وفرق العمل: المقرر والدورية والاجتماعات والمهام المفتوحة لكل لجنة.', 'Committees & teams: rapporteur, frequency, meetings and open tasks.'), icon: <IcoTeam /> },
   };
 
   const active = DEF[tab];
-  const cards: { key: Tab; def: Def }[] = (['approvals', 'updates', 'minutes', 'follow', 'corr', 'committees'] as Tab[]).map((k) => ({ key: k, def: DEF[k] }));
+  const cards: { key: Tab; def: Def }[] = (['approvals', 'updates', 'minutes', 'corr', 'committees'] as Tab[]).map((k) => ({ key: k, def: DEF[k] }));
 
   return (
     <Fade>
       <DemoHint />
-      <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 13, marginBottom: 24 }}>
+      <div className="rg5" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 13, marginBottom: 24 }}>
         {cards.map(({ key, def }) => {
           const on = tab === key;
           const cardStyle: CSSProperties = {
@@ -268,7 +228,6 @@ function RowCard({ r }: { r: Row }) {
 const IcoApprovals = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M9 3h6a2 2 0 0 1 2 2v3a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4V5a2 2 0 0 1 2-2z" /><path d="M5 21h14M7 21v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" /></svg>;
 const IcoBars = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>;
 const IcoDoc = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>;
-const IcoCheck = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L20 6" /><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" /></svg>;
 const IcoMail = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m4 7 8 6 8-6" /></svg>;
 const IcoTeam = () => <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" /></svg>;
 

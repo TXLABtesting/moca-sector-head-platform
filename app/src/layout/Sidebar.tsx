@@ -41,7 +41,6 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
     { key: 'reqmeetings', labelKey: '', labelAr: 'الاجتماعات', labelEn: 'Meetings', icon: <IcoCalendarCheck />, badge: pendingMeetings, show: see('reqmeetings') },
     { key: 'meetings', labelKey: '', labelAr: 'محاضر الاجتماعات', labelEn: 'Minutes', icon: <IcoFileText />, show: see('meetings'), child: true },
     { key: 'correspondence', labelKey: '', labelAr: 'الصادر والوارد', labelEn: 'Correspondence', icon: <IcoMail />, badge: corrBadge, show: see('correspondence') },
-    { key: 'actions', labelKey: '', labelAr: 'المتابعات', labelEn: 'Follow-ups', icon: <IcoTimer />, show: see('actions') },
     { key: 'reportcenter', labelKey: '', labelAr: 'مركز التقارير', labelEn: 'Reports', icon: <IcoReport />, show: see('reportcenter') },
     { key: 'committees', labelKey: '', labelAr: 'اللجان وفرق العمل', labelEn: 'Committees', icon: <IcoUsers />, show: see('committees') },
     { key: 'otasks', labelKey: '', labelAr: navTasksLabel, labelEn: navTasksLabel, icon: <IcoClipboard />, badge: otaskBadge, show: see('otasks') },
@@ -118,5 +117,4 @@ const IcoReport = () => <svg {...S}><path d="M4 4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0
 const IcoUsers = () => <svg {...S}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" /></svg>;
 const IcoClipboard = () => <svg {...S}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="m9 13 2 2 4-4" /></svg>;
 const IcoLeave = () => <svg {...S}><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /><path d="M12 14v3M10.5 15.5h3" /></svg>;
-const IcoTimer = () => <svg {...S}><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2.5M9 2h6" /></svg>;
 const IcoSettings = () => <svg {...S}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;

@@ -32,7 +32,6 @@ export const SECTIONS: SectionDef[] = [
   { k: 'committees', ar: 'اللجان وفرق العمل', en: 'Committees', icon: 'scale' },
   { k: 'committeeDecisions', ar: 'قرارات اللجان', en: 'Committee decisions', icon: 'tick' },
   { k: 'correspondence', ar: 'الصادر والوارد', en: 'Correspondence', icon: 'mail' },
-  { k: 'followups', ar: 'المتابعات', en: 'Follow-ups', icon: 'timer' },
   { k: 'myTasks', ar: 'مهام فريقي', en: 'My tasks', icon: 'task' },
   { k: 'reportCenter', ar: 'مركز التقارير', en: 'Report center', icon: 'chart' },
   { k: 'reportLog', ar: 'سجل التقارير', en: 'Report log', icon: 'list' },
@@ -75,13 +74,13 @@ export interface SeedUser {
 
 export const SEED_USERS: SeedUser[] = [
   { id: 'chair', name: 'فوزية الطاير', job: 'رئيس قطاع الخدمات المركزية', type: 'chair', scope: 'all', img: 'assets/team/chief.jpg', all: true },
-  { id: 'moza', name: 'موزة المرزوقي', job: 'مسؤولة الصادر والوارد والمتابعات', type: 'office', scope: 'office', img: 'assets/team/moza.jpg', g: { dashboard: 'v', correspondence: 'vaemsrn', followups: 'vaesrn', myTasks: 've', projects: 'v', reportCenter: 'v', committees: 'v', assistant: 'v' } },
+  { id: 'moza', name: 'موزة المرزوقي', job: 'مسؤولة الصادر والوارد والمتابعات', type: 'office', scope: 'office', img: 'assets/team/moza.jpg', g: { dashboard: 'v', correspondence: 'vaemsrn', myTasks: 've', projects: 'v', reportCenter: 'v', committees: 'v', assistant: 'v' } },
   { id: 'samah', name: 'سماح أبو شرخ', job: 'مسؤولة المحاضر واللجان والتوصيات والإجازات', type: 'office', scope: 'all', img: 'assets/team/samah.jpg', g: { dashboard: 'v', meetings: 'vaer', minutes: 'vaemrn', minuteTasks: 'vaes', committees: 'vaemr', committeeDecisions: 'vaer', recommendations: 'vaer', leaves: 'vaemsrn', myTasks: 've', assistant: 'v' } },
-  { id: 'fatma', name: 'فاطمه الرشيدى', job: 'مسؤولة المشاريع والتنسيق التنفيذي', type: 'office', scope: 'office', img: 'assets/team/fatma.jpg', g: { dashboard: 'v', projects: 'vaemsrn', projPhases: 'vae', projUpdates: 'vaer', projRisks: 'vae', followups: 've', myTasks: 've', reportCenter: 'v', meetings: 'v', minutes: 'v', assistant: 'v' } },
-  { id: 'hagar', name: 'هاجر هلول', job: 'مسؤولة الإنجاز والمتابعة والتقارير المالية', type: 'office', scope: 'office', img: 'assets/team/hagar.jpg', g: { dashboard: 'v', followups: 'vaesrn', finReports: 'vaemrn', reportLog: 'vae', projUpdates: 'vaer', myTasks: 've', projects: 'v', assistant: 'v' } },
-  { id: 'saif', name: 'سيف بيضاني', job: 'مسؤول المشاريع والمراحل والمخاطر', type: 'office', scope: 'office', g: { dashboard: 'v', projects: 'vaemsrn', projPhases: 'vae', projUpdates: 'vaer', projRisks: 'vae', followups: 've', myTasks: 've', reportCenter: 'v', assistant: 'v' } },
+  { id: 'fatma', name: 'فاطمه الرشيدى', job: 'مسؤولة المشاريع والتنسيق التنفيذي', type: 'office', scope: 'office', img: 'assets/team/fatma.jpg', g: { dashboard: 'v', projects: 'vaemsrn', projPhases: 'vae', projUpdates: 'vaer', projRisks: 'vae', myTasks: 've', reportCenter: 'v', meetings: 'v', minutes: 'v', assistant: 'v' } },
+  { id: 'hagar', name: 'هاجر هلول', job: 'مسؤولة الإنجاز والمتابعة والتقارير المالية', type: 'office', scope: 'office', img: 'assets/team/hagar.jpg', g: { dashboard: 'v', finReports: 'vaemrn', reportLog: 'vae', projUpdates: 'vaer', myTasks: 've', projects: 'v', assistant: 'v' } },
+  { id: 'saif', name: 'سيف بيضاني', job: 'مسؤول المشاريع والمراحل والمخاطر', type: 'office', scope: 'office', g: { dashboard: 'v', projects: 'vaemsrn', projPhases: 'vae', projUpdates: 'vaer', projRisks: 'vae', myTasks: 've', reportCenter: 'v', assistant: 'v' } },
   { id: 'hasan', name: 'حسن همام', job: 'مسؤول الجودة والامتثال والتدقيق', type: 'office', scope: 'all', img: 'assets/team/hasan.jpg', g: { dashboard: 'v', auditReports: 'vaemrn', recommendations: 'vaesr', committees: 've', reportCenter: 've', myTasks: 've', assistant: 'v' } },
-  { id: 'rashed', name: 'راشد النعيمي', job: 'مدير إدارة الشؤون الإدارية', type: 'sector', scope: 'admin_affairs', g: { dashboard: 'v', projects: 'vrn', reportCenter: 'v', correspondence: 'v', followups: 'vn', assistant: 'v' } },
+  { id: 'rashed', name: 'راشد النعيمي', job: 'مدير إدارة الشؤون الإدارية', type: 'sector', scope: 'admin_affairs', g: { dashboard: 'v', projects: 'vrn', reportCenter: 'v', correspondence: 'v', assistant: 'v' } },
   { id: 'sysadmin', name: 'مدير النظام', job: 'إدارة النظام والصلاحيات', type: 'sysadmin', scope: 'all', g: { dashboard: 'v', permissions: 'vaeds', assistant: 'v' } },
 ];
 
@@ -99,7 +98,7 @@ export const WFS: Record<string, [string, string]> = {
 
 /** section key -> the page it maps to for navigation */
 export const SEC_PAGE: Record<string, string> = {
-  correspondence: 'correspondence', followups: 'actions', minutes: 'meetings', minuteTasks: 'mtasks',
+  correspondence: 'correspondence', minutes: 'meetings', minuteTasks: 'mtasks',
   committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves', myTasks: 'otasks',
   projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
   reportCenter: 'reportcenter', reportLog: 'reportcenter', finReports: 'reportcenter',

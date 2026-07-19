@@ -24,11 +24,6 @@ const COLLS: Record<string, MColl> = {
     make: (f, me) => ({ id: uid('c'), name: f.title, dir: f.dir || 'صادر', type: f.docType || 'رسالة', entity: f.entity || '—', sender: f.sender || '—', recipient: f.recipient || '—', date: f.fdate || '—', recvDate: f.fdate || '—', status: f.fstatus || 'قيد المتابعة', priority: 'متوسطة', followup: f.followup || me, needsAction: true, attachment: f.attachment || 'مرفق.pdf', action: f.note || '—', notes: f.note || '' }),
     load: (r) => ({ title: r.name, dir: r.dir, docType: r.type, entity: r.entity, sender: r.sender, recipient: r.recipient, fdate: r.date, fstatus: r.status, followup: r.followup, note: r.notes, attachment: r.attachment }),
   },
-  followups: {
-    key: 'actions', get: (d) => d.actions, title: (r) => r.title, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
-    make: (f, me) => ({ id: uid('a'), title: f.title, owner: f.followup || me, source: f.entity || '—', due: f.due || '—', status: f.fstatus || 'مفتوح', priority: 'متوسطة', sourceType: 'صادر أو وارد' }),
-    load: (r) => ({ title: r.title, followup: r.owner, entity: r.source, due: r.due, fstatus: r.status }),
-  },
   projects: {
     key: 'projects', get: (d) => d.projects, title: (r) => r.name, status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
     make: (f, me) => ({ id: uid('p'), no: '', name: f.title, owner: f.owner || me, status: f.fstatus || 'لم يبدأ', priority: f.priority || 'متوسطة', progress: +(f.progress || 0), stage: 'PLANNING', unit: f.entity || 'قطاع الخدمات المركزية', dueDate: f.due || '—', startDate: f.start || '', deadline: f.deadline || '', nextStep: f.next || '', risks: f.risks || 'لا يوجد', finalOutput: f.final || '', budget: +(f.budget || 0), desc: f.note || '', scope: [], timeline: [], tasks: [], attachments: [] }),
@@ -83,7 +78,7 @@ const COLLS: Record<string, MColl> = {
 
 const SEC2COLL: Record<string, string> = {
   finReports: 'finReports',
-  correspondence: 'correspondence', followups: 'followups', projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
+  correspondence: 'correspondence', projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
   minutes: 'minutes', minuteTasks: 'mtasks', committees: 'committees', committeeDecisions: 'committees', leaves: 'leaves',
   auditReports: 'auditReps', reportLog: 'reportLog', myTasks: 'myTasks', reportCenter: 'retention',
 };
@@ -123,7 +118,7 @@ export function ownedBy(ownerStr: string, name: string): boolean {
 export const FINAL_STATUSES = ['معتمد', 'معتمدة', 'مكتمل', 'ملغي', 'ملغاة', 'مغلق', 'مرفوض', 'مرفوضة', 'منتهية'];
 
 const SEC_KIND: Record<string, string> = {
-  correspondence: 'correspondence', followups: 'followup', projects: 'project', projPhases: 'project', projUpdates: 'project', projRisks: 'project',
+  correspondence: 'correspondence', projects: 'project', projPhases: 'project', projUpdates: 'project', projRisks: 'project',
   finReports: 'finance', reportLog: 'finance', auditReports: 'audit', recommendations: 'recommendation', minutes: 'minutes', minuteTasks: 'minutes',
   committees: 'committee', committeeDecisions: 'committee', leaves: 'leave', myTasks: 'task',
 };

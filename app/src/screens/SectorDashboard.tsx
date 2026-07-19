@@ -43,7 +43,7 @@ export function SectorDashboard() {
     const t = title.trim();
     if (!t) { showToast(rl('يرجى إدخال عنوان التحديث', 'Please enter a title')); return; }
     mutateWork((w) => {
-      w.unshift({ id: 'sm' + Date.now(), owner: cu.id, section: 'followups', title: t + (note.trim() ? ' — ' + note.trim() : ''), status: 'بانتظار مراجعة رئيس القطاع', date: rl('اليوم', 'Today') });
+      w.unshift({ id: 'sm' + Date.now(), owner: cu.id, section: 'projects', title: t + (note.trim() ? ' — ' + note.trim() : ''), status: 'بانتظار مراجعة رئيس القطاع', date: rl('اليوم', 'Today') });
     });
     setTitle(''); setNote('');
     showToast(rl('أُرسل التحديث إلى رئيس القطاع — يظهر في لوحتها الآن', 'Update sent to the Sector Head — visible on her board now'));

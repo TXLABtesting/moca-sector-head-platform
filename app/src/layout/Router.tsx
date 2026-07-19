@@ -7,7 +7,6 @@ import { SectorDashboard } from '../screens/SectorDashboard';
 import { Projects } from '../screens/Projects';
 import { Meetings } from '../screens/Meetings';
 import { ReqMeetings } from '../screens/ReqMeetings';
-import { Actions } from '../screens/Actions';
 import { Correspondence } from '../screens/Correspondence';
 import { Committees } from '../screens/Committees';
 import { ReportCenter } from '../screens/ReportCenter';
@@ -35,8 +34,6 @@ export function Router() {
       return <Meetings />;
     case 'reqmeetings':
       return <ReqMeetings />;
-    case 'actions':
-      return <Actions />;
     case 'correspondence':
     case 'docDetail':
       return <Correspondence />;
