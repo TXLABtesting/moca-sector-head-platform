@@ -398,24 +398,26 @@ function RelDetailModal({ year, index, canEdit, onEdit, onClose }: { year: strin
   const sections = r.sections && r.sections.length ? r.sections : null;
   const grand = sections ? sections.reduce((s, sec) => s + sectionSum(sec.rows), 0) : r.items.reduce((s, x) => s + x.v, 0);
   const secBar: Record<string, string> = { 'تفاصيل جارى التسوية': '#c26a2b', 'عقود مرحلة من العام السابق': '#a9791f', 'أرصدة خلال العام الحالي': '#2b5c44' };
+  const secTint: Record<string, string> = { 'تفاصيل جارى التسوية': '#faf2ec', 'عقود مرحلة من العام السابق': '#f9f4e8', 'أرصدة خلال العام الحالي': '#edf4f0' };
 
   const SectionTable = ({ title, rows }: { title: string; rows: { n: string; v: number | null }[] }) => {
     const sum = sectionSum(rows);
-    const bar = secBar[title] || '#c26a2b';
+    const bar = secBar[title] || '#7a8a82';
+    const tint = secTint[title] || '#f4f6f3';
     return (
-      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #f0e6dd', marginBottom: 12 }}>
-        <div style={{ background: bar, color: '#fff', fontSize: 12.5, fontWeight: 800, padding: '9px 13px' }}>{tr(title)}</div>
+      <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid #edeef0', marginBottom: 12, background: '#fff', boxShadow: '0 1px 2px rgba(20,30,25,.03)' }}>
+        <div style={{ background: tint, display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', borderBottom: '1px solid #f0f1f2' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: bar, flex: 'none' }} />
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: '#3c4a42' }}>{tr(title)}</span>
+          <span style={{ marginInlineStart: 'auto', fontSize: 12.5, fontWeight: 800, color: sum < 0 ? '#b0433b' : bar, fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{relFmt(sum)}</span>
+        </div>
         <div>
           {rows.map((it, j) => (
-            <div key={j} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 13px', background: j % 2 ? '#fdf3ec' : '#fae9df' }}>
-              <span style={{ fontSize: 12, color: '#3c4a42', lineHeight: 1.5, direction: 'ltr', textAlign: 'start', unicodeBidi: 'plaintext' }}>{tr(it.n)}</span>
+            <div key={j} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '10px 15px', borderTop: j ? '1px solid #f4f5f6' : 'none' }}>
+              <span style={{ fontSize: 12, color: '#5b6b62', lineHeight: 1.5, direction: 'ltr', textAlign: 'start', unicodeBidi: 'plaintext' }}>{tr(it.n)}</span>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: (it.v ?? 0) < 0 ? '#b0433b' : '#17211c', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", whiteSpace: 'nowrap', flex: 'none' }}>{relFmt(it.v)}</span>
             </div>
           ))}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 13px', background: '#f6ddcd', borderTop: '1px solid #eec9ad' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#8a4b1e' }}>{rl('الإجمالي الفرعي', 'Subtotal')}</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: sum < 0 ? '#b0433b' : '#8a4b1e', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{relFmt(sum)}</span>
-          </div>
         </div>
       </div>
     );
