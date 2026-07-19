@@ -73,6 +73,42 @@ export function Settings() {
   const locked = pu.type === 'chair';
   const puPerms = effectivePerms(pu);
 
+  // ---- bulk editing helpers (make the matrix quick to fill instead of cell-by-cell) ----
+  const ALL_LETTERS = ACTIONS.map((a) => a.letter).join('');
+  const guardChair = (u: SeedUser) => {
+    if (u.type === 'chair') { showToast(rl('رئيس القطاع يملك صلاحية كاملة دائماً — غير قابلة للتعديل', 'Sector Head always has full access')); return true; }
+    return false;
+  };
+  const logPerm = (u: SeedUser, change: string, section = '—') => {
+    permLog.unshift({ user: u.name, section, change, at: L ? 'Just now' : 'الآن' });
+    if (permLog.length > 60) permLog.pop();
+    force((n) => n + 1);
+  };
+  const grantAllUser = (u: SeedUser) => { if (guardChair(u)) return; setUsers((us) => { const uu = us.find((x) => x.id === u.id); if (!uu) return; uu.g = {}; SECTIONS.forEach((s) => { uu.g![s.k] = ALL_LETTERS; }); }); logPerm(u, rl('منح كل الصلاحيات', 'Granted all permissions')); };
+  const clearAllUser = (u: SeedUser) => { if (guardChair(u)) return; setUsers((us) => { const uu = us.find((x) => x.id === u.id); if (!uu) return; uu.g = {}; }); logPerm(u, rl('مسح كل الصلاحيات', 'Cleared all permissions')); };
+  const resetUser = (u: SeedUser) => { if (guardChair(u)) return; const base = SEED_USERS.find((s) => s.id === u.id); setUsers((us) => { const uu = us.find((x) => x.id === u.id); if (!uu) return; uu.g = base ? JSON.parse(JSON.stringify(base.g || {})) : {}; }); logPerm(u, rl('استعادة الصلاحيات الافتراضية', 'Reset to default permissions')); };
+  const toggleRow = (u: SeedUser, section: string) => {
+    if (guardChair(u)) return;
+    const allOn = ACTIONS.every((a) => puPerms[section]?.has(a.k));
+    setUsers((us) => { const uu = us.find((x) => x.id === u.id); if (!uu) return; if (!uu.g) uu.g = {}; if (allOn) delete uu.g[section]; else uu.g[section] = ALL_LETTERS; });
+    force((n) => n + 1);
+  };
+  const toggleCol = (u: SeedUser, action: ActionKey) => {
+    if (guardChair(u)) return;
+    const letter = ACTIONS.find((a) => a.k === action)!.letter;
+    const allOn = SECTIONS.every((s) => puPerms[s.k]?.has(action));
+    setUsers((us) => {
+      const uu = us.find((x) => x.id === u.id); if (!uu) return; if (!uu.g) uu.g = {};
+      SECTIONS.forEach((s) => {
+        let cur = uu.g![s.k] || '';
+        if (allOn) { cur = action === 'view' ? '' : cur.split('').filter((c) => c !== letter).join(''); }
+        else { if (!cur.includes(letter)) cur += letter; if (!cur.includes('v')) cur = 'v' + cur; }
+        if (cur) uu.g![s.k] = cur; else delete uu.g![s.k];
+      });
+    });
+    force((n) => n + 1);
+  };
+
   // extra grants: diff current vs SEED
   const extras: { who: string; section: string; action: string; grant: boolean }[] = [];
   users.forEach((u) => {
@@ -158,7 +194,7 @@ export function Settings() {
 
       {tab === 'sections' && (
         <div style={{ background: '#fff', borderRadius: 24, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', padding: '22px 24px' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
             {users.map((p) => {
               const tp = typeObj(p.type); const active = p.id === permUser;
               return (
@@ -168,26 +204,71 @@ export function Settings() {
               );
             })}
           </div>
-          <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 720 }}>
-            <div style={{ minWidth: 720 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(9,1fr)', gap: 6, padding: '0 4px 10px', borderBottom: '1px solid #eef0ec', fontSize: 10, fontWeight: 700, color: '#9aa39b' }}>
-                <span />
-                {ACTIONS.map((a) => <span key={a.k} style={{ textAlign: 'center' }}>{L ? a.en : a.ar}</span>)}
+
+          {/* selected-user toolbar: bulk grant / clear / reset so the matrix isn't edited cell-by-cell */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: '#f7f9f6', border: '1px solid #eef0ec', borderRadius: 14, padding: '11px 14px', marginBottom: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+              <span style={{ width: 30, height: 30, flex: 'none', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: typeObj(pu.type).bg, color: typeObj(pu.type).fg }}><Icon name={typeObj(pu.type).icon} size={15} /></span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#17211c' }}>{pu.name}</div>
+                <div style={{ fontSize: 11, color: '#9aa39b' }}>{L ? typeObj(pu.type).en : typeObj(pu.type).ar} · {grantCount(pu)} {rl('صلاحية', 'grants')}</div>
               </div>
-              {SECTIONS.map((sec) => (
-                <div key={sec.k} style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(9,1fr)', gap: 6, alignItems: 'center', padding: '6px 4px', borderBottom: '1px solid #f4f6f3' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: '#3c4a42' }}><Icon name={sec.icon} size={15} stroke="#9aa39b" />{L ? sec.en : sec.ar}</span>
-                  {ACTIONS.map((a) => {
-                    const on = locked ? true : puPerms[sec.k]?.has(a.k) || false;
-                    return (
-                      <button key={a.k} onClick={() => toggle(pu, sec.k, a.k)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 3px', borderRadius: 8, cursor: locked ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all .12s', background: on ? '#1e4634' : '#f4f6f3', border: '1px solid ' + (on ? '#1e4634' : '#e6e9e4') }}>
-                        {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
-                      </button>
-                    );
-                  })}
+            </div>
+            {locked
+              ? <span style={{ fontSize: 11.5, fontWeight: 700, color: '#a9791f', background: '#fbf0d6', borderRadius: 20, padding: '6px 13px' }}>{rl('صلاحية كاملة غير قابلة للتعديل', 'Full access — not editable')}</span>
+              : (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => grantAllUser(pu)} style={{ ...bulkBtn, background: '#1e4634', color: '#fff', border: 'none' }}>{rl('منح الكل', 'Grant all')}</button>
+                  <button onClick={() => clearAllUser(pu)} style={bulkBtn}>{rl('مسح الكل', 'Clear all')}</button>
+                  <button onClick={() => resetUser(pu)} style={bulkBtn}>{rl('استعادة الافتراضي', 'Reset default')}</button>
                 </div>
-              ))}
+              )}
           </div>
+          <p style={{ margin: '0 0 14px', fontSize: 11, color: '#9aa39b', lineHeight: 1.6 }}>
+            {rl('اضغط على رأس أي عمود لتطبيق الإجراء على كل الأقسام، أو على عمود «الكل» لتفعيل صف كامل. منح أي إجراء يفعّل «عرض» تلقائياً.',
+                'Click a column header to apply that action to every section, or the “All” column to fill a whole row. Granting any action auto-enables “View”.')}
+          </p>
+
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: 780 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(9,1fr) 0.9fr', gap: 6, padding: '0 4px 10px', borderBottom: '1px solid #eef0ec', fontSize: 10, fontWeight: 700, color: '#9aa39b' }}>
+                <span />
+                {ACTIONS.map((a) => {
+                  const colAll = !locked && SECTIONS.every((s) => puPerms[s.k]?.has(a.k));
+                  return (
+                    <button key={a.k} onClick={() => toggleCol(pu, a.k)} disabled={locked}
+                      title={rl('تطبيق «' + a.ar + '» على كل الأقسام', 'Apply “' + a.en + '” to all sections')}
+                      style={{ textAlign: 'center', background: 'none', border: 'none', fontFamily: 'inherit', fontSize: 10, fontWeight: 700, color: colAll ? '#1e4634' : '#9aa39b', cursor: locked ? 'default' : 'pointer', padding: '2px 0', borderRadius: 6, textDecoration: locked ? 'none' : 'underline', textUnderlineOffset: 3, textDecorationColor: '#d6ddd6' }}>
+                      {L ? a.en : a.ar}
+                    </button>
+                  );
+                })}
+                <span style={{ textAlign: 'center', color: '#5b6b62' }}>{rl('الكل', 'All')}</span>
+              </div>
+              {SECTIONS.map((sec) => {
+                const rowAll = locked || ACTIONS.every((a) => puPerms[sec.k]?.has(a.k));
+                const rowSome = !locked && ACTIONS.some((a) => puPerms[sec.k]?.has(a.k));
+                return (
+                  <div key={sec.k} style={{ display: 'grid', gridTemplateColumns: '1.8fr repeat(9,1fr) 0.9fr', gap: 6, alignItems: 'center', padding: '6px 4px', borderBottom: '1px solid #f4f6f3' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: '#3c4a42' }}><Icon name={sec.icon} size={15} stroke="#9aa39b" />{L ? sec.en : sec.ar}</span>
+                    {ACTIONS.map((a) => {
+                      const on = locked ? true : puPerms[sec.k]?.has(a.k) || false;
+                      return (
+                        <button key={a.k} onClick={() => toggle(pu, sec.k, a.k)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 3px', borderRadius: 8, cursor: locked ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all .12s', background: on ? '#1e4634' : '#f4f6f3', border: '1px solid ' + (on ? '#1e4634' : '#e6e9e4') }}>
+                          {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => toggleRow(pu, sec.k)} disabled={locked}
+                      title={rowAll ? rl('مسح صلاحيات هذا القسم', 'Clear this section') : rl('منح كل صلاحيات هذا القسم', 'Grant all for this section')}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 3px', borderRadius: 8, cursor: locked ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all .12s', background: rowAll ? '#2b5c44' : (rowSome ? '#e2eee8' : '#f4f6f3'), border: '1px solid ' + (rowAll ? '#2b5c44' : (rowSome ? '#bcd6c8' : '#e6e9e4')) }}>
+                      {rowAll
+                        ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                        : (rowSome ? <span style={{ width: 9, height: 2.5, borderRadius: 2, background: '#2b5c44' }} /> : null)}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -227,3 +308,9 @@ export function Settings() {
     </Fade>
   );
 }
+
+const bulkBtn: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634',
+  border: '1px solid #cdd8ce', borderRadius: 10, padding: '8px 13px', fontSize: 12,
+  fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
+};
