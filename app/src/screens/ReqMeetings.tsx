@@ -292,21 +292,6 @@ export function ReqMeetings() {
   }
 
   // ---- date / time options for the "propose another time" pickers ----
-  const rmDateOpts = (() => {
-    const out: { v: string; label: string }[] = [];
-    const d = new Date(2026, 6, 6);
-    let n = 0;
-    while (out.length < 22) {
-      const wd = d.getDay();
-      if (wd >= 1 && wd <= 5) {
-        const lbl = dName(wd) + ' ' + d.getDate() + ' ' + monthName(d.getMonth()) + ' ' + d.getFullYear();
-        out.push({ v: d.getDate() + ' ' + AR_MONTHS[d.getMonth()] + ' ' + d.getFullYear(), label: lbl });
-      }
-      d.setDate(d.getDate() + 1);
-      if (++n > 60) break;
-    }
-    return out;
-  })();
   const rmTimeOpts = (() => {
     const out: { v: string; label: string }[] = [];
     for (let h = 8; h <= 16; h++) {
@@ -636,7 +621,7 @@ export function ReqMeetings() {
                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 240 }}>
                       <label style={{ fontSize: 12, color: '#5b6b62', fontWeight: 500, display: 'block', marginBottom: 6 }}>{t('rm_newDate')}</label>
-                      <Dropdown value={form.date} options={DASH.concat(rmDateOpts)} onChange={(v) => setForm((f) => ({ ...f, date: v }))} opt={{ block: true, bg: '#f7f8f6', popMaxWidth: '340px' }} />
+                      <DateField value={form.date} onChange={(v) => setForm((f) => ({ ...f, date: v }))} />
                     </div>
                   </div>
                   <div>
