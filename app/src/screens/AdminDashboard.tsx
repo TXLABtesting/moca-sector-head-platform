@@ -29,11 +29,13 @@ export function AdminDashboard() {
   const scopeName = (v: string) => { const s = SCOPES.find((x) => x.v === v); return s ? (L ? s.en : s.ar) : v; };
 
   const kpis = [
-    { label: rl('المستخدمون', 'Users'), value: users.length, icon: 'team', accent: '#2b5c44', bg: '#e9f0ec' },
-    { label: rl('الأدوار', 'Roles'), value: TYPES.length, icon: 'crown', accent: '#a9791f', bg: '#fbf0d6' },
-    { label: rl('الأقسام المُدارة', 'Managed sections'), value: SECTIONS.length, icon: 'list', accent: '#3a6ea5', bg: '#e6eef6' },
-    { label: rl('نطاقات الوصول', 'Access scopes'), value: SCOPES.length, icon: 'shield', accent: '#7a4d94', bg: '#f3ecf6' },
+    { label: rl('المستخدمون', 'Users'), value: users.length, icon: 'team', accent: '#2b5c44', bg: '#e9f0ec', tab: 'users' },
+    { label: rl('الأدوار', 'Roles'), value: TYPES.length, icon: 'crown', accent: '#a9791f', bg: '#fbf0d6', tab: 'types' },
+    { label: rl('الأقسام المُدارة', 'Managed sections'), value: SECTIONS.length, icon: 'list', accent: '#3a6ea5', bg: '#e6eef6', tab: 'sections' },
+    { label: rl('نطاقات الوصول', 'Access scopes'), value: SCOPES.length, icon: 'shield', accent: '#7a4d94', bg: '#f3ecf6', tab: 'users' },
   ];
+
+  const openTab = (tab: string) => goto('settings', { adminTab: tab });
 
   const actionBtn = (label: string, tab: string, primary = false) => (
     <button onClick={() => goto('settings', { adminTab: tab })} style={{
@@ -54,12 +56,20 @@ export function AdminDashboard() {
 
       <div className="rg4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 13, marginBottom: 20 }}>
         {kpis.map((k, i) => (
-          <div key={i} className="glass" style={{ borderRadius: 16, padding: '16px 17px', boxShadow: '0 1px 2px rgba(23,40,32,.04),0 14px 34px -18px rgba(20,45,32,.2)' }}>
+          <div key={i} className="glass" role="button" tabIndex={0}
+            onClick={() => openTab(k.tab)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTab(k.tab); } }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 2px 4px rgba(23,40,32,.05),0 18px 40px -16px ' + k.accent; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = k.accent; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 1px 2px rgba(23,40,32,.04),0 14px 34px -18px rgba(20,45,32,.2)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'transparent'; }}
+            style={{ borderRadius: 16, padding: '16px 17px', boxShadow: '0 1px 2px rgba(23,40,32,.04),0 14px 34px -18px rgba(20,45,32,.2)', border: '1px solid transparent', cursor: 'pointer', transition: 'box-shadow .15s, transform .15s, border-color .15s', outlineColor: k.accent }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
               <span style={{ width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: k.bg, color: k.accent }}><Icon name={k.icon} size={19} /></span>
               <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.5px', color: k.accent }}>{k.value}</span>
             </div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c' }}>{k.label}</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c' }}>{k.label}</div>
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={k.accent} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none', opacity: .5 }}><path d={L ? 'M9 18l6-6-6-6' : 'M15 18l-6-6 6-6'} /></svg>
+            </div>
           </div>
         ))}
       </div>
