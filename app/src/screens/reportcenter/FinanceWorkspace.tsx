@@ -51,6 +51,9 @@ function kvRows(fm: FinModel, f?: Record<string, string>): [string, string][] {
     ['إجمالي جارى التسوية', g('relSettling', fm.relTotals.settling)],
     ['عقود مرحلة من العام السابق', g('relPrior', fm.relTotals.prior)],
     ['أرصدة العام الحالي', g('relCurrent', fm.relTotals.current)],
+    ['الفوائد البنكية اليومية على الحسابات', g('biDaily', fm.bankInterest.dailyAccounts)],
+    ['الفوائد البنكية على الودائع الثابتة', g('biFixed', fm.bankInterest.fixedDeposits)],
+    ['الودائع الثابتة الجارية خلال الربع', g('biActive', fm.bankInterest.activeDeposits)],
   ];
 }
 function buildFinDocx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
@@ -81,6 +84,7 @@ interface FinParsed {
   period?: string; budget?: number; used?: number; commit?: number; commitPaid?: number;
   opexE?: number; opexP?: number; capexE?: number; capexP?: number;
   relAll?: number; relSettling?: number; relPrior?: number; relCurrent?: number;
+  biDaily?: number; biFixed?: number; biActive?: number;
   projects?: { name: string; alloc: number; paid: number }[];
   entities?: { name: string; alloc: number; used: number; commit: number; paid: number; due: number }[];
   related?: { from: string; to: string; items: { n: string; v: number }[] }[];
@@ -125,6 +129,9 @@ function parseFinFile(tables: string[][][]): FinParsed {
   found.relSettling = kvNum(/^إجمالي جار[ىي] التسوية/);
   found.relPrior = kvNum(/^عقود مرحلة من العام السابق/);
   found.relCurrent = kvNum(/^أرصدة العام الحالي/);
+  found.biDaily = kvNum(/^الفوائد البنكية اليومية على الحسابات/);
+  found.biFixed = kvNum(/^الفوائد البنكية على الودائع الثابتة/);
+  found.biActive = kvNum(/^الودائع الثابتة الجارية خلال الربع/);
   const relRows = sliceSection(tables, (r) => /^من$/.test((r[0] || '').trim()) && /القيمة/.test(r.join(' ')));
   if (relRows.length) {
     const map = new Map<string, { from: string; to: string; items: { n: string; v: number }[] }>();
@@ -151,7 +158,8 @@ const blankFin = (year: string): FinModel => ({
   id: 'fin' + Math.floor(Math.random() * 1e9), year, period: 'حتى نهاية ' + year,
   budget: 0, used: 0, remain: 0, commit: 0, commitPaid: 0, commitDue: 0,
   opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 },
-  bigProjects: [], entities: [], related: [], relTotals: { allPeriods: 0, settling: 0, prior: 0, current: 0 }, aging: [],
+  bigProjects: [], entities: [], related: [], relTotals: { allPeriods: 0, settling: 0, prior: 0, current: 0 },
+  bankInterest: { dailyAccounts: 0, fixedDeposits: 0, activeDeposits: 0 }, aging: [],
 });
 
 /* ---------------- the edit / create form ---------------- */
@@ -175,6 +183,8 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
     capexE: String(source.capex.expected), capexP: String(source.capex.paid),
     relAll: String(source.relTotals.allPeriods), relSettling: String(source.relTotals.settling),
     relPrior: String(source.relTotals.prior), relCurrent: String(source.relTotals.current),
+    biDaily: String(source.bankInterest.dailyAccounts), biFixed: String(source.bankInterest.fixedDeposits),
+    biActive: String(source.bankInterest.activeDeposits),
   });
   const [rel, setRel] = useState<{ from: string; to: string; items: { n: string; v: number }[] }[]>(
     () => source.related.map((rp) => ({ from: rp.from, to: rp.to, items: rp.items.map((x) => ({ n: x.n, v: x.v })) })));
@@ -208,6 +218,9 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
         relSettling: p.relSettling !== undefined ? String(p.relSettling) : prev.relSettling,
         relPrior: p.relPrior !== undefined ? String(p.relPrior) : prev.relPrior,
         relCurrent: p.relCurrent !== undefined ? String(p.relCurrent) : prev.relCurrent,
+        biDaily: p.biDaily !== undefined ? String(p.biDaily) : prev.biDaily,
+        biFixed: p.biFixed !== undefined ? String(p.biFixed) : prev.biFixed,
+        biActive: p.biActive !== undefined ? String(p.biActive) : prev.biActive,
       }));
       if (p.projects) setProjects(p.projects);
       if (p.entities) setEnts(p.entities);
@@ -245,6 +258,7 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
       });
       m.aging = aging.map((b) => ({ bucket: b.bucket, risk: b.risk, items: b.items.filter((it) => it.supplier.trim() || it.amount) }));
       m.relTotals = { allPeriods: num(f.relAll), settling: num(f.relSettling), prior: num(f.relPrior), current: num(f.relCurrent) };
+      m.bankInterest = { dailyAccounts: num(f.biDaily), fixedDeposits: num(f.biFixed), activeDeposits: num(f.biActive) };
       m.related = rel.filter((rp) => rp.from.trim() && rp.to.trim()).map((rp) => ({ from: rp.from.trim(), to: rp.to.trim(), items: rp.items.filter((it) => it.n.trim()).map((it) => ({ n: it.n.trim(), v: it.v })) }));
       m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
       if (send) { m._mstatus = 'بانتظار مراجعة رئيس القطاع'; m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id; }
@@ -379,6 +393,16 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
           </div>
         ))}
         {addRowBtn('إضافة طرف ذي علاقة', () => setRel((prev) => [...prev, { from: '', to: '', items: [] }]))}
+      </div>
+
+      {secHead('الفوائد البنكية')}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div><Label>الفوائد البنكية اليومية على الحسابات</Label><input value={f.biDaily} onChange={setI('biDaily')} style={inputStyle} /></div>
+        <div><Label>الفوائد البنكية على الودائع الثابتة</Label><input value={f.biFixed} onChange={setI('biFixed')} style={inputStyle} /></div>
+        <div><Label>الودائع الثابتة الجارية خلال الربع</Label><input value={f.biActive} onChange={setI('biActive')} style={inputStyle} /></div>
+      </div>
+      <div style={{ fontSize: 11.5, color: '#7d867f', marginBottom: 18, lineHeight: 1.6 }}>
+        بطاقات «إبراز المخاطر المالية» تُحتسب تلقائياً من بيانات الجهات وأعمار الذمم والأطراف ذات العلاقة أعلاه — لا تحتاج إدخالاً منفصلاً.
       </div>
 
       {secHead('أعمار الذمم الدائنة')}
