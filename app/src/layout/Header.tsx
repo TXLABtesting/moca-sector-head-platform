@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { useNav, type Page } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
-import { useStore } from '../store/store';
-import { useCurrentUser } from '../store/useCurrentUser';
-import { TYPES } from './headerHelpers';
-import { Icon } from '../components/Icon';
 import { NotificationsBell } from './Notifications';
 import { asset } from '../shared/helpers';
 
@@ -14,9 +10,6 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { page, back, search, setSearch } = useNav();
   const { t, lang, toggleLang, dir } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
-  const cu = useCurrentUser();
-  const logout = useStore((s) => s.logout);
-  const [roleOpen, setRoleOpen] = useState(false);
   const [mSearchOpen, setMSearchOpen] = useState(false);
 
 
@@ -42,7 +35,6 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   };
 
   const showBack = BACK_PAGES.includes(page);
-  const ct = TYPES.find((x) => x.id === cu.type) || TYPES[0];
 
   return (
     <header className="app-header" style={{ height: 76, flex: 'none', background: 'rgba(247,250,246,.55)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: '1px solid rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 30px', position: 'sticky', top: 0, zIndex: 20 }}>
@@ -74,35 +66,6 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         <div className="hide-sm" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <svg style={{ position: 'absolute', pointerEvents: 'none', insetInlineStart: 12 }} width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" /></svg>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('searchPh')} style={{ border: '1px solid #ebeee9', background: '#fff', borderRadius: 12, padding: '10px 14px', paddingInlineStart: 40, fontSize: 13, width: 240, outline: 'none', color: '#17211c', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }} />
-        </div>
-        <div style={{ position: 'relative' }}>
-          <button onClick={() => setRoleOpen((v) => !v)} title={lang === 'en' ? ct.en : ct.ar} style={{ height: 42, borderRadius: 12, border: '1px solid #ebeee9', background: '#fff', display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', padding: '0 12px 0 10px', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }}>
-            <span style={{ width: 26, height: 26, flex: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ct.bg, color: ct.fg }}><Icon name={ct.icon} size={15} /></span>
-            <span className="hdr-rt" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#17211c', whiteSpace: 'nowrap' }}>{cu.name}</span>
-              <span style={{ fontSize: 9.5, color: '#9aa39b', whiteSpace: 'nowrap' }}>{lang === 'en' ? ct.en : ct.ar}</span>
-            </span>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="m6 9 6 6 6-6" /></svg>
-          </button>
-          {roleOpen && (
-            <>
-              <div onClick={() => setRoleOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 590 }} />
-              <div style={{ position: 'absolute', top: 50, insetInlineEnd: 0, width: 260, background: '#fff', border: '1px solid #edf0ea', borderRadius: 16, boxShadow: '0 16px 44px -12px rgba(23,40,32,.3),0 3px 10px rgba(23,40,32,.07)', padding: 8, zIndex: 600, animation: 'fadeUp .14s ease' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px 11px' }}>
-                  <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ct.bg, color: ct.fg }}><Icon name={ct.icon} size={17} /></span>
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.3 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>{cu.name}</span>
-                    <span style={{ fontSize: 10.5, color: '#9aa39b' }}>{lang === 'en' ? ct.en : ct.ar}</span>
-                  </span>
-                </div>
-                <div style={{ height: 1, background: '#f0f3ee', margin: '0 4px 6px' }} />
-                <button onClick={() => { setRoleOpen(false); logout(); }} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 11px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'start', borderRadius: 12, fontFamily: 'inherit', color: '#b0433b', fontSize: 13, fontWeight: 600 }}>
-                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
-                  {rl('تسجيل الخروج', 'Sign out')}
-                </button>
-              </div>
-            </>
-          )}
         </div>
         <button onClick={toggleLang} style={{ height: 42, borderRadius: 12, border: '1px solid #ebeee9', background: '#fff', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', color: '#1f4a37', fontWeight: 700, fontSize: 12.5, padding: '0 14px', boxShadow: '0 1px 2px rgba(20,45,32,.04)' }}>
           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 3.8 5.7 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.7-3.8-9S9.5 5.5 12 3Z" /></svg>
