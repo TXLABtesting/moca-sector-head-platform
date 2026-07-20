@@ -85,7 +85,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 14,
+      version: 15,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -96,6 +96,12 @@ export const useStore = create<AppState>()(
         if (s && s.data && !s.data.finModels) {
           s.data.finModels = s.data.finModel ? [{ ...s.data.finModel, year: s.data.finModel.year || '2026' }] : clone(seedData.finModels);
           delete s.data.finModel;
+        }
+        // v15: the bank-interest figures became editable per-year model fields.
+        if (s && s.data && Array.isArray(s.data.finModels)) {
+          s.data.finModels.forEach((m: any) => {
+            if (m && !m.bankInterest) m.bankInterest = { dailyAccounts: 0, fixedDeposits: 0, activeDeposits: 0 };
+          });
         }
         return s as AppState;
       },

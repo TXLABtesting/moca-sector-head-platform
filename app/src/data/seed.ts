@@ -4469,6 +4469,11 @@ export const seedData = ({
       "prior": 46133880,
       "current": 56196732
     },
+    "bankInterest": {
+      "dailyAccounts": 1192902,
+      "fixedDeposits": 2265002,
+      "activeDeposits": 200343098
+    },
     "aging": [
       {
         "bucket": "0 - 30",

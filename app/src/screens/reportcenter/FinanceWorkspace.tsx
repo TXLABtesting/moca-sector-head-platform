@@ -32,7 +32,35 @@ const secHead = (t: string, warn?: boolean) => (
 );
 const fmt = (n: number) => (n || 0).toLocaleString('en-US');
 const num = (v: string) => parseFloat(String(v).replace(/[^\d.-]/g, '')) || 0;
+/** Parse a related-party value, treating (123) as −123. */
+const numRel = (v: string): number => {
+  const t = String(v).trim();
+  if (t === '' || t === '—') return 0;
+  const neg = /^\(.*\)$/.test(t);
+  const n = parseFloat(t.replace(/[()]/g, '').replace(/[^\d.-]/g, '')) || 0;
+  return neg ? -Math.abs(n) : n;
+};
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
+
+/* related-party editor drafts (value kept as string while editing) */
+type RelRowDraft = { n: string; v: string };
+type RelSecDraft = { title: string; rows: RelRowDraft[] };
+type RelDraft = { from: string; to: string; sections: RelSecDraft[] };
+const relDraftFrom = (rp: FinModel['related'][number]): RelDraft => {
+  if (rp.sections && rp.sections.length) {
+    return { from: rp.from, to: rp.to, sections: rp.sections.map((s) => ({ title: s.title, rows: s.rows.map((x) => ({ n: x.n, v: x.v == null ? '' : String(x.v) })) })) };
+  }
+  // legacy party with only flat items: drop them into the current-year section
+  return { from: rp.from, to: rp.to, sections: REL_SECTIONS.map((t, i) => ({ title: t, rows: i === REL_SECTIONS.length - 1 ? rp.items.map((x) => ({ n: x.n, v: String(x.v) })) : [] })) };
+};
+
+/** The three standard related-party breakdown sections. */
+const REL_SECTIONS = ['تفاصيل جارى التسوية', 'عقود مرحلة من العام السابق', 'أرصدة خلال العام الحالي'];
+/** Flatten a related party to template rows: [from, to, section, item, value]. */
+function relTemplateRows(rp: FinModel['related'][number]): string[][] {
+  const secs = rp.sections && rp.sections.length ? rp.sections : [{ title: '', rows: rp.items }];
+  return secs.flatMap((sec) => (sec.rows.length ? sec.rows : [{ n: '', v: 0 }]).map((r) => [rp.from, rp.to, sec.title, r.n, String(r.v ?? '')]));
+}
 
 /* ---------------- template ---------------- */
 function kvRows(fm: FinModel, f?: Record<string, string>): [string, string][] {
@@ -47,6 +75,13 @@ function kvRows(fm: FinModel, f?: Record<string, string>): [string, string][] {
     ['التشغيلية - المدفوع', g('opexP', fm.opex.paid)],
     ['الرأسمالية - المتوقع', g('capexE', fm.capex.expected)],
     ['الرأسمالية - المدفوع', g('capexP', fm.capex.paid)],
+    ['إجمالي الأرصدة بين الجهات', g('relAll', fm.relTotals.allPeriods)],
+    ['إجمالي جارى التسوية', g('relSettling', fm.relTotals.settling)],
+    ['عقود مرحلة من العام السابق', g('relPrior', fm.relTotals.prior)],
+    ['أرصدة العام الحالي', g('relCurrent', fm.relTotals.current)],
+    ['الفوائد البنكية اليومية على الحسابات', g('biDaily', fm.bankInterest.dailyAccounts)],
+    ['الفوائد البنكية على الودائع الثابتة', g('biFixed', fm.bankInterest.fixedDeposits)],
+    ['الودائع الثابتة الجارية خلال الربع', g('biActive', fm.bankInterest.activeDeposits)],
   ];
 }
 function buildFinDocx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
@@ -56,7 +91,9 @@ function buildFinDocx(fm: FinModel, projects: FinBigProject[], entities: FinEnti
     wP('المشاريع الكبرى', { bold: true, size: 28 }) +
     wTbl(['المشروع', 'المخصص (مليون درهم)', 'المدفوع (مليون درهم)'], projects.length ? projects.map((p) => [p.name, String(p.alloc), String(p.paid)]) : [['اكتب هنا', '', '']]) +
     wP('الجهات', { bold: true, size: 28 }) +
-    wTbl(['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'], entities.length ? entities.map((e) => [e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]) : [['اكتب هنا', '', '', '', '', '']]);
+    wTbl(['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'], entities.length ? entities.map((e) => [e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]) : [['اكتب هنا', '', '', '', '', '']]) +
+    wP('الأطراف ذات العلاقة', { bold: true, size: 28 }) +
+    wTbl(['من', 'إلى', 'القسم', 'البند', 'القيمة'], fm.related.length ? fm.related.flatMap(relTemplateRows) : [['اكتب هنا', '', 'تفاصيل جارى التسوية', '', '']]);
   return makeDocx(body);
 }
 function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
@@ -65,6 +102,8 @@ function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEnti
   (projects.length ? projects : [{ name: '', alloc: 0, paid: 0 }]).forEach((p) => rows.push([p.name, String(p.alloc || ''), String(p.paid || '')]));
   rows.push([''], ['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق']);
   (entities.length ? entities : []).forEach((e) => rows.push([e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]));
+  rows.push([''], ['من', 'إلى', 'القسم', 'البند', 'القيمة']);
+  (fm.related.length ? fm.related : []).forEach((rp) => relTemplateRows(rp).forEach((r) => rows.push(r)));
   return makeXlsx(rows, 'الملخص المالي');
 }
 
@@ -72,8 +111,11 @@ function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEnti
 interface FinParsed {
   period?: string; budget?: number; used?: number; commit?: number; commitPaid?: number;
   opexE?: number; opexP?: number; capexE?: number; capexP?: number;
+  relAll?: number; relSettling?: number; relPrior?: number; relCurrent?: number;
+  biDaily?: number; biFixed?: number; biActive?: number;
   projects?: { name: string; alloc: number; paid: number }[];
   entities?: { name: string; alloc: number; used: number; commit: number; paid: number; due: number }[];
+  related?: { from: string; to: string; sections: { title: string; rows: { n: string; v: number }[] }[] }[];
   missing: string[];
 }
 function sliceSection(tables: string[][][], head: (r: string[]) => boolean): string[][] {
@@ -85,7 +127,7 @@ function sliceSection(tables: string[][][], head: (r: string[]) => boolean): str
       const r = t[i];
       const first = (r[0] || '').trim();
       if (!first && !(r[1] || '').trim()) break;
-      if (/^(المشروع|الجهة|الحقل)$/.test(first)) break;
+      if (/^(المشروع|الجهة|الحقل|من)$/.test(first)) break;
       if (first) out.push(r);
     }
     if (out.length) return out;
@@ -111,6 +153,32 @@ function parseFinFile(tables: string[][][]): FinParsed {
   if (projRows.length) found.projects = projRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), paid: num(r[2] || '') })).filter((p) => p.name && p.name !== 'اكتب هنا');
   const entRows = sliceSection(tables, (r) => /^الجهة/.test((r[0] || '').trim()) && /المخصص/.test(r.join(' ')));
   if (entRows.length) found.entities = entRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), used: num(r[2] || ''), commit: num(r[3] || ''), paid: num(r[4] || ''), due: num(r[5] || '') })).filter((e) => e.name && e.name !== 'اكتب هنا');
+  found.relAll = kvNum(/^إجمالي الأرصدة بين الجهات/);
+  found.relSettling = kvNum(/^إجمالي جار[ىي] التسوية/);
+  found.relPrior = kvNum(/^عقود مرحلة من العام السابق/);
+  found.relCurrent = kvNum(/^أرصدة العام الحالي/);
+  found.biDaily = kvNum(/^الفوائد البنكية اليومية على الحسابات/);
+  found.biFixed = kvNum(/^الفوائد البنكية على الودائع الثابتة/);
+  found.biActive = kvNum(/^الودائع الثابتة الجارية خلال الربع/);
+  const relRows = sliceSection(tables, (r) => /^من$/.test((r[0] || '').trim()) && /القيمة/.test(r.join(' ')));
+  if (relRows.length) {
+    // detect layout: 5-col [من, إلى, القسم, البند, القيمة] vs legacy 4-col [من, إلى, البند, القيمة]
+    const withSection = relRows.some((r) => r.length >= 5 && String(r[4] ?? '').trim() !== '');
+    const map = new Map<string, { from: string; to: string; secMap: Map<string, { n: string; v: number }[]> }>();
+    relRows.forEach((r) => {
+      const from = (r[0] || '').trim(); const to = (r[1] || '').trim();
+      const secTitle = withSection ? (r[2] || '').trim() : '';
+      const n = (withSection ? (r[3] || '') : (r[2] || '')).trim();
+      const v = num((withSection ? r[4] : r[3]) || '');
+      if (!from || !to || !n || from === 'اكتب هنا') return;
+      const key = from + '|' + to;
+      if (!map.has(key)) map.set(key, { from, to, secMap: new Map() });
+      const secMap = map.get(key)!.secMap;
+      if (!secMap.has(secTitle)) secMap.set(secTitle, []);
+      secMap.get(secTitle)!.push({ n, v });
+    });
+    if (map.size) found.related = [...map.values()].map((p) => ({ from: p.from, to: p.to, sections: [...p.secMap.entries()].map(([title, rows]) => ({ title, rows })) }));
+  }
   const KEYS: { k: keyof FinParsed; ar: string }[] = [
     { k: 'period', ar: 'الفترة' }, { k: 'budget', ar: 'الميزانية الإجمالية' }, { k: 'used', ar: 'المستخدم' },
     { k: 'commit', ar: 'الالتزامات' }, { k: 'commitPaid', ar: 'المدفوع من الالتزامات' },
@@ -125,7 +193,8 @@ const blankFin = (year: string): FinModel => ({
   id: 'fin' + Math.floor(Math.random() * 1e9), year, period: 'حتى نهاية ' + year,
   budget: 0, used: 0, remain: 0, commit: 0, commitPaid: 0, commitDue: 0,
   opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 },
-  bigProjects: [], entities: [], related: [], relTotals: { allPeriods: 0, settling: 0, prior: 0, current: 0 }, aging: [],
+  bigProjects: [], entities: [], related: [], relTotals: { allPeriods: 0, settling: 0, prior: 0, current: 0 },
+  bankInterest: { dailyAccounts: 0, fixedDeposits: 0, activeDeposits: 0 }, aging: [],
 });
 
 /* ---------------- the edit / create form ---------------- */
@@ -147,13 +216,19 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
     commit: String(source.commit), commitPaid: String(source.commitPaid),
     opexE: String(source.opex.expected), opexP: String(source.opex.paid),
     capexE: String(source.capex.expected), capexP: String(source.capex.paid),
+    relAll: String(source.relTotals.allPeriods), relSettling: String(source.relTotals.settling),
+    relPrior: String(source.relTotals.prior), relCurrent: String(source.relTotals.current),
+    biDaily: String(source.bankInterest.dailyAccounts), biFixed: String(source.bankInterest.fixedDeposits),
+    biActive: String(source.bankInterest.activeDeposits),
   });
+  const [rel, setRel] = useState<RelDraft[]>(() => source.related.map(relDraftFrom));
   const [projects, setProjects] = useState<FinBigProject[]>(() => source.bigProjects.map((p) => ({ ...p })));
   const [ents, setEnts] = useState<{ name: string; alloc: number; used: number; commit: number; paid: number; due: number }[]>(
     () => source.entities.map((e) => ({ name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due })));
   const [aging, setAging] = useState<AgingBucket[]>(() => clone(source.aging || []));
   const [missing, setMissing] = useState<string[]>([]);
   const [parsedFrom, setParsedFrom] = useState('');
+  const [tab, setTab] = useState(0);
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
   const remain = num(f.budget) - num(f.used);
   const commitDue = num(f.commit) - num(f.commitPaid);
@@ -174,9 +249,17 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
         opexP: p.opexP !== undefined ? String(p.opexP) : prev.opexP,
         capexE: p.capexE !== undefined ? String(p.capexE) : prev.capexE,
         capexP: p.capexP !== undefined ? String(p.capexP) : prev.capexP,
+        relAll: p.relAll !== undefined ? String(p.relAll) : prev.relAll,
+        relSettling: p.relSettling !== undefined ? String(p.relSettling) : prev.relSettling,
+        relPrior: p.relPrior !== undefined ? String(p.relPrior) : prev.relPrior,
+        relCurrent: p.relCurrent !== undefined ? String(p.relCurrent) : prev.relCurrent,
+        biDaily: p.biDaily !== undefined ? String(p.biDaily) : prev.biDaily,
+        biFixed: p.biFixed !== undefined ? String(p.biFixed) : prev.biFixed,
+        biActive: p.biActive !== undefined ? String(p.biActive) : prev.biActive,
       }));
       if (p.projects) setProjects(p.projects);
       if (p.entities) setEnts(p.entities);
+      if (p.related) setRel(p.related.map((rp) => ({ from: rp.from, to: rp.to, sections: rp.sections.map((s) => ({ title: s.title, rows: s.rows.map((x) => ({ n: x.n, v: String(x.v) })) })) })));
       setMissing(p.missing);
       setParsedFrom(file.name);
       showToast('قُرئ الملف وعُبئت الحقول — راجع البيانات قبل الحفظ');
@@ -209,6 +292,18 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
           : { code: e.name.slice(0, 4), name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due, opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 }, projects: [], overdue: 0 };
       });
       m.aging = aging.map((b) => ({ bucket: b.bucket, risk: b.risk, items: b.items.filter((it) => it.supplier.trim() || it.amount) }));
+      m.relTotals = { allPeriods: num(f.relAll), settling: num(f.relSettling), prior: num(f.relPrior), current: num(f.relCurrent) };
+      m.bankInterest = { dailyAccounts: num(f.biDaily), fixedDeposits: num(f.biFixed), activeDeposits: num(f.biActive) };
+      m.related = rel
+        .filter((rp) => rp.from.trim() && rp.to.trim())
+        .map((rp) => {
+          const sections = rp.sections
+            .map((s) => ({ title: s.title.trim(), rows: s.rows.filter((r) => r.n.trim()).map((r) => ({ n: r.n.trim(), v: numRel(r.v) })) }))
+            .filter((s) => s.rows.length);
+          const items = sections.map((s) => ({ n: s.title || 'بنود', v: s.rows.reduce((a, x) => a + (x.v || 0), 0) }));
+          return { from: rp.from.trim(), to: rp.to.trim(), items, sections };
+        })
+        .filter((rp) => rp.sections.length);
       m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
       if (send) { m._mstatus = 'بانتظار مراجعة رئيس القطاع'; m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id; }
       else if (!m._mrev && m._mstatus !== 'معتمد') m._mstatus = 'مسودة';
@@ -229,6 +324,13 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
   const th: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: '#7d867f', textAlign: 'start', padding: '4px 2px' };
   const setAgeItem = (bi: number, ii: number, k: keyof AgingBucket['items'][number], v: string) =>
     setAging((prev) => prev.map((b, i) => i !== bi ? b : { ...b, items: b.items.map((it, j) => j !== ii ? it : { ...it, [k]: k === 'amount' ? num(v) : v }) }));
+  // related-party editor: mutate a party, a section, or a row within a section
+  const updRel = (ri: number, fn: (rp: RelDraft) => RelDraft) => setRel((prev) => prev.map((x, i) => (i === ri ? fn(x) : x)));
+  const setRelSecRow = (ri: number, si: number, rowi: number, k: 'n' | 'v', v: string) =>
+    updRel(ri, (rp) => ({ ...rp, sections: rp.sections.map((s, j) => (j !== si ? s : { ...s, rows: s.rows.map((r, m2) => (m2 !== rowi ? r : { ...r, [k]: v })) })) }));
+  const secSum = (rows: RelRowDraft[]) => rows.reduce((a, r) => a + numRel(r.v), 0);
+  const relColor = { bar: '#7a4d94', tint: '#f5eef7', line: '#efe6f2' };
+  const secBar: Record<string, string> = { 'تفاصيل جارى التسوية': '#c26a2b', 'عقود مرحلة من العام السابق': '#a9791f', 'أرصدة خلال العام الحالي': '#2b5c44' };
 
   return (
     <Modal open onClose={onClose} width={840}>
@@ -257,6 +359,25 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
         </div>
       )}
 
+      {(() => {
+        const tabNames = ['البيانات الرئيسية', 'الجهات والمشاريع', 'الأطراف ذات العلاقة', 'الفوائد والذمم'];
+        const tabWarn = [
+          ['الفترة', 'الميزانية الإجمالية', 'المستخدم', 'الالتزامات', 'المدفوع من الالتزامات', 'التشغيلية', 'الرأسمالية'],
+          ['المشاريع الكبرى', 'الجهات'], [], [],
+        ].map((ls) => ls.some((l) => needs(l)));
+        return (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', margin: '16px 0 10px', borderBottom: '1px solid #eef1ec' }}>
+            {tabNames.map((tn, ti) => (
+              <button key={ti} type="button" onClick={() => setTab(ti)} style={{ position: 'relative', background: 'transparent', border: 'none', borderBottom: tab === ti ? '2.5px solid #1e4634' : '2.5px solid transparent', color: tab === ti ? '#1e4634' : '#7d867f', fontWeight: tab === ti ? 800 : 600, fontSize: 12.5, fontFamily: 'inherit', padding: '9px 15px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {tn}
+                {tabWarn[ti] && <span style={{ position: 'absolute', top: 7, insetInlineEnd: 5, width: 7, height: 7, borderRadius: '50%', background: '#e9c877' }} />}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
+      {tab === 0 && (<>
       {secHead('البيانات الرئيسية')}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>الفترة</Label><input value={f.period} onChange={setI('period')} style={{ ...inputStyle, ...warnStyle('الفترة') }} /></div>
@@ -275,7 +396,9 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
         <div><Label>الرأسمالية — المتوقع</Label><input value={f.capexE} onChange={setI('capexE')} style={inputStyle} /></div>
         <div><Label>الرأسمالية — المدفوع</Label><input value={f.capexP} onChange={setI('capexP')} style={inputStyle} /></div>
       </div>
+      </>)}
 
+      {tab === 1 && (<>
       {secHead('المشاريع الكبرى', needs('المشاريع الكبرى'))}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 150px 150px 26px', gap: 8 }}>
@@ -309,6 +432,74 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
           ))}
           {addRowBtn('إضافة جهة', () => setEnts((prev) => [...prev, { name: '', alloc: 0, used: 0, commit: 0, paid: 0, due: 0 }]))}
         </div>
+      </div>
+      </>)}
+
+      {tab === 2 && (<>
+      {secHead('إجماليات الأرصدة بين الجهات')}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <div><Label>إجمالي الأرصدة بين الجهات</Label><input value={f.relAll} onChange={setI('relAll')} style={inputStyle} /></div>
+        <div><Label>إجمالي جارى التسوية</Label><input value={f.relSettling} onChange={setI('relSettling')} style={inputStyle} /></div>
+        <div><Label>عقود مرحلة من العام السابق</Label><input value={f.relPrior} onChange={setI('relPrior')} style={inputStyle} /></div>
+        <div><Label>أرصدة العام الحالي</Label><input value={f.relCurrent} onChange={setI('relCurrent')} style={inputStyle} /></div>
+      </div>
+
+      {secHead('تفاصيل الأطراف ذات العلاقة')}
+      <div style={{ fontSize: 11.5, color: '#7d867f', margin: '-2px 0 10px', lineHeight: 1.6 }}>
+        لكل طرف، سجّل بنوده موزّعة على الأقسام. القيم بالدرهم — استخدم إشارة سالبة أو أقواس <span style={{ direction: 'ltr', unicodeBidi: 'isolate' }}>(123)</span> للقيم السالبة. تُحسب الإجماليات الفرعية تلقائياً.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {rel.map((rp, ri) => {
+          const grand = rp.sections.reduce((a, s) => a + secSum(s.rows), 0);
+          return (
+          <div key={ri} style={{ border: `1px solid ${relColor.line}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ background: relColor.tint, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px', flexWrap: 'wrap' }}>
+              <input value={rp.from} onChange={(e) => updRel(ri, (x) => ({ ...x, from: e.target.value }))} placeholder="من" style={{ ...inputStyle, width: 140, padding: '7px 10px', fontWeight: 700 }} />
+              <span style={{ color: relColor.bar, fontWeight: 800 }}>←</span>
+              <input value={rp.to} onChange={(e) => updRel(ri, (x) => ({ ...x, to: e.target.value }))} placeholder="إلى" style={{ ...inputStyle, width: 140, padding: '7px 10px', fontWeight: 700 }} />
+              <span style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: grand < 0 ? '#b0433b' : '#1f4a37', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace" }}>{fmt(grand)}</span>
+                <button type="button" onClick={() => setRel((prev) => prev.filter((_, j) => j !== ri))} style={{ ...rowBtn, width: 'auto', color: '#8a4b6b' }}>حذف الطرف ✕</button>
+              </span>
+            </div>
+            <div style={{ padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+              {rp.sections.map((sec, si) => (
+                <div key={si} style={{ border: '1px solid #f0e6dd', borderRadius: 11, overflow: 'hidden' }}>
+                  <div style={{ background: secBar[sec.title] || '#8a8f88', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 11px' }}>
+                    <input value={sec.title} onChange={(e) => updRel(ri, (x) => ({ ...x, sections: x.sections.map((s, j) => j === si ? { ...s, title: e.target.value } : s) }))} placeholder="عنوان القسم" style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,.18)', border: '1px solid rgba(255,255,255,.35)', color: '#fff', borderRadius: 8, padding: '5px 9px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', outline: 'none' }} />
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: '#fff', fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", whiteSpace: 'nowrap' }}>{fmt(secSum(sec.rows))}</span>
+                    <button type="button" onClick={() => updRel(ri, (x) => ({ ...x, sections: x.sections.filter((_, j) => j !== si) }))} style={{ ...rowBtn, color: '#fff' }}>✕</button>
+                  </div>
+                  <div style={{ padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {sec.rows.map((r, rowi) => (
+                      <div key={rowi} style={{ display: 'grid', gridTemplateColumns: '2fr 150px 26px', gap: 8, alignItems: 'center' }}>
+                        <input value={r.n} onChange={(e) => setRelSecRow(ri, si, rowi, 'n', e.target.value)} placeholder="اسم البند" style={{ ...inputStyle, direction: 'ltr', textAlign: 'start' }} />
+                        <input value={r.v} onChange={(e) => setRelSecRow(ri, si, rowi, 'v', e.target.value)} placeholder="القيمة" style={{ ...inputStyle, textAlign: 'center' }} />
+                        <button type="button" onClick={() => updRel(ri, (x) => ({ ...x, sections: x.sections.map((s, j) => j === si ? { ...s, rows: s.rows.filter((_, k) => k !== rowi) } : s) }))} style={rowBtn}>✕</button>
+                      </div>
+                    ))}
+                    {addRowBtn('إضافة بند', () => updRel(ri, (x) => ({ ...x, sections: x.sections.map((s, j) => j === si ? { ...s, rows: [...s.rows, { n: '', v: '' }] } : s) })))}
+                  </div>
+                </div>
+              ))}
+              {addRowBtn('إضافة قسم', () => updRel(ri, (x) => ({ ...x, sections: [...x.sections, { title: 'قسم جديد', rows: [] }] })))}
+            </div>
+          </div>
+          );
+        })}
+        {addRowBtn('إضافة طرف ذي علاقة', () => setRel((prev) => [...prev, { from: '', to: '', sections: REL_SECTIONS.map((t) => ({ title: t, rows: [] })) }]))}
+      </div>
+      </>)}
+
+      {tab === 3 && (<>
+      {secHead('الفوائد البنكية')}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div><Label>الفوائد البنكية اليومية على الحسابات</Label><input value={f.biDaily} onChange={setI('biDaily')} style={inputStyle} /></div>
+        <div><Label>الفوائد البنكية على الودائع الثابتة</Label><input value={f.biFixed} onChange={setI('biFixed')} style={inputStyle} /></div>
+        <div><Label>الودائع الثابتة الجارية خلال الربع</Label><input value={f.biActive} onChange={setI('biActive')} style={inputStyle} /></div>
+      </div>
+      <div style={{ fontSize: 11.5, color: '#7d867f', marginBottom: 18, lineHeight: 1.6 }}>
+        بطاقات «إبراز المخاطر المالية» تُحتسب تلقائياً من بيانات الجهات وأعمار الذمم والأطراف ذات العلاقة أعلاه — لا تحتاج إدخالاً منفصلاً.
       </div>
 
       {secHead('أعمار الذمم الدائنة')}
@@ -344,8 +535,9 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
         ))}
         {addRowBtn('إضافة فئة أعمار', () => setAging((prev) => [...prev, { bucket: ['0-30', '31-60', '61-90', '91-180', '181+'][prev.length] || 'جديد', risk: 'منخفض', items: [] }]))}
       </div>
+      </>)}
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid #eef1ec', paddingTop: 16 }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
         <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ كمسودة</button>
         <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إرسال لرئيس القطاع</button>

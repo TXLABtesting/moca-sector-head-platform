@@ -320,6 +320,7 @@ export interface FinModel {
   entities: FinEntity[];
   related: RelatedParty[];
   relTotals: { allPeriods: number; settling: number; prior: number; current: number };
+  bankInterest: { dailyAccounts: number; fixedDeposits: number; activeDeposits: number };
   aging: AgingBucket[];
 }
 
