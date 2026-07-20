@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
 import { useI18n } from '../i18n/i18n';
-import { DEMO_CREDENTIALS } from './auth';
 
 /* Demo sign-in gate. Client-side only (GitHub Pages) — see auth.ts. */
 export function LoginScreen() {
   const { lang } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const login = useStore((s) => s.login);
-  const users = useStore((s) => s.users);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
-  const [showCreds, setShowCreds] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +21,6 @@ export function LoginScreen() {
     width: '100%', boxSizing: 'border-box', border: '1px solid #d9e2dc', background: '#f7faf8',
     borderRadius: 12, padding: '13px 15px', fontSize: 14, fontFamily: 'inherit', color: '#17211c', outline: 'none',
   };
-  const nameOf = (uid: string) => users.find((u) => u.id === uid)?.name || uid;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
@@ -64,28 +60,6 @@ export function LoginScreen() {
             {rl('تسجيل الدخول', 'Sign in')}
           </button>
         </form>
-
-        <div style={{ marginTop: 20, borderTop: '1px dashed #e2e8e3', paddingTop: 14 }}>
-          <button onClick={() => setShowCreds((v) => !v)} style={{ background: 'transparent', border: 'none', color: '#2b5c44', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: showCreds ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}><path d="m9 18 6-6-6-6" /></svg>
-            {rl('حسابات العرض التجريبي', 'Demo accounts')}
-          </button>
-          {showCreds && (
-            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
-              {DEMO_CREDENTIALS.map((c) => (
-                <button key={c.username} type="button" onClick={() => { setUsername(c.username); setPassword(c.password); setError(false); }}
-                  style={{ textAlign: 'start', background: '#f7faf8', border: '1px solid #e2e8e3', borderRadius: 10, padding: '8px 11px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#17211c' }}>{nameOf(c.userId)}</span>
-                  <span style={{ fontSize: 10.5, color: '#7d867f', fontFamily: 'ui-monospace,monospace' }}>{c.username} · {c.password}</span>
-                </button>
-              ))}
-              <div style={{ fontSize: 10.5, color: '#9aa39b', marginTop: 2, lineHeight: 1.6 }}>
-                {rl('اضغط على أي حساب لتعبئة الحقول تلقائياً. (بيانات عرض فقط — تُستبدل بتسجيل الدخول المؤسسي في نسخة الإنتاج.)',
-                    'Click any account to auto-fill. (Demo only — replaced by enterprise SSO in production.)')}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
