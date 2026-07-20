@@ -6,7 +6,7 @@ import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { PS } from '../shared/constants';
 import { DemoHint } from '../components/DemoHint';
-import { mColl } from './member/workflow';
+import { mColl, pushUpdateReq } from './member/workflow';
 import { SECTIONS } from '../domain/permissions';
 import { WF } from '../domain/approval';
 
@@ -92,8 +92,11 @@ export function ChairDashboard() {
     showToast(rl('تم الاعتماد — يظهر الآن معتمداً لدى العضو', 'Approved — now shown as approved to the member'));
   };
   const requestUpdateSub = (s: Sub) => {
-    if (!s.isWork) mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: rl('طلب تحديث', 'Update requested'), chair: true }); });
-    showToast(rl('تم إرسال طلب تحديث إلى العضو', 'Update request sent to the member'));
+    mutate((d) => {
+      if (!s.isWork) { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: 'طلب تحديث', chair: true }); }
+      pushUpdateReq(d, { owner: s.ownerName, title: s.title, section: s.sec });
+    });
+    showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للعضو', 'Update request sent — the member was notified'));
   };
   const submitModal = () => {
     if (!modal) return;

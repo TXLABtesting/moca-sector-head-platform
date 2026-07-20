@@ -7,6 +7,7 @@ import { Drawer } from '../../components/ui';
 import type { RegReport } from '../../data/types';
 import { REGST } from './shared';
 import { LEGACY_YEAR, periodsForFreq, periodStatus, currentStatus, registerYears } from './reportPeriods';
+import { pushUpdateReq } from '../member/workflow';
 
 const PAGE = 15;
 const regTh: CSSProperties = { padding: '12px 14px', fontSize: 11, color: '#7d867f', fontWeight: 700, textAlign: 'start' };
@@ -98,7 +99,7 @@ export function ReportsRegister() {
     const k = latestKey(r); if (!k) return;
     r.periods = r.periods || {}; r.periods[year] = r.periods[year] || {}; r.periods[year][k] = st;
   });
-  const reqUpdate = () => showToast(rl('تم إرسال طلب تحديث إلى المسؤول عن التقرير', 'Update request sent'));
+  const reqUpdate = (id: string) => { mutate((d) => { const r = d.regReports.find((x) => x.id === id); if (r) pushUpdateReq(d, { owner: r.resp, title: r.title, section: 'reportLog' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markReceived = (id: string) => { setLatest(id, 'تم التسليم'); showToast(rl('تم وضع علامة: تم الاستلام', 'Marked received')); };
   const markApproved = (id: string) => { setLatest(id, 'معتمد'); showToast('تم وضع علامة: معتمد'); };
   const addDirective = (id: string) => { const txt = window.prompt && window.prompt('اكتب التوجيه:'); if (txt) { mutate((d) => { const r = d.regReports.find((x) => x.id === id); if (r) r.notes = (r.notes ? r.notes + ' — ' : '') + txt; }); showToast('تمت إضافة التوجيه'); } };
@@ -157,7 +158,7 @@ export function ReportsRegister() {
                 </div>
                 <div style={{ fontSize: 11, color: '#7d867f', marginBottom: 10 }}>{r.dept} · {r.resp} · {r.freq}</div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                  <button onClick={() => reqUpdate()} style={{ background: '#f0f2ee', color: '#3a6ea5', border: 'none', borderRadius: 8, padding: '6px 11px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{t('reg_reqUpdate')}</button>
+                  <button onClick={() => reqUpdate(r.id)} style={{ background: "#f0f2ee", color: '#3a6ea5', border: 'none', borderRadius: 8, padding: '6px 11px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{t('reg_reqUpdate')}</button>
                   <button onClick={() => markReceived(r.id)} style={{ background: '#e2f0e8', color: '#2e7d55', border: 'none', borderRadius: 8, padding: '6px 11px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{t('reg_markReceived')}</button>
                   <button onClick={() => setSel(r.id)} style={{ background: '#fff', color: '#7d867f', border: '1px solid #e2e6df', borderRadius: 8, padding: '6px 11px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{t('rc_view')}</button>
                 </div>
@@ -281,7 +282,7 @@ export function ReportsRegister() {
             </div>
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button onClick={() => reqUpdate()} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_reqUpdate')}</button>
+                <button onClick={() => reqUpdate(selDetail.id)} style={{ background: "#1e4634", color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_reqUpdate')}</button>
                 <button onClick={() => markReceived(selDetail.id)} style={{ background: '#e2f0e8', color: '#2e7d55', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_markReceived')}</button>
                 <button onClick={() => markApproved(selDetail.id)} style={{ background: '#fbf0d6', color: '#a9791f', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_markApproved')}</button>
                 <button onClick={() => addDirective(selDetail.id)} style={{ background: '#fff', color: '#7d867f', border: '1px solid #e2e6df', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_addDirective')}</button>

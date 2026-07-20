@@ -6,7 +6,7 @@ import { mColl, OWNER_OF, ownedBy } from '../screens/member/workflow';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export type NotifKind = 'returned' | 'approved' | 'review' | 'meeting' | 'directive' | 'leave';
+export type NotifKind = 'returned' | 'approved' | 'review' | 'meeting' | 'directive' | 'leave' | 'update';
 
 export interface Notif {
   key: string; kind: NotifKind;
@@ -43,6 +43,7 @@ export const KIND_LABELS: { k: NotifKind; ar: string; en: string }[] = [
   { k: 'returned', ar: 'أعيد للتعديل', en: 'Returned' },
   { k: 'approved', ar: 'اعتماد', en: 'Approved' },
   { k: 'directive', ar: 'توجيه', en: 'Directive' },
+  { k: 'update', ar: 'طلب تحديث', en: 'Update requested' },
   { k: 'meeting', ar: 'اجتماعات', en: 'Meetings' },
   { k: 'leave', ar: 'إجازات', en: 'Leaves' },
 ];
@@ -139,6 +140,9 @@ export function buildNotifications(
     work.filter((w) => w.owner === cu.id && w.directive).forEach((w) => {
       push({ key: 'dirw:' + w.id, kind: 'directive', title: rl('توجيه من رئيس القطاع: ', 'Directive from the Sector Head: ') + tr(w.title), sub: w.directive!, meta: secName(w.section), page: (SEC_PAGE[w.section] || 'dashboard') as Page }, true);
     });
+    (data.updateRequests || []).filter((u) => ownedBy(u.owner, cu.name)).forEach((u) => {
+      push({ key: 'upd:' + u.id, kind: 'update', title: rl('طلب تحديث من رئيس القطاع: ', 'Update requested by the Sector Head: ') + tr(u.title), sub: u.note ? tr(u.note) : rl('يرجى تحديث هذا البند وإعادة إرساله.', 'Please update this item and resubmit.'), meta: secName(u.section), page: (SEC_PAGE[u.section] || 'dashboard') as Page }, true);
+    });
     data.reqMeetings.forEach((m: any) => {
       if (m._mowner !== cu.id) return;
       if (m.status === 'تم اقتراح موعد آخر') {
@@ -176,5 +180,6 @@ export const KIND_STYLE: Record<NotifKind, { bg: string; fg: string; icon: strin
   review: { bg: '#fbf2df', fg: '#a9791f', icon: 'M22 12h-5l-2 3h-6l-2-3H2M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z' },
   meeting: { bg: '#e6eef6', fg: '#3a6ea5', icon: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
   directive: { bg: '#fbf2df', fg: '#a9791f', icon: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z' },
+  update: { bg: '#e9f0f6', fg: '#3a6ea5', icon: 'M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5' },
   leave: { bg: '#f0eaf6', fg: '#7a4fa3', icon: 'M8 3v4M16 3v4M3.5 10.5h17M3.5 8.5A3.5 3.5 0 0 1 7 5h10a3.5 3.5 0 0 1 3.5 3.5v9A3.5 3.5 0 0 1 17 21H7a3.5 3.5 0 0 1-3.5-3.5v-9Z' },
 };

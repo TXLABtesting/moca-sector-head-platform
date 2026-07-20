@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/store';
+import { pushUpdateReq } from '../member/workflow';
 import { useI18n } from '../../i18n/i18n';
 import { useNav } from '../../store/nav';
 import { useToast } from '../../components/Toast';
@@ -79,7 +80,7 @@ export function ProjectsList() {
   }));
 
   const open = (id: string) => () => goto('projectDetail', { selProject: id });
-  const reqUpdate = () => showToast(rl('تم إرسال طلب تحديث إلى المسؤول عن المشروع', 'Update request sent to the project owner'));
+  const reqUpdate = (p: { owner: string; name: string }) => { mutate((d) => pushUpdateReq(d, { owner: p.owner, title: p.name, section: 'projects' })); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
 
   // ---- drag & drop between status columns -----------------------------------
   const DROP_STATUS = ['بانتظار الاعتماد', 'قيد التنفيذ', 'يحتاج قرار', 'متأخر', 'مكتمل'];
@@ -185,7 +186,7 @@ export function ProjectsList() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minHeight: 60 }}>
               {col.items.map((p) => (
-                <KanbanCard key={p.id} p={p} tr={tr} dl={dl} t={t} open={open(p.id)} reqUpdate={reqUpdate}
+                <KanbanCard key={p.id} p={p} tr={tr} dl={dl} t={t} open={open(p.id)} reqUpdate={() => reqUpdate(p)}
                   role={cardRole} onEdit={() => setEditProj(p)} draggable={canDrag} editLabel={rl('تعديل', 'Edit')} />
               ))}
               {col.items.length === 0 && (

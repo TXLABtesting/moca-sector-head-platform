@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties } from 'react';
 import { Fade, Modal } from '../components/ui';
+import { WorkflowBanner } from '../components/WorkflowBanner';
 import { MobileFilters } from '../components/MobileFilters';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
@@ -247,7 +248,8 @@ export function Correspondence() {
               <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '5px 11px', background: sbg, color: sfg }}>{tr(doc.status)}</span>
               <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '5px 11px', background: prBg, color: prFg }}>{t('priority')} {tr(doc.priority)}</span>
             </div>
-            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 600, lineHeight: 1.5 }}>{tr(doc.name)}</h2>
+            <h2 style={{ margin: '0 0 16px', fontSize: 20, fontWeight: 600, lineHeight: 1.5 }}>{tr(doc.name)}</h2>
+            <WorkflowBanner rec={doc} style={{ marginBottom: 18 }} />
             {canEdit && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '-8px 0 20px' }}>
                 <button onClick={() => openEdit(doc.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>

@@ -6,6 +6,7 @@ import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { Fade, Avatar, Modal } from '../../components/ui';
+import { WorkflowBanner } from '../../components/WorkflowBanner';
 import { parseAr } from '../../shared/helpers';
 import type { Project } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
@@ -278,6 +279,7 @@ export function ProjectDetail() {
             {tr(p.owner)}
           </span>
         </div>
+        <WorkflowBanner rec={p} style={{ marginTop: 14 }} />
         <div style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#1f4a37', letterSpacing: '-.5px' }}>{p.progress}%</div>

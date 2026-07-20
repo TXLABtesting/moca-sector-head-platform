@@ -85,7 +85,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 15,
+      version: 16,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -103,6 +103,8 @@ export const useStore = create<AppState>()(
             if (m && !m.bankInterest) m.bankInterest = { dailyAccounts: 0, fixedDeposits: 0, activeDeposits: 0 };
           });
         }
+        // v16: "request update" became a real, notified collection.
+        if (s && s.data && !s.data.updateRequests) s.data.updateRequests = [];
         return s as AppState;
       },
     }

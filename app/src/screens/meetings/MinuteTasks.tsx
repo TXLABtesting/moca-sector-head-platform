@@ -8,6 +8,7 @@ import { useToast } from '../../components/Toast';
 import { useI18n } from '../../i18n/i18n';
 import { useNav } from '../../store/nav';
 import { useStore } from '../../store/store';
+import { pushUpdateReq } from '../member/workflow';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import type { MinuteTask } from '../../data/types';
@@ -180,7 +181,7 @@ export function MinuteTasks() {
     setDirModalId(null); setDirDraft('');
     showToast(rl('تم حفظ التوجيه في سجل المهمة', 'Directive saved to the task log'));
   };
-  const requestUpdate = () => showToast(rl('تم إرسال طلب تحديث إلى المسؤول عن المهمة', 'Update request sent to the task owner'));
+  const requestUpdate = (id: string) => { mutate((d) => { const tk = d.mtasks.find((x) => x.id === id); if (tk) pushUpdateReq(d, { owner: tk.owner, title: tk.task, section: 'minuteTasks' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markReviewed = (id: string) => {
     let now = false;
     mutate((d) => { const tk = d.mtasks.find((x) => x.id === id); if (tk) { tk.reviewed = !tk.reviewed; now = tk.reviewed; } });
@@ -432,7 +433,7 @@ export function MinuteTasks() {
                       </button>
                     )}
                     {canReview && (
-                      <button onClick={requestUpdate} title={t('mt_requestUpdate')} style={{ width: 34, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eef3f6', color: '#2f6aa8', border: '1px solid #d8e4ee', borderRadius: 9, padding: 8, cursor: 'pointer' }}>
+                      <button onClick={() => requestUpdate(tk.id)} title={t('mt_requestUpdate')} style={{ width: 34, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eef3f6', color: '#2f6aa8', border: '1px solid #d8e4ee', borderRadius: 9, padding: 8, cursor: 'pointer' }}>
                         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
                       </button>
                     )}
@@ -449,7 +450,7 @@ export function MinuteTasks() {
         {selTask && (
           <MtaskDrawerBody tk={selTask} tr={tr} dl={dl} rl={rl} t={t}
             canDirect={canDirect} canReview={canReview} canEdit={canAddEdit}
-            onDirective={() => openDirective(selTask.id)} onRequestUpdate={requestUpdate} onReviewed={() => markReviewed(selTask.id)}
+            onDirective={() => openDirective(selTask.id)} onRequestUpdate={() => requestUpdate(selTask.id)} onReviewed={() => markReviewed(selTask.id)}
             onEdit={() => { setSelMtask(null); setMtForm({ id: selTask.id }); }}
             onClose={() => setSelMtask(null)} disp={disp} dueColorOf={dueColorOf} />
         )}

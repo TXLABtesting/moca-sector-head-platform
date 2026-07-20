@@ -7,7 +7,7 @@ import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { useToast } from '../components/Toast';
 import { initials, memberImg, asset } from '../shared/helpers';
-import { ownedBy } from './member/workflow';
+import { ownedBy, pushUpdateReq } from './member/workflow';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
@@ -416,6 +416,8 @@ function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, sho
   tr: (s: string) => string;
   dl: (s: string) => string;
 }) {
+  const mutate = useStore((s) => s.mutate);
+  const reqUpdate = (owner: string, title: string) => { mutate((d) => pushUpdateReq(d, { owner, title, section: 'committees' })); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const meetings = c.meetings || [];
   const addBtn = canCoord ? (
     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
@@ -485,7 +487,7 @@ function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, sho
                   {canApprove && (
                     <div style={{ flex: 'none', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button onClick={() => showToast(rl('تمت إضافة التوجيه', 'Directive added'))} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إضافة توجيه', 'Add directive')}</button>
-                      <button onClick={() => showToast(rl('تم إرسال طلب التحديث', 'Update request sent'))} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('طلب تحديث', 'Request update')}</button>
+                      <button onClick={() => reqUpdate(t.owner, t.title)} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('طلب تحديث', 'Request update')}</button>
                       <button onClick={() => showToast(rl('تم وضع علامة: تمت المراجعة', 'Marked as reviewed'))} style={{ background: '#e2f0e8', color: '#2e7d55', border: '1px solid #cce6d4', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تمت المراجعة', 'Reviewed')}</button>
                     </div>
                   )}

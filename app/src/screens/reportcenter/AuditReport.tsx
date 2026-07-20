@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { useStore } from '../../store/store';
+import { pushUpdateReq } from '../member/workflow';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
 import { Dropdown } from '../../components/Dropdown';
@@ -125,7 +126,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
   const selDetail = sel ? decAud(audit.find((x) => x.id === sel)) : null;
 
   // actions
-  const reqUpdate = () => showToast(rl('تم إرسال طلب تحديث إلى المسؤول عن الملاحظة', 'Update request sent'));
+  const reqUpdate = (id?: string) => { mutate((d) => { const a = d.audit.find((x) => x.id === id) as any; if (a) pushUpdateReq(d, { owner: a.owner, title: tr(a.obs || a.area || ''), section: 'auditReports' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markReviewed = (id: string) => { mutate((d) => { const a = d.audit.find((x) => x.id === id) as any; if (a) a.reviewed = true; }); showToast(rl('تم وضع علامة تمت المراجعة', 'Marked as reviewed')); };
   const addDirective = (id: string) => { mutate((d) => { const a = d.audit.find((x) => x.id === id) as any; if (a) { a.directives = a.directives || []; a.directives.push({ text: rl('توجيه من رئيس القطاع', 'Directive from the Sector Head') }); } }); showToast(rl('تمت إضافة التوجيه', 'Directive added')); };
 
@@ -230,7 +231,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
                     <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
                       <button onClick={() => setSel(a.id)} style={{ flex: 1, minWidth: 92, background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 10px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{t('au_viewDetails')}</button>
                       {canApprove && <button onClick={() => addDirective(a.id)} style={{ background: '#f3ecf6', color: '#7a4d94', border: 'none', borderRadius: 9, padding: '9px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{t('au_addDirective')}</button>}
-                      <button onClick={() => reqUpdate()} style={{ background: '#f4f6f2', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 9, padding: '9px 12px', fontSize: 11.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{t('au_requestUpdate')}</button>
+                      <button onClick={() => reqUpdate(a.id)} style={{ background: '#f4f6f2', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 9, padding: '9px 12px', fontSize: 11.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{t('au_requestUpdate')}</button>
                     </div>
                   </div>
                 ))}

@@ -7,6 +7,7 @@ import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
+import { pushUpdateReq } from './member/workflow';
 import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
@@ -173,7 +174,7 @@ export function OfficeTasks() {
 
   // ---- mutations ----
   const setStatus = (id: string, v: string) => mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = v; tk.lastUpdate = TODAY_AR; } });
-  const reqUpdate = () => showToast(rl('تم إرسال طلب تحديث للمسؤول', 'Update request sent to the owner'));
+  const reqUpdate = (id: string) => { mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) pushUpdateReq(d, { owner: tk.owner, title: tk.title, section: 'myTasks' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markComplete = (id: string) => {
     mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = 'مكتمل'; tk.lastUpdate = TODAY_AR; } });
     showToast(rl('تم وضع علامة الاكتمال', 'Task marked complete'));
@@ -356,7 +357,7 @@ export function OfficeTasks() {
                           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>{t('pv_openBtn')}
                         </button>
                         {isChair && (
-                          <button onClick={reqUpdate} title={t('ot_requestUpdate')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f2', color: '#5b6b62', border: '1px solid #e6eae4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
+                          <button onClick={() => reqUpdate(a.id)} title={t('ot_requestUpdate')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f2', color: '#5b6b62', border: '1px solid #e6eae4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
                             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
                           </button>
                         )}
@@ -473,7 +474,7 @@ export function OfficeTasks() {
           onClose={() => setSelOtask(null)}
           onEditDeadline={() => openModal('deadline', detail.id)}
           onAddDirective={() => openModal('directive', detail.id)}
-          onRequestUpdate={reqUpdate}
+          onRequestUpdate={() => reqUpdate(detail.id)}
           onMarkComplete={() => { markComplete(detail.id); }}
         />}
         {detail && !drawerEdit && memberEdit && (

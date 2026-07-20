@@ -437,4 +437,16 @@ export interface AppData {
   reqMeetings: ReqMeeting[];
   committees: Committee[];
   retReports: RetReport[];
+  updateRequests?: UpdateRequest[];
+}
+
+/** A "request update" the chair sends to the owner of any item, surfaced to
+ *  that person as a real notification. Decoupled from the many record types. */
+export interface UpdateRequest {
+  id: string;
+  owner: string;   // owner display name (matched against the member's name)
+  title: string;   // the item the update is requested on
+  section: string; // section key (for the notification meta / deep-link)
+  note?: string;
+  date: string;
 }

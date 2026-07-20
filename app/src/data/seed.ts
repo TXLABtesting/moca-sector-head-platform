@@ -5258,5 +5258,6 @@ export const seedData = ({
       "decisions": [],
       "meetings": []
     }
-  ]
+  ],
+  "updateRequests": []
 } as unknown) as AppData;
