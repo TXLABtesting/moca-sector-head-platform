@@ -6,8 +6,6 @@ import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { buildNotifications, loadRead, markRead, markAllRead, dayLabel, KIND_STYLE, KIND_LABELS, type Notif } from '../layout/notifData';
-import { WF } from '../domain/approval';
-import { mColl } from './member/workflow';
 
 /** Notifications Center: every alert in one place, grouped by day (newest
  *  first), with read/unread state, filters and search. Clicking an alert
@@ -77,11 +75,8 @@ export function NotificationsCenter() {
       </p>
 
       {cu.type === 'chair' && (() => {
-        const REVIEW_DOC_SECS = ['correspondence', 'minutes', 'minuteTasks', 'committees', 'auditReports', 'reportLog', 'finReports', 'myTasks', 'reportCenter'];
-        let n = 0;
-        REVIEW_DOC_SECS.forEach((sec) => { const coll = mColl(sec); if (coll) coll.get(data).forEach((r: { _mrev?: boolean }) => { if (r._mrev) n++; }); });
-        n += work.filter((w) => w.status === WF.pending && w.section !== 'projects' && w.section !== 'leaves').length;
-        n += data.projects.filter((p) => p.status === 'بانتظار الاعتماد' || p.status === 'لم يبدأ' || (p.extendReq && !(p.extendReq as { decided?: boolean }).decided)).length;
+        // Approvals cover projects & leaves only — documents are view-only.
+        let n = data.projects.filter((p) => p.status === 'بانتظار الاعتماد' || p.status === 'لم يبدأ' || (p.extendReq && !(p.extendReq as { decided?: boolean }).decided)).length;
         n += data.leaves.filter((l) => l.status === 'بانتظار الاعتماد').length;
         if (n === 0) return null;
         return (
@@ -91,7 +86,7 @@ export function NotificationsCenter() {
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: '#17211c' }}>{rl('بنود بانتظار اعتمادك', 'Items awaiting your approval')}</div>
-              <div style={{ fontSize: 11.5, color: '#8a6a1f', marginTop: 2 }}>{rl('كل الاعتمادات موحّدة الآن في «اعتماد رئيس القطاع» باللوحة الرئيسية — اضغط للانتقال.', 'All approvals are now unified under “Chair approvals” on the dashboard — click to go.')}</div>
+              <div style={{ fontSize: 11.5, color: '#8a6a1f', marginTop: 2 }}>{rl('اعتمادات المشاريع والإجازات في «اعتماد رئيس القطاع» باللوحة الرئيسية — اضغط للانتقال.', 'Project & leave approvals under “Chair approvals” on the dashboard — click to go.')}</div>
             </div>
             <span style={{ flex: 'none', fontSize: 13, fontWeight: 800, color: '#a9791f', background: '#fbf2df', borderRadius: 20, padding: '5px 14px' }}>{n}</span>
           </div>
