@@ -355,6 +355,8 @@ export interface CommitteeTask {
   prog?: number;
   needFollow?: boolean;
   needsFollow?: boolean;
+  directive?: string;
+  reviewed?: boolean;
 }
 export interface CommitteeMeeting {
   no: string;

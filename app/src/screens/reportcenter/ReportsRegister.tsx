@@ -3,7 +3,7 @@ import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
 import { Dropdown } from '../../components/Dropdown';
-import { Drawer } from '../../components/ui';
+import { Drawer, Modal } from '../../components/ui';
 import type { RegReport } from '../../data/types';
 import { REGST } from './shared';
 import { LEGACY_YEAR, periodsForFreq, periodStatus, currentStatus, registerYears } from './reportPeriods';
@@ -30,6 +30,8 @@ export function ReportsRegister() {
   const [view, setView] = useState<'table' | 'periods'>('table');
   const [sel, setSel] = useState<string | null>(null);
   const [limit, setLimit] = useState(PAGE);
+  const [dirId, setDirId] = useState<string | null>(null);
+  const [dirDraft, setDirDraft] = useState('');
 
   const years = registerYears(RG);
   const regCur = (r: RegReport) => currentStatus(r, year);
@@ -102,7 +104,13 @@ export function ReportsRegister() {
   const reqUpdate = (id: string) => { mutate((d) => { const r = d.regReports.find((x) => x.id === id); if (r) pushUpdateReq(d, { owner: r.resp, title: r.title, section: 'reportLog' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markReceived = (id: string) => { setLatest(id, 'تم التسليم'); showToast(rl('تم وضع علامة: تم الاستلام', 'Marked received')); };
   const markApproved = (id: string) => { setLatest(id, 'معتمد'); showToast('تم وضع علامة: معتمد'); };
-  const addDirective = (id: string) => { const txt = window.prompt && window.prompt('اكتب التوجيه:'); if (txt) { mutate((d) => { const r = d.regReports.find((x) => x.id === id); if (r) r.notes = (r.notes ? r.notes + ' — ' : '') + txt; }); showToast('تمت إضافة التوجيه'); } };
+  const saveDirective = () => {
+    const txt = dirDraft.trim();
+    if (!txt || !dirId) { setDirId(null); return; }
+    mutate((d) => { const r = d.regReports.find((x) => x.id === dirId); if (r) r.notes = (r.notes ? r.notes + ' — ' : '') + txt; });
+    showToast(rl('تمت إضافة التوجيه', 'Directive added'));
+    setDirId(null); setDirDraft('');
+  };
 
   const uniq = (k: keyof RegReport) => [...new Set(RG.map((r) => r[k]).filter(Boolean) as string[])];
   const deptOpts = [{ v: '', label: rl('كل الإدارات', 'All departments') }, ...uniq('dept').map((d) => ({ v: d, label: tr(d) }))];
@@ -285,7 +293,7 @@ export function ReportsRegister() {
                 <button onClick={() => reqUpdate(selDetail.id)} style={{ background: "#1e4634", color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_reqUpdate')}</button>
                 <button onClick={() => markReceived(selDetail.id)} style={{ background: '#e2f0e8', color: '#2e7d55', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_markReceived')}</button>
                 <button onClick={() => markApproved(selDetail.id)} style={{ background: '#fbf0d6', color: '#a9791f', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_markApproved')}</button>
-                <button onClick={() => addDirective(selDetail.id)} style={{ background: '#fff', color: '#7d867f', border: '1px solid #e2e6df', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_addDirective')}</button>
+                <button onClick={() => { setDirId(selDetail.id); setDirDraft(''); }} style={{ background: '#fff', color: '#7d867f', border: '1px solid #e2e6df', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t('reg_addDirective')}</button>
               </div>
               <div style={{ background: '#fff', borderRadius: 15, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
                 <Row label={t('reg_resp')} value={selDetail.resp} />
@@ -315,6 +323,18 @@ export function ReportsRegister() {
           </div>
         )}
       </Drawer>
+
+      <Modal open={dirId !== null} onClose={() => setDirId(null)} width={460}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 16.5, fontWeight: 700, color: '#17211c' }}>{t('reg_addDirective')}</h3>
+        <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rl('يُضاف التوجيه إلى ملاحظات التقرير ويظهر للمسؤول عنه.', 'The directive is appended to the report notes and shown to its owner.')}</p>
+        <textarea value={dirDraft} onChange={(e) => setDirDraft(e.target.value)} rows={4} autoFocus
+          placeholder={rl('اكتب التوجيه…', 'Write the directive…')}
+          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 11, padding: '11px 13px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none', resize: 'vertical' }} />
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+          <button onClick={() => setDirId(null)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+          <button onClick={saveDirective} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ التوجيه', 'Save directive')}</button>
+        </div>
+      </Modal>
     </div>
   );
 }
