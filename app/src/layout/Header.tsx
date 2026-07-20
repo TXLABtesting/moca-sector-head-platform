@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNav, type Page } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { NotificationsBell } from './Notifications';
-import { asset } from '../shared/helpers';
 
 const BACK_PAGES: Page[] = ['projectDetail', 'meetingDetail', 'docDetail', 'reportDetail', 'auditDetail', 'finDetail', 'reglog', 'mtasks'];
 
@@ -72,7 +71,6 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
           <span className="hdr-langtxt">{lang === 'ar' ? 'EN' : 'ع'}</span>
         </button>
         <NotificationsBell />
-        <img src={asset('assets/logo.png')} alt="وزارة شؤون مجلس الوزراء" style={{ height: 34, width: 'auto', marginInlineStart: 6 }} className="hide-sm" />
       </div>
     </header>
   );
