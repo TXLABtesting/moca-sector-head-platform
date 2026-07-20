@@ -18,8 +18,8 @@ export function DemoHint() {
   const text = cu.type === 'sysadmin'
       ? rl('مدير النظام يدير المستخدمين والأدوار والنطاقات والأقسام الظاهرة لكل شخص — من شاشة الإعدادات والصلاحيات.',
           'The system admin manages users, roles, scopes, and the sections each person can see — from Settings & Roles.')
-      : rl('ما تضيفه هنا وترسله للمراجعة يظهر مباشرة في لوحة رئيس القطاع، وما يعتمده أو يرجعه رئيس القطاع يظهر لك هنا.',
-          'Whatever you add and send for review appears directly on the Sector Head’s board, and the Sector Head’s decisions come back to you here.');
+      : rl('ما تضيفه وتحدّثه هنا يظهر مباشرة لرئيس القطاع للاطلاع، وتصلك توجيهاته على بنودك هنا. (اعتماد المشاريع والإجازات يتم من مساراتها الخاصة.)',
+          'What you add and update here is visible to the Sector Head for review, and their directives on your items reach you here. (Project & leave approvals happen in their own flows.)');
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, background: '#eef6f0', border: '1px solid #d6e8dd', borderRadius: 14, padding: '12px 15px', marginBottom: 16 }}>

@@ -328,7 +328,7 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
   return (
     <Modal open onClose={onClose} width={840}>
       <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{create ? 'إنشاء ملخص مالي جديد — سنة ' + year : 'تعديل بيانات الملخص التنفيذي المالي — ' + year}</h3>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{create ? 'يبدأ بنسخة من آخر سنة — عدّل الأرقام ثم احفظ أو أرسل للمراجعة.' : 'تُحفظ في نفس السجل الذي يراه رئيس القطاع في مركز التقارير.'}</p>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{create ? 'يبدأ بنسخة من آخر سنة — عدّل الأرقام ثم احفظ.' : 'تُحفظ في نفس السجل الذي يراه رئيس القطاع في مركز التقارير.'}</p>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
         <button type="button" onClick={() => triggerDownload(buildFinDocx({ ...source, period: f.period }, projects, ents as never), 'Financial_Summary_Template.docx')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
