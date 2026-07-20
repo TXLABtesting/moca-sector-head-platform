@@ -1,0 +1,79 @@
+# Local / staging stack for the Sector Head Follow-up Platform.
+#
+#   docker compose -f infra/docker-compose.yml up --build
+#
+# Services:
+#   db      — PostgreSQL 16
+#   api     — NestJS backend (runs migrations on start, then serves /api)
+#   web     — nginx serving the SPA + proxying /api → api
+#   adminer — lightweight DB UI (dev convenience; drop in production)
+#
+# Secrets here are LOCAL DEV ONLY. In Azure, inject env from Key Vault and use
+# Managed Identity for Blob storage.
+
+name: moca-sector-head
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: moca
+      POSTGRES_PASSWORD: moca_local_dev
+      POSTGRES_DB: moca_sector_head
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moca -d moca_sector_head"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      CORS_ORIGINS: http://localhost:8080
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: moca
+      DB_PASSWORD: moca_local_dev
+      DB_DATABASE: moca_sector_head
+      DB_SYNCHRONIZE: "false"
+      # ↓ Fill from your Entra dev app registration to exercise real auth.
+      ENTRA_TENANT_ID: ${ENTRA_TENANT_ID:-}
+      ENTRA_CLIENT_ID: ${ENTRA_CLIENT_ID:-}
+      ENTRA_API_AUDIENCE: ${ENTRA_API_AUDIENCE:-}
+      ENTRA_ISSUER: ${ENTRA_ISSUER:-}
+      ENTRA_JWKS_URI: ${ENTRA_JWKS_URI:-}
+      BOOTSTRAP_SYSADMIN_OID: ${BOOTSTRAP_SYSADMIN_OID:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    # Apply migrations, seed roles, then start the API.
+    command: sh -c "npm run migration:run && npm run seed && node dist/main.js"
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+  adminer:
+    image: adminer:4
+    depends_on:
+      - db
+    ports:
+      - "8081:8080"
+
+volumes:
+  pgdata:
