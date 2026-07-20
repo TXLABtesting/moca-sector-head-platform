@@ -63,6 +63,23 @@ const BULK_EXAMPLE: string[][] = [
 ];
 const dlRegBulkTemplateXlsx = () => triggerDownload(makeXlsx([BULK_HEADERS, ...BULK_EXAMPLE], 'سجل التقارير'), 'Reports_Register_Bulk_Template.xlsx');
 
+/** Map a calendar month (1–12) to the period key(s) of a report's frequency it
+ *  belongs to, so the 12-month template works for EVERY frequency:
+ *   monthly → that month; quarterly → its quarter; semiannual → its half;
+ *   annual → the single yearly slot; bi-weekly/weekly → the periods that fall
+ *   inside that month (a month can cover 2–5 of them). */
+function monthPeriodKeys(freq: string, m: number): string[] {
+  switch (freq) {
+    case 'شهري': return ['m' + m];
+    case 'ربع سنوي': return ['q' + Math.ceil(m / 3)];
+    case 'نصف سنوي': return ['h' + Math.ceil(m / 6)];
+    case 'سنوي': return ['y1'];
+    case 'كل أسبوعين': { const out: string[] = []; for (let i = Math.floor((m - 1) * 26 / 12) + 1; i <= Math.floor(m * 26 / 12); i++) out.push('b' + i); return out; }
+    case 'أسبوعي': { const out: string[] = []; for (let i = Math.floor((m - 1) * 52 / 12) + 1; i <= Math.floor(m * 52 / 12); i++) out.push('w' + i); return out; }
+    default: return [];
+  }
+}
+
 /** Parse a multi-row sheet (header + one report per row) into partial reports. */
 function bulkReports(tables: string[][][]): Partial<RegReport>[] {
   const table = tables.slice().sort((a, b) => b.length - a.length)[0] || [];
@@ -88,18 +105,26 @@ function bulkReports(tables: string[][][]): Partial<RegReport>[] {
     const g = (k: number) => (k >= 0 ? (r[k] || '').trim() : '');
     const title = g(col.title);
     if (!title) continue;
-    const freq = REG_FREQS.find((f) => g(col.freq).includes(f)) || 'شهري';
+    // Exact match first, then longest substring — so "كل أسبوعين" isn't
+    // mistaken for the shorter "أسبوعي" it contains.
+    const fr = g(col.freq);
+    const freq = REG_FREQS.find((f) => f === fr)
+      || [...REG_FREQS].sort((a, b) => b.length - a.length).find((f) => fr.includes(f))
+      || 'شهري';
     const year = g(col.year) || LEGACY_YEAR;
-    const months: Record<string, string> = {};
+    const periods: Record<string, string> = {};
     monthCols.forEach((mc, mi) => {
       if (mc < 0) return;
       const v = (r[mc] || '').trim();
-      if (v && v !== '—') { const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s)); if (st) months['m' + (mi + 1)] = st; }
+      if (v && v !== '—') {
+        const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s));
+        if (st) monthPeriodKeys(freq, mi + 1).forEach((k) => { periods[k] = st; });
+      }
     });
     out.push({
       title, type: g(col.type), dept: g(col.dept), resp: g(col.resp),
       freq, due: excelSerialToDate(g(col.due)), notes: g(col.notes),
-      periods: Object.keys(months).length ? { [year]: months } : {},
+      periods: Object.keys(periods).length ? { [year]: periods } : {},
     });
   }
   return out;
@@ -117,7 +142,7 @@ function parseRegFile(tables: string[][][]): RegParsed {
   found.dept = kvLookup(tables, /^الإدارة/);
   found.resp = kvLookup(tables, /^المسؤول/);
   const fr = kvLookup(tables, /^الدورية/);
-  if (fr) { const f = REG_FREQS.find((x) => fr.includes(x)); if (f) found.freq = f; }
+  if (fr) { const f = REG_FREQS.find((x) => x === fr) || [...REG_FREQS].sort((a, b) => b.length - a.length).find((x) => fr.includes(x)); if (f) found.freq = f; }
   const due = kvLookup(tables, /^موعد الاستحقاق/);
   if (due) found.due = excelSerialToDate(due);
   const months: Record<string, string> = {};
