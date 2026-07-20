@@ -86,7 +86,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 16,
+      version: 17,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -106,6 +106,8 @@ export const useStore = create<AppState>()(
         }
         // v16: "request update" became a real, notified collection.
         if (s && s.data && !s.data.updateRequests) s.data.updateRequests = [];
+        // v17: documents no longer submit for approval — drop the ad-hoc queue.
+        if (s && typeof from === 'number' && from < 17) s.work = [];
         return s as AppState;
       },
     }
