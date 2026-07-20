@@ -47,11 +47,13 @@ export function LoginScreen() {
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#5b6b62', marginBottom: 6 }}>{rl('اسم المستخدم', 'Username')}</label>
             <input value={username} onChange={(e) => { setUsername(e.target.value); setError(false); }} autoFocus autoComplete="username"
+              autoCapitalize="none" autoCorrect="off" spellCheck={false}
               placeholder={rl('مثال: samah.abusharkh', 'e.g. samah.abusharkh')} style={field} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#5b6b62', marginBottom: 6 }}>{rl('كلمة المرور', 'Password')}</label>
-            <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setError(false); }} autoComplete="current-password" style={field} />
+            <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setError(false); }} autoComplete="current-password"
+              autoCapitalize="none" autoCorrect="off" spellCheck={false} style={field} />
           </div>
           {error && (
             <div style={{ fontSize: 12.5, color: '#b0433b', background: '#fdf3f2', border: '1px solid #f3d9d6', borderRadius: 10, padding: '9px 12px' }}>

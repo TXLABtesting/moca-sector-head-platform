@@ -25,9 +25,12 @@ export const DEMO_CREDENTIALS: DemoCredential[] = [
   { username: 'admin', password: 'Admin@2026', userId: 'sysadmin' },
 ];
 
-/** Returns the matching userId, or null if the credentials are wrong. */
+/** Returns the matching userId, or null if the credentials are wrong.
+ *  Both fields are trimmed — pasted values often carry a trailing space or
+ *  newline, and none of the demo passwords contain surrounding whitespace. */
 export function verifyCredentials(username: string, password: string): string | null {
   const u = username.trim().toLowerCase();
-  const hit = DEMO_CREDENTIALS.find((c) => c.username.toLowerCase() === u && c.password === password);
+  const p = password.trim();
+  const hit = DEMO_CREDENTIALS.find((c) => c.username.toLowerCase() === u && c.password === p);
   return hit ? hit.userId : null;
 }
