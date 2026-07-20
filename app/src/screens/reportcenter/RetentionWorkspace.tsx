@@ -19,7 +19,7 @@ const QUARTERS = ['الربع الأول', 'الربع الثاني', 'الرب�
 const PRIS = ['عالية', 'متوسطة', 'منخفضة'];
 const STC: Record<string, [string, string]> = {
   'مسودة': ['#eceeeb', '#6d7973'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
+  'بانتظار اعتماد رئيس القطاع': ['#fbf0d6', '#a9791f'],
   'معتمد': ['#e2f0e8', '#2e7d55'],
   'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
 };
@@ -324,9 +324,9 @@ function RetForm({ reportId, onClose }: { reportId: string | null; onClose: () =
       r.conclusion = (f.conclusion || '').trim();
       r.attachments = atts;
       r.lastUpdate = 'الآن'; r.updatedBy = cu.name;
-      if (send) { r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
+      if (send) { r.status = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev) r.status = r.status === 'معتمد' ? r.status : 'مسودة';
-      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : 'حفظ كمسودة', sent: !!send, by: cu.name });
+      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : 'حفظ كمسودة', sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسل التقرير لرئيس القطاع للمراجعة — ظاهر لديه في مركز التقارير' : 'حُفظ التقرير كمسودة');
     onClose();

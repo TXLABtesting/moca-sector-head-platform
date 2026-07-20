@@ -14,6 +14,7 @@ import { REGST } from './shared';
 import { REG_FREQS, LEGACY_YEAR, periodsForFreq, periodStatus, currentStatus, registerYears } from './reportPeriods';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup, excelSerialToDate } from './templateIO';
 import type { RegReport } from '../../data/types';
+import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -21,12 +22,6 @@ const REG_STATUSES = ['—', 'معتمد', 'تم التسليم', 'بانتظا�
 const MONTH_FIELDS: { k: 'jan' | 'feb' | 'mar' | 'apr' | 'may'; pk: string; ar: string }[] = [
   { k: 'jan', pk: 'm1', ar: 'يناير' }, { k: 'feb', pk: 'm2', ar: 'فبراير' }, { k: 'mar', pk: 'm3', ar: 'مارس' }, { k: 'apr', pk: 'm4', ar: 'أبريل' }, { k: 'may', pk: 'm5', ar: 'مايو' },
 ];
-const WSTC: Record<string, [string, string]> = {
-  'مسودة': ['#eceeeb', '#6d7973'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
-  'معتمد': ['#e2f0e8', '#2e7d55'],
-  'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
-};
 
 const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
 const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
@@ -169,9 +164,9 @@ function RegForm({ regId, initYear, onClose }: { regId: string | null; initYear:
       r.periods[fyear] = { ...pstat };
       r.lastDate = (f.lastDate || '').trim(); r.notes = (f.notes || '').trim();
       r.attachments = atts;
-      if (send) { r._mstatus = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
+      if (send) { r._mstatus = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev && r._mstatus !== 'معتمد') r._mstatus = existing ? r._mstatus : 'مسودة';
-      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إضافة التقرير للسجل'), sent: !!send, by: cu.name });
+      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إضافة التقرير للسجل'), sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسل التقرير لرئيس القطاع للمراجعة — ظاهر لديه في سجل التقارير' : 'حُفظ التقرير في السجل');
     onClose();
@@ -277,7 +272,7 @@ function RegView({ regId, initYear, onEdit, onClose }: { regId: string; initYear
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
         <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, color: '#17211c', flex: 1, minWidth: 220 }}>{tr(r.title)}</h3>
         <Badge bg={cb} fg={cf} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(cur === '—' ? 'غير محدد' : cur)}</Badge>
-        {wf && <Badge bg={(WSTC[wf] || ['#eceeeb', '#6d7973'])[0]} fg={(WSTC[wf] || ['#eceeeb', '#6d7973'])[1]} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(wf)}</Badge>}
+        {wf && <Badge bg={wfTone(wf)[0]} fg={wfTone(wf)[1]} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(wf)}</Badge>}
       </div>
       <div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 12 }}>
         {tr(r.type)} · {tr(r.dept)} · {tr(r.freq)} · المسؤول: {tr(r.resp)} · الاستحقاق: {tr(r.due)}{r.lastDate ? ' · آخر تسليم: ' + dl(r.lastDate) : ''}
@@ -390,7 +385,7 @@ export function RegisterWorkspace() {
           const meta = r as RegReport & { _mstatus?: string; _mret?: string };
           const wf = meta._mret ? 'أعيد للتعديل' : (meta._mstatus || '');
           const c = currentStatus(r, year); const [cb, cf] = REGST[c] || REGST['—'];
-          const [wb, wfg] = WSTC[wf] || ['#f4f6f2', '#9aa39b'];
+          const [wb, wfg] = wfTone(wf);
           return (
             <div key={r.id} className="trow" style={{ display: 'grid', gridTemplateColumns: '1.9fr 1fr 1fr 0.8fr 1.1fr 1.1fr 150px', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f2f4f0', alignItems: 'center' }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: '#17211c', lineHeight: 1.45 }}>{tr(r.title)}<div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 400, marginTop: 2 }}>{tr(r.type)} · {tr(r.due)}</div></div>

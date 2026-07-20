@@ -6,7 +6,8 @@ import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { useNav, type Page } from '../store/nav';
-import { WFS, SECTIONS } from '../domain/permissions';
+import { SECTIONS } from '../domain/permissions';
+import { wfTone } from '../domain/approval';
 import { MEMBER_DIRECTIVES, MEMBER_RECENT } from '../domain/workflow';
 import { mColl, editableCollections, OWNER_OF, ownedBy, FINAL_STATUSES } from './member/workflow';
 import { MemberForm } from './member/MemberForm';
@@ -61,7 +62,7 @@ export function MemberDashboard() {
     goto(SECTION_PAGE[it.sec] || 'dashboard');
   };
 
-  const wf = (st: string): [string, string] => WFS[st] || WFS['مسودة'];
+  const wf = (st: string): [string, string] => wfTone(st);
   const secName = (k: string) => { const s = SECTIONS.find((x) => x.k === k); return s ? (lang === 'en' ? s.en : s.ar) : k; };
 
   // ---- unified item list across the member's editable sections ----
@@ -69,14 +70,14 @@ export function MemberDashboard() {
     const coll = mColl(sec);
     const own: Item[] = work.filter((x) => x.owner === cu.id && x.section === sec).map((x) => ({
       id: x.id, sec, title: x.title, status: x.status,
-      review: x.status === 'بانتظار مراجعة رئيس القطاع', returned: x.status === 'أعيد للتعديل',
+      review: x.status === 'بانتظار اعتماد رئيس القطاع', returned: x.status === 'أعيد للتعديل',
       reason: x.reason || '', isWork: true, own: true, logLine: '',
     }));
     if (!coll) return own;
     const ownerOf = OWNER_OF[coll.key as string];
     const real: Item[] = coll.get(data).map((r: any) => ({
       id: r.id, sec, title: coll.title(r),
-      status: r._mrev ? 'بانتظار مراجعة رئيس القطاع' : (r._mret ? 'أعيد للتعديل' : coll.status(r)),
+      status: r._mrev ? 'بانتظار اعتماد رئيس القطاع' : (r._mret ? 'أعيد للتعديل' : coll.status(r)),
       review: !!r._mrev, returned: !!r._mret, reason: r._mret || '',
       isWork: false, own: r._mowner === cu.id || (ownerOf ? ownedBy(ownerOf(r), cu.name) : false),
       logLine: r._mlog?.[0] ? (r._mlog[0].chair ? rl('رئيس القطاع: ', 'Sector Head: ') : '') + (r._mlog[0].to || '') : '',
@@ -92,7 +93,7 @@ export function MemberDashboard() {
   const buckets: Record<CardKey, Item[]> = {
     open: mine.filter((x) => !FINAL_STATUSES.includes(x.status) && !x.review && !x.returned && x.status !== 'متأخر' && x.status !== 'قيد التحديث'),
     updating: mine.filter((x) => x.status === 'قيد التحديث'),
-    sent: mine.filter((x) => x.review || x.status === 'مرسل للمراجعة'),
+    sent: mine.filter((x) => x.review || x.status === 'بانتظار اعتماد رئيس القطاع'),
     returned: mine.filter((x) => x.returned),
     late: mine.filter((x) => x.status === 'متأخر'),
     done: mine.filter((x) => x.status === 'معتمد' || x.status === 'مكتمل'),
@@ -112,11 +113,11 @@ export function MemberDashboard() {
 
   const sendForReview = (t: { id: string; sec: string; isWork: boolean }) => {
     if (t.isWork) {
-      mutateWork((w) => { const it = w.find((x) => x.id === t.id); if (it) { it.status = 'بانتظار مراجعة رئيس القطاع'; it.reason = undefined; } });
+      mutateWork((w) => { const it = w.find((x) => x.id === t.id); if (it) { it.status = 'بانتظار اعتماد رئيس القطاع'; it.reason = undefined; } });
     } else {
       mutate((d) => {
         const coll = mColl(t.sec)!; const r = coll.get(d).find((x: any) => x.id === t.id);
-        if (r) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; (r._mlog = r._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار مراجعة رئيس القطاع', sent: true, by: cu.name }); }
+        if (r) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; (r._mlog = r._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار اعتماد رئيس القطاع', sent: true, by: cu.name }); }
       });
     }
     showToast(rl('تم إرسال البند لمراجعة رئيس القطاع', 'Sent for Sector Head review'));

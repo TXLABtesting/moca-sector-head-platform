@@ -620,7 +620,7 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
         c.decisions = [{ num: (f.decNum || '').trim() || String((c.decisions || []).length + 1), year: (f.decYear || '2026').trim(), kind: f.decKind || 'قرار تشكيل', img: decFiles[0] }, ...(c.decisions || [])];
       }
       if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
-      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? rl('تحديث بيانات اللجنة', 'Committee updated') : rl('إنشاء اللجنة', 'Committee created')), sent: !!send, by: cu.name });
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? rl('تحديث بيانات اللجنة', 'Committee updated') : rl('إنشاء اللجنة', 'Committee created')), sent: !!send, by: cu.name });
     });
     showToast(send ? rl('أُرسلت تحديثات اللجنة لرئيس القطاع للمراجعة', 'Committee updates sent for Sector Head review') : rl('تم حفظ بيانات اللجنة', 'Committee saved'));
     onClose();
@@ -721,7 +721,7 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
       m.absent = absent; m.attachments = atts; m.tasks = cleanTasks;
       c.actualMeetings = c.meetings.length;
       if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
-      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.points || '').slice(0, 80), sent: !!send, by: cu.name });
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.points || '').slice(0, 80), sent: !!send, by: cu.name });
     });
     showToast(send ? rl('أُرسل محضر الاجتماع لرئيس القطاع للمراجعة', 'Meeting minutes sent for Sector Head review') : rl('تم حفظ الاجتماع والمحضر', 'Meeting & minutes saved'));
     onClose();

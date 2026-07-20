@@ -7,6 +7,7 @@ import { Drawer, Avatar } from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { initials } from '../../shared/helpers';
 import { AUS, useAv, audBullets, type Pair } from './shared';
+import { wfTone } from '../../domain/approval';
 
 const AUDIT_UNITS = [
   'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية',
@@ -137,10 +138,6 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
   const unitOpts = [{ v: '', label: rl('كل الوحدات', 'All units') }, ...[...new Set([...AUDIT_UNITS, ...auditReps.map((r) => r.unit)])].map((u) => ({ v: u, label: tr(u) }))];
   const yearOpts = [{ v: '', label: rl('كل السنوات', 'All years') }, ...[...new Set(['2026', '2025', ...auditReps.map((r) => r.year)])].sort().reverse().map((y) => ({ v: y, label: y }))];
   const repStatusOpts = [{ v: '', label: t('allStatuses') }, ...[...new Set(['قيد المتابعة', 'مكتمل', ...AUDIT_REG.map((r) => r.status)])].map((s) => ({ v: s, label: tr(s) }))];
-  const REPC: Record<string, [string, string]> = {
-    'قيد المتابعة': ['#fbf0d6', '#a9791f'], 'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
-    'مسودة': ['#eceeeb', '#6d7973'], 'معتمد': ['#e2f0e8', '#2e7d55'], 'مكتمل': ['#e2f0e8', '#2e7d55'], 'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
-  };
 
   const filterBtn = (on: boolean, onC: string, onBg: string): CSSProperties => ({
     display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600,
@@ -166,7 +163,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
           <div key={r.id} onClick={() => { setSelUnit(r.unit); setSelYear(r.year); }} style={{ cursor: 'pointer', background: (r.unit === curUnit && r.year === curYear) ? '#fbf7ec' : '#fff', border: '1px solid #e6eadf', borderRadius: 14, padding: '13px 16px', minWidth: 230, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: '#a9791f' }}>{tr(r.unit)} · {r.year}</span>
-              <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 20, padding: '3px 9px', background: (REPC[r.status] || REPC['قيد المتابعة'])[0], color: (REPC[r.status] || REPC['قيد المتابعة'])[1] }}>{tr(r.status)}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 20, padding: '3px 9px', background: wfTone(r.status)[0], color: wfTone(r.status)[1] }}>{tr(r.status)}</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c', lineHeight: 1.45 }}>{tr(r.title)}</div>
             <div style={{ fontSize: 10.5, color: '#9aa39b' }}>{r.total} {t('au_obsWord')} · {r.closed} {t('rc_closedShort')}</div>
@@ -181,7 +178,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
             <div style={{ flex: 1, minWidth: 240 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(233,200,119,.22)', color: '#f0d488', borderRadius: 20, padding: '5px 12px' }}>{rl('تقرير المتابعة - مكتب التدقيق', 'Follow-up Report — Audit Office')}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, background: (REPC[selReport.status] || REPC['قيد المتابعة'])[0], color: (REPC[selReport.status] || REPC['قيد المتابعة'])[1], borderRadius: 20, padding: '5px 12px' }}>{tr(selReport.status)}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, background: wfTone(selReport.status)[0], color: wfTone(selReport.status)[1], borderRadius: 20, padding: '5px 12px' }}>{tr(selReport.status)}</span>
               </div>
               <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1.4 }}>{tr(selReport.title)}</h2>
               <div style={{ fontSize: 13, color: '#bcd2c3' }}>{tr(selReport.unit)} · {rl('متابعة ملاحظات التدقيق الداخلي', 'Internal audit findings follow-up')} · {selReport.freq === 'حسب الحاجة' ? rl('حسب الحاجة', 'As needed') : rl('متابعة دورية', 'Periodic')}{selReport.period ? ' · ' + tr(selReport.period) : ''}</div>

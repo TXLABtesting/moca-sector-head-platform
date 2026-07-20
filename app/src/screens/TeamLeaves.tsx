@@ -882,7 +882,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
       if (send) {
         lv.status = 'بانتظار الاعتماد';
         lv._mrev = true; lv._mret = ''; lv._mowner = lv._mowner || cu.id;
-        (lv._mlog = lv._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار مراجعة رئيس القطاع', note: clash.length ? rl('تعارض في الجدولة مع: ', 'Scheduling conflict with: ') + clash.map((c) => c.person).join('، ') : '', sent: true, by: cu.name });
+        (lv._mlog = lv._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار اعتماد رئيس القطاع', note: clash.length ? rl('تعارض في الجدولة مع: ', 'Scheduling conflict with: ') + clash.map((c) => c.person).join('، ') : '', sent: true, by: cu.name });
       } else if (STATUS_PLAN.includes(f.fstatus)) {
         lv.status = f.fstatus;
       }

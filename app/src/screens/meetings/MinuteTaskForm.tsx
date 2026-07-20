@@ -174,7 +174,7 @@ export function MinuteTaskForm({ taskId, onClose }: { taskId: string | null; onC
     mutate((d) => {
       bulk.forEach((t) => {
         const tk = makeTask(t) as MinuteTask & { _mrev?: boolean; _mret?: string; _mowner: string; _mlog: unknown[] };
-        if (send) { tk._mrev = true; tk._mret = ''; (tk._mlog[0] as { to: string; sent?: boolean }).to = 'بانتظار مراجعة رئيس القطاع'; (tk._mlog[0] as { sent?: boolean }).sent = true; }
+        if (send) { tk._mrev = true; tk._mret = ''; (tk._mlog[0] as { to: string; sent?: boolean }).to = 'بانتظار اعتماد رئيس القطاع'; (tk._mlog[0] as { sent?: boolean }).sent = true; }
         d.mtasks.unshift(tk);
       });
     });
@@ -209,7 +209,7 @@ export function MinuteTaskForm({ taskId, onClose }: { taskId: string | null; onC
       tk.attachments = atts; tk.notes = (f.notes || '').trim();
       tk.lastUpdate = 'الآن — ' + cu.name;
       if (send) { tk._mrev = true; tk._mret = ''; tk._mowner = tk._mowner || cu.id; }
-      (tk._mlog = tk._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات المهمة' : 'إنشاء المهمة'), sent: !!send, by: cu.name });
+      (tk._mlog = tk._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? 'تحديث بيانات المهمة' : 'إنشاء المهمة'), sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسلت المهمة لرئيس القطاع للمراجعة — ظاهرة لديه في مهام المحاضر' : (existing ? 'حُفظت تعديلات المهمة' : 'حُفظت المهمة'));
     onClose();

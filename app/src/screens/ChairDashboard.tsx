@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { Fade } from '../components/ui';
+import { Fade, Modal, Avatar } from '../components/ui';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
@@ -7,8 +7,17 @@ import { useToast } from '../components/Toast';
 import { PS } from '../shared/constants';
 import { DemoHint } from '../components/DemoHint';
 import { mColl } from './member/workflow';
+import { SECTIONS } from '../domain/permissions';
+import { WF } from '../domain/approval';
 
 type Tab = 'approvals' | 'updates' | 'minutes' | 'corr' | 'committees';
+
+/* Document collections whose member submissions the chair reviews here.
+ * Projects & leaves are intentionally excluded — they surface as domain
+ * approval rows below, so they are never listed twice. */
+const REVIEW_DOC_SECS = ['correspondence', 'minutes', 'minuteTasks', 'committees', 'auditReports', 'reportLog', 'finReports', 'myTasks', 'reportCenter'];
+
+interface Sub { id: string; title: string; ownerName: string; sectionName: string; note: string; isWork: boolean; sec: string }
 
 interface Note { label: string; v: string; bg: string; bd: string; lFg: string; vFg: string }
 interface Meta { k: string; v: string; iconD: string }
@@ -34,6 +43,7 @@ const BS: Record<string, CSSProperties> = {
   gold: { background: '#fbf3df', color: '#8a6a1f', border: '1px solid #ecdcae' },
   ghost: { background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df' },
   blue: { background: '#e9f0f6', color: '#3a6ea5', border: '1px solid #d3e0ec' },
+  red: { background: '#fdf3f2', color: '#b0433b', border: '1px solid #f3d9d6' },
 };
 
 const NOTE_TONES: Record<string, [string, string, string, string]> = {
@@ -47,9 +57,14 @@ export function ChairDashboard() {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const { goto } = useNav();
   const data = useStore((s) => s.data);
+  const work = useStore((s) => s.work);
+  const users = useStore((s) => s.users);
   const mutate = useStore((s) => s.mutate);
+  const mutateWork = useStore((s) => s.mutateWork);
   const { showToast } = useToast();
   const [tab, setTab] = useState<Tab>('approvals');
+  const [modal, setModal] = useState<{ kind: 'return' | 'directive'; sub: Sub } | null>(null);
+  const [draft, setDraft] = useState('');
 
   const btn = (label: string, kind: string, onClick: () => void): Btn => ({
     label, onClick,
@@ -68,12 +83,64 @@ export function ChairDashboard() {
   const approveExtension = (id: string) => { mutate((d) => { const p = d.projects.find((x) => x.id === id); if (p && p.extendReq) { p.dueDate = p.extendReq.to; if (p.status === 'متأخر') p.status = 'قيد التنفيذ'; (p.extendReq as { decided?: boolean }).decided = true; } }); showToast(rl('تم اعتماد التمديد', 'Extension approved')); };
   const approveLeave = (id: string) => { mutate((d) => { const l = d.leaves.find((x) => x.id === id); if (l) l.status = 'معتمدة'; }); showToast(rl('تم اعتماد الإجازة', 'Leave approved')); };
 
+  // ---- document-review actions (the former ChairReview inbox, now merged here) ----
+  const ownerName = (id: string) => users.find((u) => u.id === id)?.name || rl('فريق المكتب', 'Office team');
+  const secName = (k: string) => { const s = SECTIONS.find((x) => x.k === k); return s ? (lang === 'en' ? s.en : s.ar) : k; };
+  const approveSub = (s: Sub) => {
+    if (s.isWork) mutateWork((w) => { const it = w.find((x) => x.id === s.id); if (it) { it.status = WF.approved; it.reason = undefined; } });
+    else mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) { r._mrev = false; r._mret = ''; r._mapproved = true; coll.setStatus(r, WF.approved); (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: WF.approved, chair: true }); } });
+    showToast(rl('تم الاعتماد — يظهر الآن معتمداً لدى العضو', 'Approved — now shown as approved to the member'));
+  };
+  const requestUpdateSub = (s: Sub) => {
+    if (!s.isWork) mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: rl('طلب تحديث', 'Update requested'), chair: true }); });
+    showToast(rl('تم إرسال طلب تحديث إلى العضو', 'Update request sent to the member'));
+  };
+  const submitModal = () => {
+    if (!modal) return;
+    const s = modal.sub; const t = draft.trim();
+    if (modal.kind === 'return') {
+      const reason = t || rl('يرجى المراجعة والتعديل.', 'Please review and revise.');
+      if (s.isWork) mutateWork((w) => { const it = w.find((x) => x.id === s.id); if (it) { it.status = WF.returned; it.reason = reason; } });
+      else mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) { r._mret = reason; r._mrev = false; (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: WF.returned, note: reason, chair: true }); } });
+      showToast(rl('تم إرجاع البند للتعديل — سيرى العضو السبب في لوحته', 'Returned for editing — the member will see the reason'));
+    } else {
+      if (!s.isWork) mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) { r._mdirective = t; (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: rl('توجيه', 'Directive'), note: t, chair: true }); } });
+      showToast(rl('تم إضافة التوجيه', 'Directive added'));
+    }
+    setDraft(''); setModal(null);
+  };
+  const openModal = (kind: 'return' | 'directive', sub: Sub) => { setDraft(''); setModal({ kind, sub }); };
+
   // ---- helpers ----
   const projBF = (status: string): string[] => (PS as Record<string, readonly string[]>)[status] as string[] || ['#eee', '#555'];
   const corrDir = (dir: string) => (dir === 'صادر' ? ['#e6eef6', '#3a6ea5'] : ['#eef6f0', '#2e7d55']);
 
   // ---- approvals ----
   const apprList: Row[] = [];
+
+  // document reviews sent by the office team (merged from the old ChairReview inbox)
+  const subs: Sub[] = [];
+  REVIEW_DOC_SECS.forEach((sec) => {
+    const coll = mColl(sec); if (!coll) return;
+    coll.get(data).forEach((r: Record<string, unknown>) => {
+      if (r._mrev) subs.push({ id: r.id as string, title: coll.title(r), ownerName: ownerName((r._mowner as string) || ''), sectionName: secName(sec), note: ((r._mlog as { note?: string }[])?.[0]?.note) || '', isWork: false, sec });
+    });
+  });
+  work.filter((w) => w.status === WF.pending).forEach((w) => {
+    if (w.section === 'projects' || w.section === 'leaves') return; // handled as domain rows below
+    subs.push({ id: w.id, title: w.title, ownerName: ownerName(w.owner), sectionName: secName(w.section), note: '', isWork: true, sec: w.section });
+  });
+  subs.forEach((s) => apprList.push({
+    tag: rl('مراجعة مستند', 'Document review'), tagBg: '#fbf2df', tagFg: '#a9791f', title: tr(s.title),
+    notes: [NOTE(rl('من', 'From'), s.ownerName + ' · ' + s.sectionName, 'gold'), s.note ? NOTE(rl('ملاحظة العضو', 'Member note'), s.note, 'blue') : null].filter(Boolean) as Note[],
+    actions: [
+      btn(rl('اعتماد', 'Approve'), 'primary', () => approveSub(s)),
+      btn(rl('طلب تحديث', 'Request update'), 'gold', () => requestUpdateSub(s)),
+      btn(rl('توجيه', 'Directive'), 'ghost', () => openModal('directive', s)),
+      btn(rl('إرجاع للتعديل', 'Return'), 'red', () => openModal('return', s)),
+    ],
+  }));
+
   data.projects.filter((p) => p.status === 'لم يبدأ' || p.status === 'بانتظار الاعتماد').forEach((p) => {
     const completion = (p.progress || 0) >= 100;
     apprList.push({ tag: rl('مشروع', 'Project'), tagBg: '#e9f0f6', tagFg: '#3a6ea5', title: tr(p.name),
@@ -136,7 +203,7 @@ export function ChairDashboard() {
   });
 
   const DEF: Record<Tab, Def> = {
-    approvals: { title: rl('اعتماد رئيس القطاع', 'Chair approvals'), sub: rl('بنود بانتظار اعتمادك', 'Items awaiting your approval'), accent: '#b0433b', icBg: '#f7e6e4', icFg: '#b0433b', count: apprList.length, rows: apprList.slice(0, 10), hint: rl('ما يحتاج اعتمادك فقط: بدء مشروع، اكتمال مشروع، تمديد موعد نهائي، أو اعتماد إجازة.', 'Approval-only items: project start, project completion, deadline extension, or leave approval.'), icon: <IcoApprovals /> },
+    approvals: { title: rl('اعتماد رئيس القطاع', 'Chair approvals'), sub: rl('كل ما ينتظر قرارك في مكان واحد', 'Everything awaiting your decision, in one place'), accent: '#b0433b', icBg: '#f7e6e4', icFg: '#b0433b', count: apprList.length, rows: apprList.slice(0, 12), hint: rl('حلقة اعتماد واحدة: مراجعة مستندات الفريق (اعتماد/إرجاع/توجيه) إضافةً إلى بدء المشاريع واكتمالها وتمديد المواعيد واعتماد الإجازات.', 'One approval loop: review team documents (approve/return/directive) plus project start, completion, deadline extension and leave approval.'), icon: <IcoApprovals /> },
     updates: { title: rl('تحديثات المشاريع', 'Project updates'), sub: rl('آخر تحديثات المشاريع النشطة', 'Latest active project updates'), accent: '#3a6ea5', icBg: '#e9f0f6', icFg: '#3a6ea5', count: data.projects.length, rows: updRows, hint: rl('تحديثات كل المشاريع: الحالة ونسبة الإنجاز والخطوة القادمة.', 'All project updates: status, progress and next step.'), icon: <IcoBars /> },
     minutes: { title: rl('محاضر الاجتماعات', 'Meeting minutes'), sub: rl('المهام والقرارات الناتجة', 'Resulting tasks & decisions'), accent: '#7a4d94', icBg: '#f3ecf6', icFg: '#7a4d94', count: data.mtasks.length, rows: minRows, hint: rl('المهام الناتجة عن الاجتماعات والمسؤول عنها وحالتها.', 'Tasks resulting from meetings, their owners and status.'), icon: <IcoDoc /> },
     corr: { title: rl('الصادر والوارد', 'Correspondence'), sub: rl('مراسلات تحتاج إجراء', 'Correspondence needing action'), accent: '#2e7d55', icBg: '#e2f0e8', icFg: '#2e7d55', count: data.correspondence.filter((c) => c.needsAction).length, rows: corrRows, hint: rl('المستندات الصادرة والواردة التي تحتاج متابعة أو إجراء.', 'Outgoing/incoming documents needing follow-up.'), icon: <IcoMail /> },
@@ -184,6 +251,28 @@ export function ChairDashboard() {
           {active.rows.map((r, i) => <RowCard key={i} r={r} />)}
         </div>
       </div>
+
+      <Modal open={!!modal} onClose={() => setModal(null)} width={480}>
+        {modal && (
+          <>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16.5, fontWeight: 700, color: '#17211c' }}>
+              {modal.kind === 'return' ? rl('إرجاع البند للتعديل', 'Return for editing') : rl('إضافة توجيه', 'Add directive')}
+            </h3>
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Avatar name={modal.sub.ownerName} size={22} /> {tr(modal.sub.title)} — {modal.sub.ownerName}
+            </p>
+            <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={4} autoFocus
+              placeholder={modal.kind === 'return' ? rl('اكتب سبب الإرجاع ليظهر للعضو…', 'Write the return reason for the member…') : rl('اكتب التوجيه…', 'Write the directive…')}
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 11, padding: '11px 13px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none', resize: 'vertical' }} />
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModal(null)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+              <button onClick={submitModal} style={{ background: modal.kind === 'return' ? '#b0433b' : '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                {modal.kind === 'return' ? rl('إرجاع للتعديل', 'Return') : rl('إرسال التوجيه', 'Send directive')}
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
     </Fade>
   );
 }

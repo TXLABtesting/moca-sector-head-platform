@@ -75,7 +75,7 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
       if (send) { p._mrev = true; p._mret = ''; p._mowner = p._mowner || cu.id; }
       (p._mlog = p._mlog || []).unshift({
         at: rl('الآن', 'Just now'),
-        to: send ? 'بانتظار مراجعة رئيس القطاع' : (editing ? rl('تحديث بيانات المشروع', 'Project data updated') : rl('إنشاء المشروع', 'Project created')),
+        to: send ? 'بانتظار اعتماد رئيس القطاع' : (editing ? rl('تحديث بيانات المشروع', 'Project data updated') : rl('إنشاء المشروع', 'Project created')),
         note, sent: !!send, by: cu.name,
       });
     });

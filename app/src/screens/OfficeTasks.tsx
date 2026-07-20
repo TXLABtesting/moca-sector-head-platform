@@ -702,7 +702,7 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
       r.desc = f.desc; r.lastUpdate = rl('اليوم', 'Today'); r.attachments = atts;
       if (send) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       const log = (r._mlog as unknown[] | undefined) || [];
-      log.unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : f.status, sent: !!send, by: cu.name });
+      log.unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : f.status, sent: !!send, by: cu.name });
       r._mlog = log;
     });
     showToast(send ? rl('تم الحفظ والإرسال لمراجعة رئيس القطاع', 'Saved and sent for Sector Head review') : rl('تم حفظ المهمة', 'Task saved'));

@@ -108,7 +108,7 @@ export function buildNotifications(
         }, isFresh(r));
       });
     });
-    work.filter((w) => w.status === 'بانتظار مراجعة رئيس القطاع').forEach((w) => {
+    work.filter((w) => w.status === 'بانتظار اعتماد رئيس القطاع').forEach((w) => {
       push({ key: 'revw:' + w.id, kind: 'review', title: rl('بانتظار مراجعتك: ', 'Awaiting your review: ') + tr(w.title), sub: rl('من ', 'From ') + userName(w.owner), meta: secName(w.section), page: 'notifications' }, false);
     });
     data.reqMeetings.filter((m) => m.status === 'بانتظار الاعتماد').forEach((m) => {

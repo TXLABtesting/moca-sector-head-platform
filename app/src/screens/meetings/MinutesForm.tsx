@@ -118,10 +118,10 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
       m.attachments = atts; m.attachment = atts[0] || m.attachment;
       m.chairNotes = (f.chairNotes || '').trim();
       if (send) {
-        m.status = 'بانتظار مراجعة رئيس القطاع'; m._mstatus = 'بانتظار مراجعة رئيس القطاع';
+        m.status = 'بانتظار اعتماد رئيس القطاع'; m._mstatus = 'بانتظار اعتماد رئيس القطاع';
         m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id;
       } else if (!m._mrev && m.status !== 'معتمد') { m.status = 'مسودة'; m._mstatus = 'مسودة'; }
-      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات المحضر' : 'إنشاء المحضر'), sent: !!send, by: cu.name });
+      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? 'تحديث بيانات المحضر' : 'إنشاء المحضر'), sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسل المحضر لرئيس القطاع للمراجعة — ظاهر لديه في محاضر الاجتماعات' : 'حُفظ المحضر كمسودة');
     onClose();

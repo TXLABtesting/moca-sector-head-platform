@@ -13,6 +13,7 @@ import { triggerDownload } from '../../shared/fileGen';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, excelSerialToDate } from './templateIO';
 import { audBullets } from './shared';
 import type { AuditArea, AuditRep, AuditObsLog } from '../../data/types';
+import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -22,13 +23,6 @@ const AUDIT_UNITS = [
   'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية',
   'إدارة العقود والمشتريات', 'إدارة الخدمات والبنية التحتية', 'مركز التجربة المتكاملة',
 ];
-const STC: Record<string, [string, string]> = {
-  'مسودة': ['#eceeeb', '#6d7973'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
-  'قيد المتابعة': ['#fbf0d6', '#a9791f'],
-  'معتمد': ['#e2f0e8', '#2e7d55'],
-  'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
-};
 const OBSC: Record<string, [string, string]> = {
   'مغلق': ['#e2f0e8', '#2e7d55'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
@@ -310,9 +304,9 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
       r.period = (f.period || '').trim(); r.freq = f.freq; r.resp = f.resp || cu.name;
       r.attachments = atts; r.notes = (f.notes || '').trim();
       r.lastUpdate = 'الآن'; r.updatedBy = cu.name;
-      if (send) { r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
+      if (send) { r.status = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev && r.status !== 'معتمد') r.status = existing ? r.status : 'مسودة';
-      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إنشاء التقرير'), sent: !!send, by: cu.name });
+      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إنشاء التقرير'), sent: !!send, by: cu.name });
       // EDIT mode: write the inline-edited observations back to the shared register
       if (existing) {
         obsList.forEach((od) => {
@@ -521,8 +515,8 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
       if (r) {
         r.lastUpdate = 'الآن'; r.updatedBy = cu.name;
         if (send) {
-          r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id;
-          (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: 'بانتظار مراجعة رئيس القطاع', sent: true, by: cu.name, note: 'ملاحظة: ' + f.title.trim() });
+          r.status = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id;
+          (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: 'بانتظار اعتماد رئيس القطاع', sent: true, by: cu.name, note: 'ملاحظة: ' + f.title.trim() });
         }
       }
     });
@@ -664,7 +658,7 @@ function RepView({ repId, onEditRep, onAddObs, onOpenObs, onEditObs, onClose }: 
   if (!r) return null;
   const meta = r as AuditRep & { _mret?: string };
   const st = meta._mret ? 'أعيد للتعديل' : r.status;
-  const [bg, fg] = STC[st] || ['#eceeeb', '#6d7973'];
+  const [bg, fg] = wfTone(st);
   const obs = data.audit.filter((a) => (a.rep || 'admin2025') === r.id);
 
   return (
@@ -765,7 +759,7 @@ export function AuditWorkspace() {
         {reports.map((r) => {
           const meta = r as AuditRep & { _mret?: string };
           const st = meta._mret ? 'أعيد للتعديل' : r.status;
-          const [bg, fg] = STC[st] || ['#eceeeb', '#6d7973'];
+          const [bg, fg] = wfTone(st);
           const o = obsCount(r.id);
           return (
             <div key={r.id} className="trow" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.1fr 70px 90px 1.1fr 1fr 250px', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f2f4f0', alignItems: 'center' }}>

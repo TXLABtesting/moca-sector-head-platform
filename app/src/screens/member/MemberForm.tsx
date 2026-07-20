@@ -14,7 +14,7 @@ import { SECTIONS } from '../../domain/permissions';
 
 interface Props { open: boolean; onClose: () => void; section: string; editId?: string | null }
 
-const STATUS_OPTS = ['مسودة', 'قيد التحديث', 'قيد المتابعة', 'قيد التنفيذ', 'مرسل للمراجعة', 'متأخر', 'مكتمل', 'معتمد'];
+const STATUS_OPTS = ['مسودة', 'قيد التحديث', 'قيد المتابعة', 'قيد التنفيذ', 'بانتظار اعتماد رئيس القطاع', 'متأخر', 'مكتمل', 'معتمد'];
 const PRI_OPTS = ['عالية', 'متوسطة', 'منخفضة'];
 
 export function MemberForm({ open, onClose, section, editId }: Props) {
@@ -72,12 +72,12 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
           r._mret = ''; r._mrev = !!send;
           if (send) r._mowner = r._mowner || cu.id;
           r._mlog = r._mlog || [];
-          r._mlog.unshift({ at: lang === 'en' ? 'Just now' : 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (f.fstatus || coll.status(r)), note: (f.note || '').trim(), sent: !!send, by: cu.name });
+          r._mlog.unshift({ at: lang === 'en' ? 'Just now' : 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (f.fstatus || coll.status(r)), note: (f.note || '').trim(), sent: !!send, by: cu.name });
         }
       });
     } else {
       // sections without a shared collection (e.g. finReports, recommendations) → workflow items
-      const status = send ? 'بانتظار مراجعة رئيس القطاع' : ((f.fstatus || '').trim() || 'مسودة');
+      const status = send ? 'بانتظار اعتماد رئيس القطاع' : ((f.fstatus || '').trim() || 'مسودة');
       mutateWork((w) => {
         const it = editId ? w.find((x) => x.id === editId) : undefined;
         if (it) { it.title = title; it.status = status; it.date = rl('اليوم', 'Today'); if (send) it.reason = undefined; }

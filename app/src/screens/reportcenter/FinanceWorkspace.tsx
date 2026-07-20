@@ -10,16 +10,9 @@ import { FinancialSummary } from './FinancialSummary';
 import { financeYears, finForYear, defaultFinYear } from './financeYears';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup } from './templateIO';
 import type { FinModel, FinBigProject, FinEntity, AgingBucket } from '../../data/types';
+import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-const WSTC: Record<string, [string, string]> = {
-  'محدّث': ['#e2f0e8', '#2e7d55'],
-  'مسودة': ['#eceeeb', '#6d7973'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
-  'معتمد': ['#e2f0e8', '#2e7d55'],
-  'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
-};
 
 const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
 const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
@@ -305,9 +298,9 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
         })
         .filter((rp) => rp.sections.length);
       m.lastUpdate = 'الآن'; m.updatedBy = cu.name;
-      if (send) { m._mstatus = 'بانتظار مراجعة رئيس القطاع'; m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id; }
+      if (send) { m._mstatus = 'بانتظار اعتماد رئيس القطاع'; m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id; }
       else if (!m._mrev && m._mstatus !== 'معتمد') m._mstatus = 'مسودة';
-      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (create ? 'إنشاء ملخص مالي لسنة ' + year : 'تحديث بيانات الملخص المالي'), sent: !!send, by: cu.name });
+      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (create ? 'إنشاء ملخص مالي لسنة ' + year : 'تحديث بيانات الملخص المالي'), sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسل الملخص المالي لرئيس القطاع للمراجعة' : (create ? 'أُنشئ ملخص مالي لسنة ' + year : 'حُفظت بيانات الملخص المالي'));
     onClose();
@@ -559,7 +552,7 @@ export function FinanceWorkspace() {
   const fm = finForYear(finModels, year);
   const meta = (fm || {}) as FinModel & { _mstatus?: string; _mret?: string };
   const wf = meta._mret ? 'أعيد للتعديل' : (meta._mstatus || 'محدّث');
-  const [wb, wfg] = WSTC[wf] || ['#eceeeb', '#6d7973'];
+  const [wb, wfg] = wfTone(wf);
 
   return (
     <div>

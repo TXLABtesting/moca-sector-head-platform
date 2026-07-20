@@ -354,7 +354,7 @@ export function MinuteTasks() {
                   <span style={{ color: dueColorOf(a), fontWeight: 600 }}>{dl(a.due)}</span>
                   {typeof a.prog === 'number' && a.prog > 0 && <span style={{ fontWeight: 800, color: '#1f4a37' }}>{a.prog}%</span>}
                   {meta._mret ? <Badge bg="#f7e6e4" fg="#b0433b" style={{ fontSize: 9.5, padding: '2px 8px' }}>{tr('أعيد للتعديل')}</Badge>
-                    : meta._mrev ? <Badge bg="#fbf0d6" fg="#a9791f" style={{ fontSize: 9.5, padding: '2px 8px' }}>{tr('بانتظار مراجعة رئيس القطاع')}</Badge> : null}
+                    : meta._mrev ? <Badge bg="#fbf0d6" fg="#a9791f" style={{ fontSize: 9.5, padding: '2px 8px' }}>{tr('بانتظار اعتماد رئيس القطاع')}</Badge> : null}
                 </div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #f2f4f0', paddingTop: 9 }}>
                   {canStatus
@@ -530,7 +530,7 @@ function GroupRows(p: GroupRowsProps) {
                 {meta._mret ? (
                   <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#b0433b', background: '#f7e6e4', borderRadius: 6, padding: '2px 8px' }}>{tr('أعيد للتعديل')}</span>
                 ) : meta._mrev ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#a9791f', background: '#fbf0d6', borderRadius: 6, padding: '2px 8px' }}>{tr('بانتظار مراجعة رئيس القطاع')}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#a9791f', background: '#fbf0d6', borderRadius: 6, padding: '2px 8px' }}>{tr('بانتظار اعتماد رئيس القطاع')}</span>
                 ) : null}
               </span>
             </td>
@@ -618,7 +618,7 @@ function MtaskDrawerBody(p: DrawerBodyProps) {
           </div>
         )}
         {!meta._mret && meta._mrev && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 10.5, fontWeight: 700, color: '#a9791f', background: '#fbf0d6', borderRadius: 20, padding: '4px 11px' }}>{tr('بانتظار مراجعة رئيس القطاع')}</div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 10.5, fontWeight: 700, color: '#a9791f', background: '#fbf0d6', borderRadius: 20, padding: '4px 11px' }}>{tr('بانتظار اعتماد رئيس القطاع')}</div>
         )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
           {p.canEdit && (
