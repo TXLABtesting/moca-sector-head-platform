@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { seedData } from '../data/seed';
+import { demoSeed as seedData } from '../data/seed.demo';
 import type { AppData } from '../data/types';
 import { WORK_ITEMS, type WorkItem } from '../domain/workflow';
 import { SEED_USERS, type SeedUser } from '../domain/permissions';
 import { APP_TODAY, APP_TODAY_AR } from '../shared/today';
+import { verifyCredentials } from '../demo/auth';
 
 export interface ChangeLogEntry {
   id: string;
@@ -25,8 +26,11 @@ interface AppState {
   users: SeedUser[];
   changeLog: ChangeLogEntry[];
   currentUserId: string;
+  authUserId: string | null;   // demo session: who is signed in (null = show login)
   seq: number;
 
+  login: (username: string, password: string) => boolean;
+  logout: () => void;
   setCurrentUser: (id: string) => void;
   mutate: (fn: (d: AppData) => void) => void;
   mutateWork: (fn: (w: WorkItem[]) => void) => void;
@@ -67,8 +71,16 @@ export const useStore = create<AppState>()(
       users: clone(SEED_USERS),
       changeLog: [],
       currentUserId: 'chair',
+      authUserId: null,
       seq: 1,
 
+      login: (username, password) => {
+        const uid = verifyCredentials(username, password);
+        if (!uid) return false;
+        set({ authUserId: uid, currentUserId: uid });
+        return true;
+      },
+      logout: () => set({ authUserId: null }),
       setCurrentUser: (id) => set({ currentUserId: id }),
 
       mutate: (fn) => set((s) => { const data = clone(s.data); fn(data); return { data }; }),
@@ -86,7 +98,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 17,
+      version: 18,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.

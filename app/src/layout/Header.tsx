@@ -15,8 +15,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { t, lang, toggleLang, dir } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
-  const users = useStore((s) => s.users);
-  const setCurrentUser = useStore((s) => s.setCurrentUser);
+  const logout = useStore((s) => s.logout);
   const [roleOpen, setRoleOpen] = useState(false);
   const [mSearchOpen, setMSearchOpen] = useState(false);
 
@@ -44,12 +43,6 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
 
   const showBack = BACK_PAGES.includes(page);
   const ct = TYPES.find((x) => x.id === cu.type) || TYPES[0];
-
-  const pickUser = (id: string) => {
-    setCurrentUser(id);
-    setRoleOpen(false);
-    // Shell redirects to the dashboard automatically when the new user can't see this page.
-  };
 
   return (
     <header className="app-header" style={{ height: 76, flex: 'none', background: 'rgba(247,250,246,.55)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderBottom: '1px solid rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 30px', position: 'sticky', top: 0, zIndex: 20 }}>
@@ -94,22 +87,19 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
           {roleOpen && (
             <>
               <div onClick={() => setRoleOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 590 }} />
-              <div style={{ position: 'absolute', top: 50, insetInlineEnd: 0, width: 300, background: '#fff', border: '1px solid #edf0ea', borderRadius: 16, boxShadow: '0 16px 44px -12px rgba(23,40,32,.3),0 3px 10px rgba(23,40,32,.07)', padding: 8, zIndex: 600, animation: 'fadeUp .14s ease', maxHeight: '70vh', overflowY: 'auto' }}>
-                <div style={{ padding: '8px 11px 9px', fontSize: 10.5, fontWeight: 700, color: '#9aa39b', letterSpacing: '.04em' }}>{rl('عرض المنصة كـ', 'View platform as')}</div>
-                {users.map((u) => {
-                  const tp = TYPES.find((x) => x.id === u.type) || TYPES[0];
-                  const active = u.id === cu.id;
-                  return (
-                    <button key={u.id} onClick={() => pickUser(u.id)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 11px', border: 'none', background: active ? '#f2f7f4' : 'transparent', cursor: 'pointer', textAlign: 'start', borderRadius: 12, fontFamily: 'inherit' }}>
-                      <span style={{ width: 30, height: 30, flex: 'none', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tp.bg, color: tp.fg }}><Icon name={tp.icon} size={15} /></span>
-                      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.3 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>{u.name}</span>
-                        <span style={{ fontSize: 10, color: '#9aa39b' }}>{lang === 'en' ? tp.en : tp.ar}</span>
-                      </span>
-                      {active && <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#1e4634" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
-                    </button>
-                  );
-                })}
+              <div style={{ position: 'absolute', top: 50, insetInlineEnd: 0, width: 260, background: '#fff', border: '1px solid #edf0ea', borderRadius: 16, boxShadow: '0 16px 44px -12px rgba(23,40,32,.3),0 3px 10px rgba(23,40,32,.07)', padding: 8, zIndex: 600, animation: 'fadeUp .14s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px 11px' }}>
+                  <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ct.bg, color: ct.fg }}><Icon name={ct.icon} size={17} /></span>
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.3 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#17211c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>{cu.name}</span>
+                    <span style={{ fontSize: 10.5, color: '#9aa39b' }}>{lang === 'en' ? ct.en : ct.ar}</span>
+                  </span>
+                </div>
+                <div style={{ height: 1, background: '#f0f3ee', margin: '0 4px 6px' }} />
+                <button onClick={() => { setRoleOpen(false); logout(); }} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 11px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'start', borderRadius: 12, fontFamily: 'inherit', color: '#b0433b', fontSize: 13, fontWeight: 600 }}>
+                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+                  {rl('تسجيل الخروج', 'Sign out')}
+                </button>
               </div>
             </>
           )}
