@@ -4,6 +4,7 @@ import { seedData } from '../data/seed';
 import type { AppData } from '../data/types';
 import { WORK_ITEMS, type WorkItem } from '../domain/workflow';
 import { SEED_USERS, type SeedUser } from '../domain/permissions';
+import { APP_TODAY, APP_TODAY_AR } from '../shared/today';
 
 export interface ChangeLogEntry {
   id: string;
@@ -112,8 +113,8 @@ export const useStore = create<AppState>()(
 );
 
 function todayAr(): string {
-  // The prototype's "today" is anchored around early July 2026; keep it stable.
-  return '15 يوليو 2026';
+  return APP_TODAY_AR;
 }
 
-export const CURRENT_DATE = new Date(2026, 6, 6); // 6 July 2026 — prototype "today"
+/** @deprecated import APP_TODAY from '../shared/today' instead. */
+export const CURRENT_DATE = APP_TODAY;

@@ -3,6 +3,8 @@ import type { Page, NavParams } from '../store/nav';
 import type { SeedUser } from '../domain/permissions';
 import { SECTIONS, SEC_PAGE } from '../domain/permissions';
 import { mColl, OWNER_OF, ownedBy } from '../screens/member/workflow';
+import { todayPlus } from '../shared/today';
+import { AR_MONTHS } from '../shared/constants';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -55,11 +57,12 @@ function hash(s: string): number {
   return Math.abs(h);
 }
 const DAY_POOL = [0, 0, 1, 1, 3, 5]; // weighted toward recent days
+const M_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export function dayLabel(day: number, lang: string): string {
   if (day === 0) return lang === 'en' ? 'Today' : 'اليوم';
   if (day === 1) return lang === 'en' ? 'Yesterday' : 'أمس';
-  if (day === 3) return lang === 'en' ? '12 July 2026' : '12 يوليو 2026';
-  return lang === 'en' ? '10 July 2026' : '10 يوليو 2026';
+  const d = todayPlus(-day);
+  return d.getDate() + ' ' + (lang === 'en' ? M_EN : AR_MONTHS)[d.getMonth()] + ' ' + d.getFullYear();
 }
 function stamp(key: string, fresh: boolean, lang: string): { day: number; time: string; ord: number } {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);

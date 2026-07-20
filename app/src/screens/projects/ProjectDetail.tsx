@@ -10,12 +10,13 @@ import { WorkflowBanner } from '../../components/WorkflowBanner';
 import { parseAr } from '../../shared/helpers';
 import type { Project } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
+import { APP_TODAY_AR } from '../../shared/today';
 import { ProjectEditModal } from './ProjectEditModal';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
 import { AttachmentDownload } from '../../components/AttachmentDownload';
 
-const TODAY_STORE = '2 يوليو 2026';
+const TODAY_STORE = APP_TODAY_AR;
 
 /** Ported directive shape (seed carries by/status beyond the narrow type). */
 type DirItem = { date: string; by?: string; text: string; status?: string };

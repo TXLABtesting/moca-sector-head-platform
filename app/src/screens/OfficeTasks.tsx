@@ -8,6 +8,7 @@ import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
 import { pushUpdateReq } from './member/workflow';
+import { APP_TODAY, APP_TODAY_AR, todayPlus } from '../shared/today';
 import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
@@ -34,10 +35,10 @@ const PROG: Record<string, number> = {
 
 const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
 
-/** Prototype "today" anchors: TODAY = 5 Jul 2026, WEEKEND = 12 Jul 2026. */
-const TODAY = new Date(2026, 6, 5);
-const WEEKEND = new Date(2026, 6, 12);
-const TODAY_AR = '15 يوليو 2026';
+/** Prototype "today" from the single source; WEEKEND = end of this week. */
+const TODAY = APP_TODAY;
+const WEEKEND = todayPlus(6);
+const TODAY_AR = APP_TODAY_AR;
 
 const noDueOf = (tk: OfficeTask) => !tk.due || !String(tk.due).trim();
 

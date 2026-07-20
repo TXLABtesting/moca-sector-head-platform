@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store/store';
+import { APP_TODAY_KEY } from '../shared/today';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -23,7 +24,7 @@ const EN_MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const TODAY_KEY = '2026-07-06';
+const TODAY_KEY = APP_TODAY_KEY;
 
 /** Pill (rounded status label) colours — [bg, fg]. */
 const PILL: Record<string, [string, string]> = {
@@ -77,7 +78,7 @@ export function ReqMeetings() {
   const [calMode, setCalMode] = useState<CalMode>(() => {
     try { return window.matchMedia('(max-width: 640px)').matches ? 'day' : 'week'; } catch { return 'week'; }
   });
-  const [calAnchor, setCalAnchor] = useState('2026-07-06');
+  const [calAnchor, setCalAnchor] = useState(APP_TODAY_KEY);
   const [popupId, setPopupId] = useState<string | null>(null);
   const [popupEdit, setPopupEdit] = useState(false);
   const [mtForm, setMtForm] = useState(false);
@@ -343,7 +344,7 @@ export function ReqMeetings() {
           <button onClick={() => calShift(-1)} style={{ width: 34, height: 34, border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', color: '#3c4a42', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
           </button>
-          <button onClick={() => setCalAnchor('2026-07-06')} style={{ border: 'none', background: '#ffffff', borderRadius: 8, padding: '0 15px', fontSize: 12.5, fontWeight: 600, color: '#1f4a37', cursor: 'pointer' }}>{t('cal_today')}</button>
+          <button onClick={() => setCalAnchor(APP_TODAY_KEY)} style={{ border: 'none', background: '#ffffff', borderRadius: 8, padding: '0 15px', fontSize: 12.5, fontWeight: 600, color: '#1f4a37', cursor: 'pointer' }}>{t('cal_today')}</button>
           <button onClick={() => calShift(1)} style={{ width: 34, height: 34, border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', color: '#3c4a42', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 6-6 6 6 6" /></svg>
           </button>
