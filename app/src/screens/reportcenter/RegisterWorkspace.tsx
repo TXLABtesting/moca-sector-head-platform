@@ -54,6 +54,57 @@ const dlRegTemplateDocx = () => triggerDownload(makeDocx(
 ), 'Reports_Register_Template.docx');
 const dlRegTemplateXlsx = () => triggerDownload(makeXlsx(TPL_ROWS, 'قالب السجل'), 'Reports_Register_Template.xlsx');
 
+/* ---------------- bulk template + import (MANY reports, one row each) ---------------- */
+const BULK_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const BULK_HEADERS = ['عنوان التقرير', 'نوع التقرير', 'الإدارة', 'المسؤول', 'الدورية', 'موعد الاستحقاق', 'السنة', ...BULK_MONTHS, 'ملاحظات'];
+const BULK_EXAMPLE: string[][] = [
+  ['التقرير المالي الشهري', 'الأداء المالي', 'إدارة الشؤون الإدارية', 'هاجر هلول', 'شهري', '7 من كل شهر', '2026', 'معتمد', 'تم التسليم', 'بانتظار الاعتماد', '—', '—', '—', '—', '—', '—', '—', '—', '—', 'صف مثال — احذفه قبل الرفع'],
+  ['تقرير المخاطر الربعي', 'تدقيق', 'مركز التجربة المتكاملة', 'حسن همام', 'ربع سنوي', 'نهاية كل ربع', '2026', 'معتمد', '—', '—', 'معتمد', '—', '—', 'معتمد', '—', '—', 'بانتظار الاعتماد', '—', '—', 'اترك الأشهر غير المعنية = —'],
+];
+const dlRegBulkTemplateXlsx = () => triggerDownload(makeXlsx([BULK_HEADERS, ...BULK_EXAMPLE], 'سجل التقارير'), 'Reports_Register_Bulk_Template.xlsx');
+
+/** Parse a multi-row sheet (header + one report per row) into partial reports. */
+function bulkReports(tables: string[][][]): Partial<RegReport>[] {
+  const table = tables.slice().sort((a, b) => b.length - a.length)[0] || [];
+  if (table.length < 2) return [];
+  let hi = table.findIndex((r) => r.some((c) => /عنوان/.test(c) || c.trim() === 'التقرير'));
+  if (hi < 0) hi = 0;
+  const header = table[hi].map((c) => c.trim());
+  const idx = (test: (c: string) => boolean) => header.findIndex(test);
+  const col = {
+    title: idx((c) => /عنوان/.test(c) || c === 'التقرير'),
+    type: idx((c) => /^نوع/.test(c)),
+    dept: idx((c) => /إدار/.test(c)),
+    resp: idx((c) => /مسؤول/.test(c)),
+    freq: idx((c) => /دوري/.test(c)),
+    due: idx((c) => /استحقاق|موعد/.test(c)),
+    year: idx((c) => c === 'السنة' || c === 'سنة'),
+    notes: idx((c) => /ملاحظ/.test(c)),
+  };
+  const monthCols = BULK_MONTHS.map((m) => header.findIndex((c) => c === m));
+  const out: Partial<RegReport>[] = [];
+  for (let i = hi + 1; i < table.length; i++) {
+    const r = table[i];
+    const g = (k: number) => (k >= 0 ? (r[k] || '').trim() : '');
+    const title = g(col.title);
+    if (!title) continue;
+    const freq = REG_FREQS.find((f) => g(col.freq).includes(f)) || 'شهري';
+    const year = g(col.year) || LEGACY_YEAR;
+    const months: Record<string, string> = {};
+    monthCols.forEach((mc, mi) => {
+      if (mc < 0) return;
+      const v = (r[mc] || '').trim();
+      if (v && v !== '—') { const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s)); if (st) months['m' + (mi + 1)] = st; }
+    });
+    out.push({
+      title, type: g(col.type), dept: g(col.dept), resp: g(col.resp),
+      freq, due: excelSerialToDate(g(col.due)), notes: g(col.notes),
+      periods: Object.keys(months).length ? { [year]: months } : {},
+    });
+  }
+  return out;
+}
+
 interface RegParsed {
   title?: string; type?: string; dept?: string; resp?: string; freq?: string; due?: string;
   months?: Record<string, string>; notes?: string;
@@ -333,6 +384,8 @@ export function RegisterWorkspace() {
   const { tr } = useI18n();
   const cu = useCurrentUser();
   const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
   const manage = cu.type !== 'chair' && (can(cu, 'reportLog', 'add') || can(cu, 'reportLog', 'edit'));
 
   const [search, setSearch] = useState('');
@@ -340,6 +393,31 @@ export function RegisterWorkspace() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [formId, setFormId] = useState<{ id: string | null } | null>(null);
   const [limit, setLimit] = useState(15);
+  const bulkRef = useRef<HTMLInputElement>(null);
+
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const parsed = blocks ? bulkReports(blocks.tables) : [];
+      if (!parsed.length) { showToast('لم يُعثر على تقارير في الملف — تأكد من مطابقة الأعمدة للقالب'); return; }
+      mutate((d) => {
+        parsed.forEach((p, i) => {
+          const r = {
+            id: 'rg' + Date.now().toString(36) + i, n: String(d.regReports.length + 1),
+            title: '', type: '', due: '', freq: '', dept: '',
+            jan: '—', feb: '—', mar: '—', apr: '—', may: '—', periods: {}, lastDate: '', approval: '', notes: '',
+            ...p, resp: p.resp || cu.name,
+          } as RegReport & { _mowner?: string; _mstatus?: string };
+          r._mowner = cu.id;
+          r._mstatus = 'مسودة';
+          d.regReports.unshift(r);
+        });
+      });
+      showToast(`تم استيراد ${parsed.length} تقرير إلى السجل`);
+    } catch {
+      showToast('تعذّر استيراد الملف — تأكد من أنه بصيغة القالب');
+    }
+  };
 
   const years = registerYears(data.regReports);
   const q = search.trim();
@@ -354,7 +432,16 @@ export function RegisterWorkspace() {
           <p style={{ margin: 0, fontSize: 12.5, color: '#7d867f' }}>إدارة تقارير السجل وحالات استلامها حسب دورية كل تقرير — سجل مشترك واحد يظهر لرئيس القطاع فوراً.</p>
         </div>
         {manage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={dlRegBulkTemplateXlsx} title="تنزيل قالب إكسيل بصف لكل تقرير" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+              قالب الاستيراد (إكسيل)
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة تقارير دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>
+              استيراد دفعة من إكسيل
+            </button>
             <button onClick={() => setFormId({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               إضافة تقرير جديد للسجل
