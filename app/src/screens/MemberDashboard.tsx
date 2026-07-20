@@ -89,6 +89,30 @@ export function MemberDashboard() {
   const all: Item[] = groups.flatMap((g) => g.items);
   const mine = all.filter((x) => x.own);
 
+  // ---- real Sector-Head directives addressed to this member ----
+  // Harvested live from the records the member owns: directive entries the chair
+  // added through the unified approval loop (_mlog "توجيه") and any per-record
+  // directives[] arrays. The seed list is kept as an older baseline so the demo
+  // stays populated, de-duplicated by text with live directives shown first.
+  const liveDirectives: { text: string; date: string; on: string }[] = [];
+  work.filter((w) => w.owner === cu.id && w.directive).forEach((w) => liveDirectives.push({ text: w.directive!, date: rl('الآن', 'Just now'), on: w.title }));
+  editableCollections(cu).forEach((sec) => {
+    const coll = mColl(sec); if (!coll) return;
+    const ownerOf = OWNER_OF[coll.key as string];
+    coll.get(data).forEach((r: any) => {
+      const owned = r._mowner === cu.id || (ownerOf ? ownedBy(ownerOf(r), cu.name) : false);
+      if (!owned) return;
+      const on = coll.title(r);
+      (r._mlog || []).forEach((l: any) => {
+        if ((l.to === 'توجيه' || l.to === 'Directive') && l.note) liveDirectives.push({ text: l.note, date: l.at || rl('الآن', 'Just now'), on });
+      });
+      (r.directives || []).forEach((d: any) => { if (d && d.text) liveDirectives.push({ text: d.text, date: d.date || '', on }); });
+    });
+  });
+  const seedDir = (MEMBER_DIRECTIVES[cu.id] || []).map((d) => ({ text: d.text, date: d.date, on: '' }));
+  const dirSeen = new Set<string>();
+  const directives = [...liveDirectives, ...seedDir].filter((d) => { const k = d.text.trim(); if (!k || dirSeen.has(k)) return false; dirSeen.add(k); return true; });
+
   // ---- the six approved workflow cards ----
   const buckets: Record<CardKey, Item[]> = {
     open: mine.filter((x) => !FINAL_STATUSES.includes(x.status) && !x.review && !x.returned && x.status !== 'متأخر' && x.status !== 'قيد التحديث'),
@@ -229,11 +253,15 @@ export function MemberDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: 'linear-gradient(160deg,#1e4634,#17372a)', borderRadius: 20, boxShadow: '0 14px 34px -16px rgba(20,45,32,.5)', padding: '20px 22px', color: '#fff' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}><svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#c9a24b" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M4 8.5 7.7 12 12 5l4.3 7L20 8.5 18.3 19H5.7z" /></svg><h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700 }}>{rl('توجيهات رئيس القطاع', 'Sector Head directives')}</h3></div>
-            {(MEMBER_DIRECTIVES[cu.id] || []).length === 0 && <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', padding: '6px 0' }}>{rl('لا توجد توجيهات حالياً', 'No directives right now')}</div>}
-            {(MEMBER_DIRECTIVES[cu.id] || []).map((d, i) => (
+            {directives.length === 0 && <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', padding: '6px 0' }}>{rl('لا توجد توجيهات حالياً', 'No directives right now')}</div>}
+            {directives.map((d, i) => (
               <div key={i} style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 12, padding: '12px 13px', marginBottom: 9 }}>
-                <div style={{ fontSize: 12.5, lineHeight: 1.65, color: '#fff' }}>{d.text}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)', marginTop: 6 }}>{d.date}</div>
+                <div style={{ fontSize: 12.5, lineHeight: 1.65, color: '#fff' }}>{tr(d.text)}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)', marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {d.on && <span style={{ color: '#e9c877' }}>{tr(d.on)}</span>}
+                  {d.on && d.date && <span>·</span>}
+                  <span>{d.date}</span>
+                </div>
               </div>
             ))}
           </div>

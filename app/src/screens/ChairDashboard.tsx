@@ -104,8 +104,9 @@ export function ChairDashboard() {
       else mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) { r._mret = reason; r._mrev = false; (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: WF.returned, note: reason, chair: true }); } });
       showToast(rl('تم إرجاع البند للتعديل — سيرى العضو السبب في لوحته', 'Returned for editing — the member will see the reason'));
     } else {
-      if (!s.isWork) mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) { r._mdirective = t; (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: rl('توجيه', 'Directive'), note: t, chair: true }); } });
-      showToast(rl('تم إضافة التوجيه', 'Directive added'));
+      if (s.isWork) mutateWork((w) => { const it = w.find((x) => x.id === s.id); if (it) it.directive = t; });
+      else mutate((d) => { const coll = mColl(s.sec)!; const r = coll.get(d).find((x: { id: string }) => x.id === s.id) as Record<string, unknown> | undefined; if (r) { r._mdirective = t; (r._mlog = (r._mlog as unknown[]) || []).unshift({ at: rl('الآن', 'Just now'), to: 'توجيه', note: t, chair: true }); } });
+      showToast(rl('تم إرسال التوجيه إلى العضو', 'Directive sent to the member'));
     }
     setDraft(''); setModal(null);
   };

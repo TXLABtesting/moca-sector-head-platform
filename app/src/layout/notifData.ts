@@ -17,7 +17,7 @@ export interface Notif {
   ord: number;      // ascending = newest first
 }
 
-interface WorkItem { id: string; owner: string; section: string; title: string; status: string; reason?: string }
+interface WorkItem { id: string; owner: string; section: string; title: string; status: string; reason?: string; directive?: string }
 
 /** Collections that carry the member↔chair loop (one section per collection). */
 const SCAN_SECS = ['correspondence', 'projects', 'minutes', 'minuteTasks', 'committees', 'leaves', 'auditReports', 'reportLog', 'finReports', 'myTasks', 'reportCenter'];
@@ -135,6 +135,9 @@ export function buildNotifications(
     });
     work.filter((w) => w.owner === cu.id && w.status === 'أعيد للتعديل').forEach((w) => {
       push({ key: 'retw:' + w.id, kind: 'returned', title: rl('أعيد للتعديل: ', 'Returned for edits: ') + tr(w.title), sub: rl('سبب الإرجاع: ', 'Reason: ') + (w.reason || ''), meta: secName(w.section), page: (SEC_PAGE[w.section] || 'dashboard') as Page }, false);
+    });
+    work.filter((w) => w.owner === cu.id && w.directive).forEach((w) => {
+      push({ key: 'dirw:' + w.id, kind: 'directive', title: rl('توجيه من رئيس القطاع: ', 'Directive from the Sector Head: ') + tr(w.title), sub: w.directive!, meta: secName(w.section), page: (SEC_PAGE[w.section] || 'dashboard') as Page }, true);
     });
     data.reqMeetings.forEach((m: any) => {
       if (m._mowner !== cu.id) return;

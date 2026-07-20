@@ -9,6 +9,7 @@ export interface WorkItem {
   status: string;     // workflow status
   date: string;
   reason?: string;    // returned-for-edit reason
+  directive?: string; // Sector-Head directive on this submission
 }
 
 export interface DirectiveMsg { text: string; date: string }
