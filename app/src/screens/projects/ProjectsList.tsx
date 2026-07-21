@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { pushUpdateReq } from '../member/workflow';
 import { useI18n } from '../../i18n/i18n';
@@ -9,6 +9,8 @@ import { MobileFilters } from '../../components/MobileFilters';
 import { Dropdown } from '../../components/Dropdown';
 import { Icon } from '../../components/Icon';
 import { UNITS } from '../../shared/constants';
+import { triggerDownload } from '../../shared/fileGen';
+import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from '../reportcenter/templateIO';
 import type { Project } from '../../data/types';
 import { psColors, prColors, accentOf, unitOf, dueColor } from './projShared';
 import { useCurrentUser } from '../../store/useCurrentUser';
@@ -31,6 +33,64 @@ export function ProjectsList() {
   const [addOpen, setAddOpen] = useState(false);
   const [editProj, setEditProj] = useState<Project | null>(null);
   const [dragOverCol, setDragOverCol] = useState<number | null>(null);
+
+  // ---- bulk import (one project per row) ----
+  const P_STATUS = ['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل', 'يحتاج قرار', 'بانتظار الاعتماد'];
+  const P_PRI = ['عالية', 'متوسطة', 'منخفضة'];
+  const P_COLS = [
+    { field: 'name', match: alias('اسم المشروع', 'المشروع', 'العنوان') },
+    { field: 'owner', match: alias('المسؤول', 'المالك') },
+    { field: 'unit', match: alias('الوحدة', 'الإدارة') },
+    { field: 'status', match: alias('الحالة'), norm: pick(P_STATUS, 'لم يبدأ') },
+    { field: 'progress', match: alias('نسبة الإنجاز', 'الإنجاز', 'النسبة') },
+    { field: 'priority', match: alias('الأولوية'), norm: pick(P_PRI, 'متوسطة') },
+    { field: 'budget', match: alias('الميزانية') },
+    { field: 'startDate', match: alias('تاريخ البدء', 'البدء'), norm: excelSerialToDate },
+    { field: 'dueDate', match: alias('تاريخ الاستحقاق', 'الاستحقاق', 'الموعد'), norm: excelSerialToDate },
+    { field: 'desc', match: alias('الوصف') },
+    { field: 'finalOutput', match: alias('المخرج') },
+    { field: 'nextStep', match: alias('الخطوة القادمة', 'الخطوة التالية') },
+    { field: 'scope', match: alias('نطاق المشروع', 'نطاق العمل', 'النطاق') },
+    { field: 'milestones', match: alias('المراحل', 'خطة المراحل') },
+    { field: 'endUser', match: alias('المستخدم النهائي') },
+    { field: 'supplier', match: alias('المورد') },
+    { field: 'poNumber', match: alias('طلب الشراء', 'العقد', 'التوريد', 'رقم الطلب') },
+    { field: 'dependencies', match: alias('الاعتماديات', 'الاعتمادية') },
+    { field: 'risks', match: alias('المخاطر') },
+  ];
+  const P_HEADERS = ['اسم المشروع', 'المسؤول', 'الوحدة التنظيمية', 'الحالة', 'نسبة الإنجاز', 'الأولوية', 'الميزانية', 'تاريخ البدء', 'تاريخ الاستحقاق', 'الوصف', 'المخرج النهائي', 'الخطوة التالية', 'نطاق المشروع', 'خطة المراحل الرئيسية', 'المستخدم النهائي', 'اسم المورد', 'رقم طلب الشراء / العقد / التوريد', 'الاعتماديات', 'المخاطر'];
+  const P_EXAMPLE = ['توحيد إجراءات المكتب', 'سيف بيضاني', 'قطاع الخدمات المركزية', 'قيد التنفيذ', '40', 'عالية', '500000', '1 يناير 2026', '30 يونيو 2026', 'توحيد وتبسيط إجراءات العمل', 'دليل إجراءات معتمد', 'اعتماد المسودة', 'حصر الإجراءات؛ إعادة التصميم؛ الاعتماد', 'التحليل؛ التصميم؛ التنفيذ؛ الإطلاق', 'إدارة الشؤون الإدارية', 'شركة الحلول الذكية', 'PO-2026-114', 'اعتماد الميزانية', 'ضيق الوقت — صف مثال يُحذف'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlProjTemplate = () => triggerDownload(makeXlsx([P_HEADERS, P_EXAMPLE.slice(0, P_HEADERS.length)], 'المشاريع'), 'Projects_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, P_COLS, (r) => !!r.name) : [];
+      if (!rows.length) { showToast(rl('لم يُعثر على مشاريع في الملف — تأكد من مطابقة الأعمدة للقالب', 'No projects found — check the template columns')); return; }
+      mutate((d) => {
+        rows.forEach((r, i) => {
+          const p = {
+            id: 'p' + Date.now() + i, no: String(d.projects.length + 1 + i).padStart(2, '0'), stage: 'PLANNING',
+            name: r.name, nameEn: '', owner: r.owner || cu.name, unit: r.unit || 'قطاع الخدمات المركزية',
+            status: r.status || 'لم يبدأ', priority: r.priority || 'متوسطة',
+            progress: Math.max(0, Math.min(100, parseInt(r.progress, 10) || 0)),
+            budget: parseInt(String(r.budget || '').replace(/[^\d]/g, ''), 10) || 0,
+            startDate: r.startDate || '', dueDate: r.dueDate || '', deadline: '',
+            desc: r.desc || '', finalOutput: r.finalOutput || '', nextStep: r.nextStep || '', risks: r.risks || '',
+            scope: String(r.scope || '').split(/[؛\n;]+/).map((s) => s.trim()).filter(Boolean),
+            milestones: String(r.milestones || '').split(/[؛\n;]+/).map((s) => s.trim()).filter(Boolean),
+            endUser: r.endUser || '', supplier: r.supplier || '', poNumber: r.poNumber || '', dependencies: r.dependencies || '',
+            lastDate: 'اليوم', chairmanNotes: '', people: [], attachments: [], timeline: [], tasks: [],
+            _mowner: cu.id, _mstatus: 'مسودة',
+          } as unknown as Project;
+          d.projects.unshift(p);
+        });
+      });
+      showToast(rl('تم استيراد ', 'Imported ') + rows.length + rl(' مشروعاً', ' projects'));
+    } catch {
+      showToast(rl('تعذّر استيراد الملف', 'Import failed'));
+    }
+  };
 
   const [fSearch, setSearch] = useState('');
   const [fUnit, setFUnit] = useState('');
@@ -123,7 +183,14 @@ export function ProjectsList() {
           <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{t('projectsSub')}</p>
         </div>
         {canAdd && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={dlProjTemplate} title={rl('تنزيل قالب إكسيل بصف لكل مشروع', 'Download an Excel template, one project per row')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 12, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>{rl('قالب الاستيراد', 'Import template')}
+          </button>
+          <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+          <button type="button" onClick={() => bulkRef.current?.click()} title={rl('رفع ملف إكسيل يحتوي عدة مشاريع دفعة واحدة', 'Upload an Excel of many projects at once')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 12, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>{rl('استيراد دفعة', 'Bulk import')}
+          </button>
           <button type="button" onClick={() => setAddOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.55)', flex: 'none' }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             {rl('إضافة مشروع', 'Add project')}

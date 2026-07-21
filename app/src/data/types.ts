@@ -87,6 +87,12 @@ export interface Project {
   lastDate?: string;
   risks?: string;
   chairmanNotes?: string;
+  // ── procurement / delivery details (visible to the Sector Head too) ──
+  endUser?: string;        // المستخدم النهائي
+  supplier?: string;       // اسم المورد
+  poNumber?: string;       // رقم طلب الشراء / العقد / طلب التوريد
+  dependencies?: string;   // الاعتماديات
+  milestones?: string[];   // خطة المراحل الرئيسية (بند لكل سطر)
   people?: string[];
   attachments?: string[];
   timeline?: TimelineEntry[];

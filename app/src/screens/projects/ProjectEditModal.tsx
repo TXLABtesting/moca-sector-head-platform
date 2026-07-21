@@ -33,10 +33,13 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
     startDate: project.startDate || '', dueDate: project.dueDate || '', deadline: project.deadline || '',
     desc: project.desc || '', finalOutput: project.finalOutput || '', nextStep: project.nextStep || '',
     risks: project.risks || '', scope: (project.scope || []).join('\n'), updateNote: '',
+    endUser: project.endUser || '', supplier: project.supplier || '', poNumber: project.poNumber || '',
+    dependencies: project.dependencies || '', milestones: (project.milestones || []).join('\n'),
   } : {
     name: '', nameEn: '', owner: cu.name, unit: 'قطاع الخدمات المركزية', status: 'لم يبدأ', priority: 'متوسطة',
     progress: '0', budget: '', startDate: '', dueDate: '', deadline: '', desc: '', finalOutput: '',
     nextStep: '', risks: '', scope: '', updateNote: '',
+    endUser: '', supplier: '', poNumber: '', dependencies: '', milestones: '',
   });
 
   const set = (k: string) => (v: string) => setF((p: any) => ({ ...p, [k]: v }));
@@ -70,6 +73,11 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
       p.desc = (f.desc || '').trim(); p.finalOutput = (f.finalOutput || '').trim(); p.nextStep = (f.nextStep || '').trim();
       p.risks = (f.risks || '').trim();
       p.scope = String(f.scope || '').split('\n').map((s: string) => s.trim()).filter(Boolean);
+      p.endUser = (f.endUser || '').trim();
+      p.supplier = (f.supplier || '').trim();
+      p.poNumber = (f.poNumber || '').trim();
+      p.dependencies = (f.dependencies || '').trim();
+      p.milestones = String(f.milestones || '').split('\n').map((s: string) => s.trim()).filter(Boolean);
       const note = (f.updateNote || '').trim();
       if (note) (p.timeline = p.timeline || []).unshift({ text: note, by: cu.name, date: 'اليوم' });
       if (send) { p._mrev = true; p._mret = ''; p._mowner = p._mowner || cu.id; }
@@ -121,7 +129,12 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
         <div><Label>{rl('الخطوة القادمة', 'Next step')}</Label><input value={f.nextStep || ''} onChange={setI('nextStep')} style={inputStyle} /></div>
         <Area label={rl('وصف المشروع', 'Description')} k="desc" />
         <Area label={rl('المخرج النهائي للمشروع', 'Final deliverable')} k="finalOutput" rows={2} />
-        <Area label={rl('نطاق العمل (سطر لكل بند)', 'Scope of work (one line per bullet)')} k="scope" rows={4} />
+        <Area label={rl('نطاق المشروع (سطر لكل بند)', 'Project scope (one line per bullet)')} k="scope" rows={4} />
+        <Area label={rl('خطة المراحل الرئيسية (مرحلة لكل سطر)', 'Key milestones plan (one phase per line)')} k="milestones" rows={4} />
+        <Field label={rl('المستخدم النهائي', 'End user')} k="endUser" />
+        <Field label={rl('اسم المورد', 'Supplier')} k="supplier" />
+        <div style={{ gridColumn: '1 / -1' }}><Field label={rl('رقم طلب الشراء / العقد / طلب التوريد', 'PO / contract / supply-request no.')} k="poNumber" /></div>
+        <Area label={rl('الاعتماديات (ما يعتمد عليه المشروع)', 'Dependencies')} k="dependencies" rows={2} />
         <Area label={rl('المخاطر', 'Risks')} k="risks" rows={2} />
         <Area label={rl('ملاحظة تحديث (اختياري — تُضاف إلى سجل التحديثات)', 'Update note (optional — added to the updates log)')} k="updateNote" rows={2} />
       </div>

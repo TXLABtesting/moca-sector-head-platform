@@ -177,6 +177,49 @@ export async function fileToBlocks(file: File): Promise<{ lines: string[]; table
   return blocks;
 }
 
+/* ---------------- generic multi-row (bulk) parsing ---------------- */
+export interface BulkCol { field: string; match: (h: string) => boolean; norm?: (v: string) => string }
+
+/** A header-cell matcher: true if the cell contains any of the given labels. */
+export const alias = (...labels: string[]) => (h: string) => labels.some((l) => h.includes(l));
+
+/** A normalizer that snaps a free value to the closest allowed option
+ *  (exact match first, then the LONGEST option contained in the value — so
+ *  "كل أسبوعين" isn't mistaken for the shorter "أسبوعي"). */
+export const pick = (options: string[], fallback = '') => (v: string) =>
+  options.find((o) => o === v)
+  || [...options].sort((a, b) => b.length - a.length).find((o) => v.includes(o))
+  || fallback;
+
+/**
+ * Parse a multi-row sheet (header row + one record per row) into records.
+ * Picks the largest table, locates the header by column-label hits, then maps
+ * each subsequent non-empty row to a { field: value } object. Rows failing the
+ * `required` predicate are skipped.
+ */
+export function parseBulk(
+  tables: string[][][],
+  cols: BulkCol[],
+  required: (r: Record<string, string>) => boolean,
+): Record<string, string>[] {
+  const table = tables.slice().sort((a, b) => b.length - a.length)[0] || [];
+  if (table.length < 2) return [];
+  const need = Math.min(3, cols.length);
+  let hi = table.findIndex((r) => cols.filter((c) => r.some((cell) => c.match((cell || '').trim()))).length >= need);
+  if (hi < 0) hi = 0;
+  const header = table[hi].map((c) => (c || '').trim());
+  const map = cols.map((c) => ({ c, ci: header.findIndex((h) => c.match(h)) }));
+  const out: Record<string, string>[] = [];
+  for (let i = hi + 1; i < table.length; i++) {
+    const row = table[i];
+    if (!row.some((x) => (x || '').trim())) continue;
+    const rec: Record<string, string> = {};
+    map.forEach(({ c, ci }) => { if (ci >= 0) { const v = (row[ci] || '').trim(); if (v) rec[c.field] = c.norm ? c.norm(v) : v; } });
+    if (required(rec)) out.push(rec);
+  }
+  return out;
+}
+
 /** Look up the value of a label→value row across all parsed tables. */
 export function kvLookup(tables: string[][][], label: RegExp): string | undefined {
   for (const t of tables) for (const r of t) {
