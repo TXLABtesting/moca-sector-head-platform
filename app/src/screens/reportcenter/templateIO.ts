@@ -71,6 +71,35 @@ export async function zipEntryText(buf: ArrayBuffer, name: string): Promise<stri
 }
 export const docxText = (buf: ArrayBuffer) => zipEntryText(buf, 'word/document.xml');
 
+/** Read a .pptx into ordered lines + tables (rows of cells), scanning every
+ *  slide. DrawingML tables use <a:tbl>/<a:tr>/<a:tc>; text lives in <a:t>. */
+export async function pptxBlocks(buf: ArrayBuffer): Promise<{ lines: string[]; tables: string[][][] } | null> {
+  const lines: string[] = [];
+  const tables: string[][][] = [];
+  let found = false;
+  for (let n = 1; n <= 100; n++) {
+    const xml = await zipEntryText(buf, `ppt/slides/slide${n}.xml`);
+    if (!xml) { if (n === 1) return null; break; }
+    found = true;
+    // tables
+    for (const tbl of xml.match(/<a:tbl>[\s\S]*?<\/a:tbl>/g) || []) {
+      const rows: string[][] = [];
+      for (const tr of tbl.match(/<a:tr[ >][\s\S]*?<\/a:tr>/g) || []) {
+        const cells = (tr.match(/<a:tc[ >][\s\S]*?<\/a:tc>/g) || []).map((tc) =>
+          (tc.match(/<a:t>([\s\S]*?)<\/a:t>/g) || []).map((t) => t.replace(/<[^>]+>/g, '')).join('').trim());
+        rows.push(cells);
+      }
+      if (rows.length) { tables.push(rows); lines.push(' TABLE' + (tables.length - 1)); }
+    }
+    // free paragraphs (for key/value fallback)
+    for (const para of xml.match(/<a:p>[\s\S]*?<\/a:p>/g) || []) {
+      const t = (para.match(/<a:t>([\s\S]*?)<\/a:t>/g) || []).map((x) => x.replace(/<[^>]+>/g, '')).join('').trim();
+      if (t) lines.push(t);
+    }
+  }
+  return found ? { lines, tables } : null;
+}
+
 /** Read the first worksheet of an .xlsx into rows of cell strings
  *  (supports shared strings AND inline strings — Excel saves use shared). */
 export async function xlsxRows(buf: ArrayBuffer): Promise<string[][] | null> {
@@ -151,17 +180,19 @@ export function toBlocks(src: string, isXml: boolean): { lines: string[]; tables
   return { lines, tables };
 }
 
-/** Read ANY supported upload (docx / xlsx / csv / html / txt) into blocks. */
+/** Read ANY supported upload (docx / xlsx / pptx / csv / html / txt) into blocks. */
 export async function fileToBlocks(file: File): Promise<{ lines: string[]; tables: string[][][] } | null> {
   const buf = await file.arrayBuffer();
   const head = new Uint8Array(buf.slice(0, 2));
   let blocks: { lines: string[]; tables: string[][][] } | null = null;
   if (head[0] === 0x50 && head[1] === 0x4b) {
+    // Office Open XML (zip): Word → Excel → PowerPoint, whichever it is.
     const xml = await docxText(buf);
     if (xml) blocks = toBlocks(xml, true);
     else {
       const rows = await xlsxRows(buf);
       if (rows) blocks = { lines: [], tables: [rows] };
+      else blocks = await pptxBlocks(buf);
     }
   } else if (/\.csv$/i.test(file.name)) {
     const text = new TextDecoder('utf-8').decode(buf);
