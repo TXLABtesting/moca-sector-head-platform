@@ -7,6 +7,8 @@ import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
+import { pushUpdateReq } from './member/workflow';
+import { APP_TODAY, APP_TODAY_AR, todayPlus } from '../shared/today';
 import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
@@ -33,10 +35,10 @@ const PROG: Record<string, number> = {
 
 const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
 
-/** Prototype "today" anchors: TODAY = 5 Jul 2026, WEEKEND = 12 Jul 2026. */
-const TODAY = new Date(2026, 6, 5);
-const WEEKEND = new Date(2026, 6, 12);
-const TODAY_AR = '15 يوليو 2026';
+/** Prototype "today" from the single source; WEEKEND = end of this week. */
+const TODAY = APP_TODAY;
+const WEEKEND = todayPlus(6);
+const TODAY_AR = APP_TODAY_AR;
 
 const noDueOf = (tk: OfficeTask) => !tk.due || !String(tk.due).trim();
 
@@ -173,7 +175,7 @@ export function OfficeTasks() {
 
   // ---- mutations ----
   const setStatus = (id: string, v: string) => mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = v; tk.lastUpdate = TODAY_AR; } });
-  const reqUpdate = () => showToast(rl('تم إرسال طلب تحديث للمسؤول', 'Update request sent to the owner'));
+  const reqUpdate = (id: string) => { mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) pushUpdateReq(d, { owner: tk.owner, title: tk.title, section: 'myTasks' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markComplete = (id: string) => {
     mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = 'مكتمل'; tk.lastUpdate = TODAY_AR; } });
     showToast(rl('تم وضع علامة الاكتمال', 'Task marked complete'));
@@ -356,7 +358,7 @@ export function OfficeTasks() {
                           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>{t('pv_openBtn')}
                         </button>
                         {isChair && (
-                          <button onClick={reqUpdate} title={t('ot_requestUpdate')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f2', color: '#5b6b62', border: '1px solid #e6eae4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
+                          <button onClick={() => reqUpdate(a.id)} title={t('ot_requestUpdate')} style={{ width: 32, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f2', color: '#5b6b62', border: '1px solid #e6eae4', borderRadius: 8, padding: 7, cursor: 'pointer' }}>
                             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
                           </button>
                         )}
@@ -473,7 +475,7 @@ export function OfficeTasks() {
           onClose={() => setSelOtask(null)}
           onEditDeadline={() => openModal('deadline', detail.id)}
           onAddDirective={() => openModal('directive', detail.id)}
-          onRequestUpdate={reqUpdate}
+          onRequestUpdate={() => reqUpdate(detail.id)}
           onMarkComplete={() => { markComplete(detail.id); }}
         />}
         {detail && !drawerEdit && memberEdit && (
@@ -702,7 +704,7 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
       r.desc = f.desc; r.lastUpdate = rl('اليوم', 'Today'); r.attachments = atts;
       if (send) { r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       const log = (r._mlog as unknown[] | undefined) || [];
-      log.unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : f.status, sent: !!send, by: cu.name });
+      log.unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : f.status, sent: !!send, by: cu.name });
       r._mlog = log;
     });
     showToast(send ? rl('تم الحفظ والإرسال لمراجعة رئيس القطاع', 'Saved and sent for Sector Head review') : rl('تم حفظ المهمة', 'Task saved'));
@@ -742,7 +744,6 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onCancel} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
         <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ وإرسال لرئيس القطاع', 'Save & send to Sector Head')}</button>
       </div>
     </>
   );

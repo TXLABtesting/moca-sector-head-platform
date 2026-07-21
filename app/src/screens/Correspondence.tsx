@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties } from 'react';
 import { Fade, Modal } from '../components/ui';
+import { WorkflowBanner } from '../components/WorkflowBanner';
 import { MobileFilters } from '../components/MobileFilters';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
@@ -180,6 +181,21 @@ export function Correspondence() {
     showToast('تم استيراد ' + parsedDocs.length + ' مستنداً وإضافتها للسجل');
     setParsedDocs(null); setParsedFrom(''); setModal(null);
   };
+
+  // Direct bulk import from the toolbar — parse an Excel/CSV of many documents
+  // (one per row) and add them all at once, no modal review needed.
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const onBulkImport = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const docs = blocks ? parseCorrFile(blocks.tables) : [];
+      if (!docs.length) { showToast('لم يُتعرف على أي مستند في الملف — تحقق من مطابقة القالب'); return; }
+      mutate((d) => { docs.forEach((pd) => d.correspondence.unshift(recordFrom(pd))); });
+      showToast('تم استيراد ' + docs.length + ' مستنداً وإضافتها للسجل');
+    } catch {
+      showToast('تعذّر استيراد الملف — تأكد من أنه بصيغة القالب');
+    }
+  };
   const openEdit = (id: string) => {
     const d = corr.find((x) => x.id === id);
     if (d) { setForm({ ...(d as unknown as FormState) }); setModal('edit'); }
@@ -247,7 +263,8 @@ export function Correspondence() {
               <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '5px 11px', background: sbg, color: sfg }}>{tr(doc.status)}</span>
               <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '5px 11px', background: prBg, color: prFg }}>{t('priority')} {tr(doc.priority)}</span>
             </div>
-            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 600, lineHeight: 1.5 }}>{tr(doc.name)}</h2>
+            <h2 style={{ margin: '0 0 16px', fontSize: 20, fontWeight: 600, lineHeight: 1.5 }}>{tr(doc.name)}</h2>
+            <WorkflowBanner rec={doc} style={{ marginBottom: 18 }} />
             {canEdit && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '-8px 0 20px' }}>
                 <button onClick={() => openEdit(doc.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -329,7 +346,14 @@ export function Correspondence() {
           <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{tr('سجل المراسلات الصادرة والواردة ومتابعة إجراءاتها')}</p>
         </div>
         {canAdd && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => triggerDownload(buildCorrXlsx(), 'Correspondence_Bulk_Template.xlsx')} title="تنزيل قالب إكسيل بصف لكل مستند" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>قالب الاستيراد (إكسيل)
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulkImport(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة مستندات دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>استيراد دفعة من إكسيل
+            </button>
             <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>إضافة وارد/صادر جديد
             </button>

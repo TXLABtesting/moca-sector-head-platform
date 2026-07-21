@@ -118,10 +118,10 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
       m.attachments = atts; m.attachment = atts[0] || m.attachment;
       m.chairNotes = (f.chairNotes || '').trim();
       if (send) {
-        m.status = 'بانتظار مراجعة رئيس القطاع'; m._mstatus = 'بانتظار مراجعة رئيس القطاع';
+        m.status = 'بانتظار اعتماد رئيس القطاع'; m._mstatus = 'بانتظار اعتماد رئيس القطاع';
         m._mrev = true; m._mret = ''; m._mowner = m._mowner || cu.id;
       } else if (!m._mrev && m.status !== 'معتمد') { m.status = 'مسودة'; m._mstatus = 'مسودة'; }
-      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات المحضر' : 'إنشاء المحضر'), sent: !!send, by: cu.name });
+      (m._mlog = m._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? 'تحديث بيانات المحضر' : 'إنشاء المحضر'), sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسل المحضر لرئيس القطاع للمراجعة — ظاهر لديه في محاضر الاجتماعات' : 'حُفظ المحضر كمسودة');
     onClose();
@@ -192,8 +192,7 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
-        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ كمسودة</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إرسال لرئيس القطاع</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ</button>
       </div>
     </Modal>
   );

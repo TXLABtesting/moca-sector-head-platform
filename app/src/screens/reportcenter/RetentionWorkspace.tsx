@@ -11,7 +11,7 @@ import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import type { RetReport, RetRecommendation, RetEntityRow, RetCase } from '../../data/types';
 import { triggerDownload } from '../../shared/fileGen';
-import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER } from './templateIO';
+import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, parseBulk, alias, pick, excelSerialToDate } from './templateIO';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -19,7 +19,7 @@ const QUARTERS = ['الربع الأول', 'الربع الثاني', 'الرب�
 const PRIS = ['عالية', 'متوسطة', 'منخفضة'];
 const STC: Record<string, [string, string]> = {
   'مسودة': ['#eceeeb', '#6d7973'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
+  'بانتظار اعتماد رئيس القطاع': ['#fbf0d6', '#a9791f'],
   'معتمد': ['#e2f0e8', '#2e7d55'],
   'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
 };
@@ -324,9 +324,9 @@ function RetForm({ reportId, onClose }: { reportId: string | null; onClose: () =
       r.conclusion = (f.conclusion || '').trim();
       r.attachments = atts;
       r.lastUpdate = 'الآن'; r.updatedBy = cu.name;
-      if (send) { r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
+      if (send) { r.status = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev) r.status = r.status === 'معتمد' ? r.status : 'مسودة';
-      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : 'حفظ كمسودة', sent: !!send, by: cu.name });
+      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : 'حفظ كمسودة', sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسل التقرير لرئيس القطاع للمراجعة — ظاهر لديه في مركز التقارير' : 'حُفظ التقرير كمسودة');
     onClose();
@@ -522,10 +522,46 @@ export function RetentionWorkspace() {
   const reports = (data.retReports || []).slice().sort((a, b) => (b.year + QUARTERS.indexOf(b.quarter)).localeCompare(a.year + QUARTERS.indexOf(a.quarter)));
 
   const manage = cu.type !== 'chair' && (can(cu, 'reportCenter', 'add') || can(cu, 'reportCenter', 'edit'));
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
   const [viewId, setViewId] = useState<string | null>(null);
   const [formId, setFormId] = useState<{ id: string | null } | null>(null);
 
   const viewRep = viewId ? reports.find((r) => r.id === viewId) : null;
+
+  // ---- bulk import (one retained-payments report per row) ----
+  const RET_COLS = [
+    { field: 'year', match: alias('السنة') },
+    { field: 'quarter', match: alias('الربع'), norm: pick(QUARTERS, 'الربع الأول') },
+    { field: 'date', match: alias('التاريخ', 'تاريخ التقرير'), norm: excelSerialToDate },
+    { field: 'conclusion', match: alias('الخلاصة', 'الاستنتاج', 'الخاتمة') },
+  ];
+  const RET_HEADERS = ['السنة', 'الربع', 'تاريخ التقرير', 'الخلاصة'];
+  const RET_EXAMPLE = ['2026', 'الربع الثالث', '15 يوليو 2026', 'صف مثال — احذفه (التفاصيل تُكمَل داخل النظام)'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlRetBulk = () => triggerDownload(makeXlsx([RET_HEADERS, RET_EXAMPLE], 'الدفعات المستبقاة'), 'Retention_Reports_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, RET_COLS, (r) => !!(r.year || r.quarter)) : [];
+      if (!rows.length) { showToast('لم يُعثر على تقارير في الملف — تأكد من مطابقة الأعمدة للقالب'); return; }
+      mutate((d) => {
+        d.retReports = d.retReports || [];
+        rows.forEach((r, i) => {
+          const rec = {
+            id: 'ret' + Date.now() + i, year: r.year || '2026', quarter: r.quarter || 'الربع الأول',
+            date: r.date || '', status: 'مسودة', lastUpdate: '', updatedBy: cu.name,
+            execSummary: [], strengths: [], weaknesses: [], improvements: [], recs: [], entities: [], cases: [],
+            conclusion: r.conclusion || '', _mowner: cu.id,
+          } as unknown as (typeof d.retReports)[number];
+          d.retReports.unshift(rec);
+        });
+      });
+      showToast('تم استيراد ' + rows.length + ' تقريراً');
+    } catch {
+      showToast('تعذّر استيراد الملف');
+    }
+  };
 
   return (
     <div style={{ marginTop: 22 }}>
@@ -535,7 +571,14 @@ export function RetentionWorkspace() {
           <p style={{ margin: 0, fontSize: 12, color: '#7d867f' }}>سجل مشترك واحد — كل تقرير يُنشأ أو يُعدّل هنا يظهر لرئيس القطاع فوراً.</p>
         </div>
         {manage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={dlRetBulk} title="تنزيل قالب إكسيل بصف لكل تقرير" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '10px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>قالب الاستيراد
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة تقارير دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '10px 14px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>استيراد دفعة
+            </button>
             <button onClick={() => setFormId({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               إنشاء تقرير جديد

@@ -6,7 +6,6 @@ import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { PS } from '../shared/constants';
 import { DemoHint } from '../components/DemoHint';
-import { mColl } from './member/workflow';
 
 type Tab = 'approvals' | 'updates' | 'minutes' | 'corr' | 'committees';
 
@@ -72,8 +71,9 @@ export function ChairDashboard() {
   const projBF = (status: string): string[] => (PS as Record<string, readonly string[]>)[status] as string[] || ['#eee', '#555'];
   const corrDir = (dir: string) => (dir === 'صادر' ? ['#e6eef6', '#3a6ea5'] : ['#eef6f0', '#2e7d55']);
 
-  // ---- approvals ----
+  // ---- approvals (projects + leaves only — documents are view-only) ----
   const apprList: Row[] = [];
+
   data.projects.filter((p) => p.status === 'لم يبدأ' || p.status === 'بانتظار الاعتماد').forEach((p) => {
     const completion = (p.progress || 0) >= 100;
     apprList.push({ tag: rl('مشروع', 'Project'), tagBg: '#e9f0f6', tagFg: '#3a6ea5', title: tr(p.name),
@@ -136,7 +136,7 @@ export function ChairDashboard() {
   });
 
   const DEF: Record<Tab, Def> = {
-    approvals: { title: rl('اعتماد رئيس القطاع', 'Chair approvals'), sub: rl('بنود بانتظار اعتمادك', 'Items awaiting your approval'), accent: '#b0433b', icBg: '#f7e6e4', icFg: '#b0433b', count: apprList.length, rows: apprList.slice(0, 10), hint: rl('ما يحتاج اعتمادك فقط: بدء مشروع، اكتمال مشروع، تمديد موعد نهائي، أو اعتماد إجازة.', 'Approval-only items: project start, project completion, deadline extension, or leave approval.'), icon: <IcoApprovals /> },
+    approvals: { title: rl('اعتماد رئيس القطاع', 'Chair approvals'), sub: rl('بنود بانتظار اعتمادك', 'Items awaiting your approval'), accent: '#b0433b', icBg: '#f7e6e4', icFg: '#b0433b', count: apprList.length, rows: apprList.slice(0, 12), hint: rl('ما يحتاج اعتمادك فقط: بدء المشاريع واكتمالها، تمديد المواعيد، واعتماد الإجازات. المستندات للاطلاع فقط في وحداتها.', 'Approval-only items: project start, completion, deadline extension and leave approval. Documents are view-only in their modules.'), icon: <IcoApprovals /> },
     updates: { title: rl('تحديثات المشاريع', 'Project updates'), sub: rl('آخر تحديثات المشاريع النشطة', 'Latest active project updates'), accent: '#3a6ea5', icBg: '#e9f0f6', icFg: '#3a6ea5', count: data.projects.length, rows: updRows, hint: rl('تحديثات كل المشاريع: الحالة ونسبة الإنجاز والخطوة القادمة.', 'All project updates: status, progress and next step.'), icon: <IcoBars /> },
     minutes: { title: rl('محاضر الاجتماعات', 'Meeting minutes'), sub: rl('المهام والقرارات الناتجة', 'Resulting tasks & decisions'), accent: '#7a4d94', icBg: '#f3ecf6', icFg: '#7a4d94', count: data.mtasks.length, rows: minRows, hint: rl('المهام الناتجة عن الاجتماعات والمسؤول عنها وحالتها.', 'Tasks resulting from meetings, their owners and status.'), icon: <IcoDoc /> },
     corr: { title: rl('الصادر والوارد', 'Correspondence'), sub: rl('مراسلات تحتاج إجراء', 'Correspondence needing action'), accent: '#2e7d55', icBg: '#e2f0e8', icFg: '#2e7d55', count: data.correspondence.filter((c) => c.needsAction).length, rows: corrRows, hint: rl('المستندات الصادرة والواردة التي تحتاج متابعة أو إجراء.', 'Outgoing/incoming documents needing follow-up.'), icon: <IcoMail /> },

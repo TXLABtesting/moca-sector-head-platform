@@ -88,6 +88,16 @@ export function mColl(sec: string): MColl | null {
   return key ? COLLS[key] : null;
 }
 
+/** Record a "request update" from the chair to an item's owner. Surfaced to
+ *  that person as a real notification (see notifData). De-duplicates an
+ *  identical pending request for the same item + owner. */
+export function pushUpdateReq(d: AppData, req: { owner: string; title: string; section: string; note?: string; date?: string }): void {
+  if (!req.owner || !req.title) return;
+  const list = (d.updateRequests = d.updateRequests || []);
+  if (list.some((u) => u.owner === req.owner && u.title === req.title)) return;
+  list.unshift({ id: 'ur' + Math.floor(Math.random() * 1e9), owner: req.owner, title: req.title, section: req.section, note: req.note, date: req.date || 'الآن' });
+}
+
 /** Who "owns" a record, per collection (for مهامي counts). Keyed by AppData key. */
 export const OWNER_OF: Record<string, (r: any) => string> = {
   correspondence: (r) => r.followup || '',

@@ -14,6 +14,7 @@ import { REGST } from './shared';
 import { REG_FREQS, LEGACY_YEAR, periodsForFreq, periodStatus, currentStatus, registerYears } from './reportPeriods';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup, excelSerialToDate } from './templateIO';
 import type { RegReport } from '../../data/types';
+import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -21,12 +22,6 @@ const REG_STATUSES = ['—', 'معتمد', 'تم التسليم', 'بانتظا�
 const MONTH_FIELDS: { k: 'jan' | 'feb' | 'mar' | 'apr' | 'may'; pk: string; ar: string }[] = [
   { k: 'jan', pk: 'm1', ar: 'يناير' }, { k: 'feb', pk: 'm2', ar: 'فبراير' }, { k: 'mar', pk: 'm3', ar: 'مارس' }, { k: 'apr', pk: 'm4', ar: 'أبريل' }, { k: 'may', pk: 'm5', ar: 'مايو' },
 ];
-const WSTC: Record<string, [string, string]> = {
-  'مسودة': ['#eceeeb', '#6d7973'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
-  'معتمد': ['#e2f0e8', '#2e7d55'],
-  'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
-};
 
 const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
 const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
@@ -59,6 +54,82 @@ const dlRegTemplateDocx = () => triggerDownload(makeDocx(
 ), 'Reports_Register_Template.docx');
 const dlRegTemplateXlsx = () => triggerDownload(makeXlsx(TPL_ROWS, 'قالب السجل'), 'Reports_Register_Template.xlsx');
 
+/* ---------------- bulk template + import (MANY reports, one row each) ---------------- */
+const BULK_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const BULK_HEADERS = ['عنوان التقرير', 'نوع التقرير', 'الإدارة', 'المسؤول', 'الدورية', 'موعد الاستحقاق', 'السنة', ...BULK_MONTHS, 'ملاحظات'];
+const BULK_EXAMPLE: string[][] = [
+  ['التقرير المالي الشهري', 'الأداء المالي', 'إدارة الشؤون الإدارية', 'هاجر هلول', 'شهري', '7 من كل شهر', '2026', 'معتمد', 'تم التسليم', 'بانتظار الاعتماد', '—', '—', '—', '—', '—', '—', '—', '—', '—', 'صف مثال — احذفه قبل الرفع'],
+  ['تقرير المخاطر الربعي', 'تدقيق', 'مركز التجربة المتكاملة', 'حسن همام', 'ربع سنوي', 'نهاية كل ربع', '2026', 'معتمد', '—', '—', 'معتمد', '—', '—', 'معتمد', '—', '—', 'بانتظار الاعتماد', '—', '—', 'اترك الأشهر غير المعنية = —'],
+];
+const dlRegBulkTemplateXlsx = () => triggerDownload(makeXlsx([BULK_HEADERS, ...BULK_EXAMPLE], 'سجل التقارير'), 'Reports_Register_Bulk_Template.xlsx');
+
+/** Map a calendar month (1–12) to the period key(s) of a report's frequency it
+ *  belongs to, so the 12-month template works for EVERY frequency:
+ *   monthly → that month; quarterly → its quarter; semiannual → its half;
+ *   annual → the single yearly slot; bi-weekly/weekly → the periods that fall
+ *   inside that month (a month can cover 2–5 of them). */
+function monthPeriodKeys(freq: string, m: number): string[] {
+  switch (freq) {
+    case 'شهري': return ['m' + m];
+    case 'ربع سنوي': return ['q' + Math.ceil(m / 3)];
+    case 'نصف سنوي': return ['h' + Math.ceil(m / 6)];
+    case 'سنوي': return ['y1'];
+    case 'كل أسبوعين': { const out: string[] = []; for (let i = Math.floor((m - 1) * 26 / 12) + 1; i <= Math.floor(m * 26 / 12); i++) out.push('b' + i); return out; }
+    case 'أسبوعي': { const out: string[] = []; for (let i = Math.floor((m - 1) * 52 / 12) + 1; i <= Math.floor(m * 52 / 12); i++) out.push('w' + i); return out; }
+    default: return [];
+  }
+}
+
+/** Parse a multi-row sheet (header + one report per row) into partial reports. */
+function bulkReports(tables: string[][][]): Partial<RegReport>[] {
+  const table = tables.slice().sort((a, b) => b.length - a.length)[0] || [];
+  if (table.length < 2) return [];
+  let hi = table.findIndex((r) => r.some((c) => /عنوان/.test(c) || c.trim() === 'التقرير'));
+  if (hi < 0) hi = 0;
+  const header = table[hi].map((c) => c.trim());
+  const idx = (test: (c: string) => boolean) => header.findIndex(test);
+  const col = {
+    title: idx((c) => /عنوان/.test(c) || c === 'التقرير'),
+    type: idx((c) => /^نوع/.test(c)),
+    dept: idx((c) => /إدار/.test(c)),
+    resp: idx((c) => /مسؤول/.test(c)),
+    freq: idx((c) => /دوري/.test(c)),
+    due: idx((c) => /استحقاق|موعد/.test(c)),
+    year: idx((c) => c === 'السنة' || c === 'سنة'),
+    notes: idx((c) => /ملاحظ/.test(c)),
+  };
+  const monthCols = BULK_MONTHS.map((m) => header.findIndex((c) => c === m));
+  const out: Partial<RegReport>[] = [];
+  for (let i = hi + 1; i < table.length; i++) {
+    const r = table[i];
+    const g = (k: number) => (k >= 0 ? (r[k] || '').trim() : '');
+    const title = g(col.title);
+    if (!title) continue;
+    // Exact match first, then longest substring — so "كل أسبوعين" isn't
+    // mistaken for the shorter "أسبوعي" it contains.
+    const fr = g(col.freq);
+    const freq = REG_FREQS.find((f) => f === fr)
+      || [...REG_FREQS].sort((a, b) => b.length - a.length).find((f) => fr.includes(f))
+      || 'شهري';
+    const year = g(col.year) || LEGACY_YEAR;
+    const periods: Record<string, string> = {};
+    monthCols.forEach((mc, mi) => {
+      if (mc < 0) return;
+      const v = (r[mc] || '').trim();
+      if (v && v !== '—') {
+        const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s));
+        if (st) monthPeriodKeys(freq, mi + 1).forEach((k) => { periods[k] = st; });
+      }
+    });
+    out.push({
+      title, type: g(col.type), dept: g(col.dept), resp: g(col.resp),
+      freq, due: excelSerialToDate(g(col.due)), notes: g(col.notes),
+      periods: Object.keys(periods).length ? { [year]: periods } : {},
+    });
+  }
+  return out;
+}
+
 interface RegParsed {
   title?: string; type?: string; dept?: string; resp?: string; freq?: string; due?: string;
   months?: Record<string, string>; notes?: string;
@@ -71,7 +142,7 @@ function parseRegFile(tables: string[][][]): RegParsed {
   found.dept = kvLookup(tables, /^الإدارة/);
   found.resp = kvLookup(tables, /^المسؤول/);
   const fr = kvLookup(tables, /^الدورية/);
-  if (fr) { const f = REG_FREQS.find((x) => fr.includes(x)); if (f) found.freq = f; }
+  if (fr) { const f = REG_FREQS.find((x) => x === fr) || [...REG_FREQS].sort((a, b) => b.length - a.length).find((x) => fr.includes(x)); if (f) found.freq = f; }
   const due = kvLookup(tables, /^موعد الاستحقاق/);
   if (due) found.due = excelSerialToDate(due);
   const months: Record<string, string> = {};
@@ -169,9 +240,9 @@ function RegForm({ regId, initYear, onClose }: { regId: string | null; initYear:
       r.periods[fyear] = { ...pstat };
       r.lastDate = (f.lastDate || '').trim(); r.notes = (f.notes || '').trim();
       r.attachments = atts;
-      if (send) { r._mstatus = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
+      if (send) { r._mstatus = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev && r._mstatus !== 'معتمد') r._mstatus = existing ? r._mstatus : 'مسودة';
-      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إضافة التقرير للسجل'), sent: !!send, by: cu.name });
+      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إضافة التقرير للسجل'), sent: !!send, by: cu.name });
     });
     showToast(send ? 'أُرسل التقرير لرئيس القطاع للمراجعة — ظاهر لديه في سجل التقارير' : 'حُفظ التقرير في السجل');
     onClose();
@@ -251,8 +322,7 @@ function RegForm({ regId, initYear, onClose }: { regId: string | null; initYear:
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
-        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ كمسودة</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إرسال لرئيس القطاع</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ</button>
       </div>
     </Modal>
   );
@@ -277,7 +347,7 @@ function RegView({ regId, initYear, onEdit, onClose }: { regId: string; initYear
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
         <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, color: '#17211c', flex: 1, minWidth: 220 }}>{tr(r.title)}</h3>
         <Badge bg={cb} fg={cf} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(cur === '—' ? 'غير محدد' : cur)}</Badge>
-        {wf && <Badge bg={(WSTC[wf] || ['#eceeeb', '#6d7973'])[0]} fg={(WSTC[wf] || ['#eceeeb', '#6d7973'])[1]} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(wf)}</Badge>}
+        {wf && <Badge bg={wfTone(wf)[0]} fg={wfTone(wf)[1]} style={{ fontSize: 10.5, padding: '4px 12px' }}>{tr(wf)}</Badge>}
       </div>
       <div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 12 }}>
         {tr(r.type)} · {tr(r.dept)} · {tr(r.freq)} · المسؤول: {tr(r.resp)} · الاستحقاق: {tr(r.due)}{r.lastDate ? ' · آخر تسليم: ' + dl(r.lastDate) : ''}
@@ -339,6 +409,8 @@ export function RegisterWorkspace() {
   const { tr } = useI18n();
   const cu = useCurrentUser();
   const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
   const manage = cu.type !== 'chair' && (can(cu, 'reportLog', 'add') || can(cu, 'reportLog', 'edit'));
 
   const [search, setSearch] = useState('');
@@ -346,6 +418,31 @@ export function RegisterWorkspace() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [formId, setFormId] = useState<{ id: string | null } | null>(null);
   const [limit, setLimit] = useState(15);
+  const bulkRef = useRef<HTMLInputElement>(null);
+
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const parsed = blocks ? bulkReports(blocks.tables) : [];
+      if (!parsed.length) { showToast('لم يُعثر على تقارير في الملف — تأكد من مطابقة الأعمدة للقالب'); return; }
+      mutate((d) => {
+        parsed.forEach((p, i) => {
+          const r = {
+            id: 'rg' + Date.now().toString(36) + i, n: String(d.regReports.length + 1),
+            title: '', type: '', due: '', freq: '', dept: '',
+            jan: '—', feb: '—', mar: '—', apr: '—', may: '—', periods: {}, lastDate: '', approval: '', notes: '',
+            ...p, resp: p.resp || cu.name,
+          } as RegReport & { _mowner?: string; _mstatus?: string };
+          r._mowner = cu.id;
+          r._mstatus = 'مسودة';
+          d.regReports.unshift(r);
+        });
+      });
+      showToast(`تم استيراد ${parsed.length} تقرير إلى السجل`);
+    } catch {
+      showToast('تعذّر استيراد الملف — تأكد من أنه بصيغة القالب');
+    }
+  };
 
   const years = registerYears(data.regReports);
   const q = search.trim();
@@ -360,7 +457,16 @@ export function RegisterWorkspace() {
           <p style={{ margin: 0, fontSize: 12.5, color: '#7d867f' }}>إدارة تقارير السجل وحالات استلامها حسب دورية كل تقرير — سجل مشترك واحد يظهر لرئيس القطاع فوراً.</p>
         </div>
         {manage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={dlRegBulkTemplateXlsx} title="تنزيل قالب إكسيل بصف لكل تقرير" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>
+              قالب الاستيراد (إكسيل)
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة تقارير دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>
+              استيراد دفعة من إكسيل
+            </button>
             <button onClick={() => setFormId({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               إضافة تقرير جديد للسجل
@@ -390,7 +496,7 @@ export function RegisterWorkspace() {
           const meta = r as RegReport & { _mstatus?: string; _mret?: string };
           const wf = meta._mret ? 'أعيد للتعديل' : (meta._mstatus || '');
           const c = currentStatus(r, year); const [cb, cf] = REGST[c] || REGST['—'];
-          const [wb, wfg] = WSTC[wf] || ['#f4f6f2', '#9aa39b'];
+          const [wb, wfg] = wfTone(wf);
           return (
             <div key={r.id} className="trow" style={{ display: 'grid', gridTemplateColumns: '1.9fr 1fr 1fr 0.8fr 1.1fr 1.1fr 150px', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f2f4f0', alignItems: 'center' }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: '#17211c', lineHeight: 1.45 }}>{tr(r.title)}<div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 400, marginTop: 2 }}>{tr(r.type)} · {tr(r.due)}</div></div>

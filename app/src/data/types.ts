@@ -87,6 +87,12 @@ export interface Project {
   lastDate?: string;
   risks?: string;
   chairmanNotes?: string;
+  // ── procurement / delivery details (visible to the Sector Head too) ──
+  endUser?: string;        // المستخدم النهائي
+  supplier?: string;       // اسم المورد
+  poNumber?: string;       // رقم طلب الشراء / العقد / طلب التوريد
+  dependencies?: string;   // الاعتماديات
+  milestones?: string[];   // خطة المراحل الرئيسية (بند لكل سطر)
   people?: string[];
   attachments?: string[];
   timeline?: TimelineEntry[];
@@ -355,6 +361,8 @@ export interface CommitteeTask {
   prog?: number;
   needFollow?: boolean;
   needsFollow?: boolean;
+  directive?: string;
+  reviewed?: boolean;
 }
 export interface CommitteeMeeting {
   no: string;
@@ -437,4 +445,16 @@ export interface AppData {
   reqMeetings: ReqMeeting[];
   committees: Committee[];
   retReports: RetReport[];
+  updateRequests?: UpdateRequest[];
+}
+
+/** A "request update" the chair sends to the owner of any item, surfaced to
+ *  that person as a real notification. Decoupled from the many record types. */
+export interface UpdateRequest {
+  id: string;
+  owner: string;   // owner display name (matched against the member's name)
+  title: string;   // the item the update is requested on
+  section: string; // section key (for the notification meta / deep-link)
+  note?: string;
+  date: string;
 }

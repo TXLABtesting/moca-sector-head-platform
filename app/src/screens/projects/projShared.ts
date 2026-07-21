@@ -4,8 +4,8 @@ import { PS, PR, ACCENT, PUNIT } from '../../shared/constants';
 import { parseAr } from '../../shared/helpers';
 import type { Project } from '../../data/types';
 
-/** The prototype's anchored "today" (2 July 2026). */
-export const APP_TODAY = new Date(2026, 6, 2);
+/** The prototype's anchored "today" — re-exported from the single source. */
+export { APP_TODAY } from '../../shared/today';
 
 export const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 export const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

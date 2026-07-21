@@ -88,7 +88,7 @@ function MinutesList() {
           const meta = mt as typeof mt & { _mret?: string };
           const stName = meta._mret ? 'أعيد للتعديل' : mt.status;
           const [bg, fg] = PS[stName as keyof typeof PS]
-            || (stName === 'بانتظار مراجعة رئيس القطاع' ? ['#fbf0d6', '#a9791f']
+            || (stName === 'بانتظار اعتماد رئيس القطاع' ? ['#fbf0d6', '#a9791f']
             : stName === 'مسودة' ? ['#eceeeb', '#6d7973']
             : stName === 'أعيد للتعديل' ? ['#f7e6e4', '#b0433b'] : ['#eee', '#555']);
           const late = mt.actions.filter((a) => a.status === 'متأخر').length;

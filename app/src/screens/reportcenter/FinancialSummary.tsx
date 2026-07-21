@@ -7,6 +7,8 @@ import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { entColors, agingColors, agingRisk, fmt, pct } from './shared';
 import { financeYears, finForYear, defaultFinYear } from './financeYears';
+import { makeXlsx } from './templateIO';
+import { triggerDownload } from '../../shared/fileGen';
 import type { FinModel } from '../../data/types';
 
 const sectionHead = (barColor: string, title: string, note?: string) => (
@@ -127,7 +129,24 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
           <div style={{ fontSize: 12.5, color: '#bcd2c3', marginTop: 3 }}>{t('rc_period')} · {period} · {t('rc_crumb')}</div>
         </div>
         {yearFilter}
-        <button onClick={() => showToast(rl('يبدأ تنزيل ملف الملخص التنفيذي المالي', 'Downloading financial summary'))} style={{ background: '#e9c877', color: '#3a2c08', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"></path></svg>{t('fin_download')}</button>
+        <button onClick={() => {
+          const rows: string[][] = [
+            ['الملخص التنفيذي المالي', tr(FM.period)], [],
+            ['الحقل', 'القيمة'],
+            ['الميزانية الإجمالية (مليون درهم)', String(FM.budget)],
+            ['المستخدم', String(FM.used)], ['المتبقي', String(FM.remain)],
+            ['الالتزامات', String(FM.commit)], ['المدفوع من الالتزامات', String(FM.commitPaid)],
+            ['التشغيلية - المتوقع', String(FM.opex.expected)], ['التشغيلية - المدفوع', String(FM.opex.paid)],
+            ['الرأسمالية - المتوقع', String(FM.capex.expected)], ['الرأسمالية - المدفوع', String(FM.capex.paid)],
+            ['الفوائد البنكية اليومية على الحسابات', String(bi.dailyAccounts)],
+            ['الفوائد البنكية على الودائع الثابتة', String(bi.fixedDeposits)],
+            ['الودائع الثابتة الجارية خلال الربع', String(bi.activeDeposits)], [],
+            ['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'],
+            ...FM.entities.map((e) => [tr(e.name), String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]),
+          ];
+          triggerDownload(makeXlsx(rows, 'الملخص المالي'), 'Financial_Summary_' + year + '.xlsx');
+          showToast(rl('تم تنزيل الملخص التنفيذي المالي', 'Financial summary downloaded'));
+        }} style={{ background: '#e9c877', color: '#3a2c08', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14"></path></svg>{t('fin_download')}</button>
       </div>
 
       {/* budget hero + commitments strip */}

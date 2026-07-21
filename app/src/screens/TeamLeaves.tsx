@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Fade, Drawer, Avatar, Badge, Modal } from '../components/ui';
+import { APP_TODAY } from '../shared/today';
 import { Dropdown } from '../components/Dropdown';
 import { MobileFilters } from '../components/MobileFilters';
 import { DateField } from '../components/DateField';
@@ -38,7 +39,7 @@ const BARC: Record<string, string> = {
 };
 
 const activeForConflict = (lv: Leave) => lv.status === 'معتمدة' || lv.status === 'بانتظار الاعتماد';
-const TODAY = new Date(2026, 6, 12);
+const TODAY = APP_TODAY;
 /** phase -> [pill bg, pill fg] */
 const PHC: Record<string, [string, string]> = {
   'قادمة': ['#eef3f6', '#2f6aa8'],
@@ -194,8 +195,8 @@ export function TeamLeaves() {
     }
   }
 
-  // today line (prototype anchors to 12 July 2026)
-  const today = new Date(2026, 6, 12);
+  // today line (from the single source)
+  const today = APP_TODAY;
   const tIdx = idxOf(+today);
   const hasToday = tIdx >= 0 && tIdx < span;
   const todayStyle: CSSProperties = { position: 'absolute', top: 0, bottom: 0, left: (tIdx + 0.5) * dayW + '%', width: 2, background: '#1e4634', opacity: 0.5, zIndex: 3 };
@@ -882,7 +883,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
       if (send) {
         lv.status = 'بانتظار الاعتماد';
         lv._mrev = true; lv._mret = ''; lv._mowner = lv._mowner || cu.id;
-        (lv._mlog = lv._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار مراجعة رئيس القطاع', note: clash.length ? rl('تعارض في الجدولة مع: ', 'Scheduling conflict with: ') + clash.map((c) => c.person).join('، ') : '', sent: true, by: cu.name });
+        (lv._mlog = lv._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: 'بانتظار اعتماد رئيس القطاع', note: clash.length ? rl('تعارض في الجدولة مع: ', 'Scheduling conflict with: ') + clash.map((c) => c.person).join('، ') : '', sent: true, by: cu.name });
       } else if (STATUS_PLAN.includes(f.fstatus)) {
         lv.status = f.fstatus;
       }

@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { seedData } from '../data/seed';
+import { demoSeed as seedData } from '../data/seed.demo';
 import type { AppData } from '../data/types';
 import { WORK_ITEMS, type WorkItem } from '../domain/workflow';
 import { SEED_USERS, type SeedUser } from '../domain/permissions';
+import { APP_TODAY, APP_TODAY_AR } from '../shared/today';
+import { verifyCredentials } from '../demo/auth';
 
 export interface ChangeLogEntry {
   id: string;
@@ -24,8 +26,11 @@ interface AppState {
   users: SeedUser[];
   changeLog: ChangeLogEntry[];
   currentUserId: string;
+  authUserId: string | null;   // demo session: who is signed in (null = show login)
   seq: number;
 
+  login: (username: string, password: string) => boolean;
+  logout: () => void;
   setCurrentUser: (id: string) => void;
   mutate: (fn: (d: AppData) => void) => void;
   mutateWork: (fn: (w: WorkItem[]) => void) => void;
@@ -66,8 +71,16 @@ export const useStore = create<AppState>()(
       users: clone(SEED_USERS),
       changeLog: [],
       currentUserId: 'chair',
+      authUserId: null,
       seq: 1,
 
+      login: (username, password) => {
+        const uid = verifyCredentials(username, password);
+        if (!uid) return false;
+        set({ authUserId: uid, currentUserId: uid });
+        return true;
+      },
+      logout: () => set({ authUserId: null }),
       setCurrentUser: (id) => set({ currentUserId: id }),
 
       mutate: (fn) => set((s) => { const data = clone(s.data); fn(data); return { data }; }),
@@ -85,7 +98,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 15,
+      version: 18,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -103,6 +116,10 @@ export const useStore = create<AppState>()(
             if (m && !m.bankInterest) m.bankInterest = { dailyAccounts: 0, fixedDeposits: 0, activeDeposits: 0 };
           });
         }
+        // v16: "request update" became a real, notified collection.
+        if (s && s.data && !s.data.updateRequests) s.data.updateRequests = [];
+        // v17: documents no longer submit for approval — drop the ad-hoc queue.
+        if (s && typeof from === 'number' && from < 17) s.work = [];
         return s as AppState;
       },
     }
@@ -110,8 +127,8 @@ export const useStore = create<AppState>()(
 );
 
 function todayAr(): string {
-  // The prototype's "today" is anchored around early July 2026; keep it stable.
-  return '15 يوليو 2026';
+  return APP_TODAY_AR;
 }
 
-export const CURRENT_DATE = new Date(2026, 6, 6); // 6 July 2026 — prototype "today"
+/** @deprecated import APP_TODAY from '../shared/today' instead. */
+export const CURRENT_DATE = APP_TODAY;

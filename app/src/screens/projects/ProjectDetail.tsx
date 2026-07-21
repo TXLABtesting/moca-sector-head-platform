@@ -6,15 +6,17 @@ import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { Fade, Avatar, Modal } from '../../components/ui';
+import { WorkflowBanner } from '../../components/WorkflowBanner';
 import { parseAr } from '../../shared/helpers';
 import type { Project } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
+import { APP_TODAY_AR } from '../../shared/today';
 import { ProjectEditModal } from './ProjectEditModal';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
 import { AttachmentDownload } from '../../components/AttachmentDownload';
 
-const TODAY_STORE = '2 يوليو 2026';
+const TODAY_STORE = APP_TODAY_AR;
 
 /** Ported directive shape (seed carries by/status beyond the narrow type). */
 type DirItem = { date: string; by?: string; text: string; status?: string };
@@ -278,6 +280,7 @@ export function ProjectDetail() {
             {tr(p.owner)}
           </span>
         </div>
+        <WorkflowBanner rec={p} style={{ marginTop: 14 }} />
         <div style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#1f4a37', letterSpacing: '-.5px' }}>{p.progress}%</div>
@@ -366,6 +369,47 @@ export function ProjectDetail() {
                     <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       <span style={{ width: 7, height: 7, flex: 'none', borderRadius: '50%', background: '#a9791f', marginTop: 7 }} />
                       <span style={{ fontSize: 13, color: '#3c4a42', lineHeight: 1.6 }}>{tr(s)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Key milestones plan */}
+            {(p.milestones || []).length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '20px 0 12px' }}>
+                  <span style={{ width: 6, height: 20, borderRadius: 4, background: '#3a6ea5' }} />
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('خطة المراحل الرئيسية', 'Key milestones plan')}</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(p.milestones || []).map((m, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: '#f6f9fc', border: '1px solid #e2ecf5', borderRadius: 11, padding: '10px 13px' }}>
+                      <span style={{ flex: 'none', width: 22, height: 22, borderRadius: 7, background: '#e6eef6', color: '#3a6ea5', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                      <span style={{ fontSize: 13, color: '#3c4a42', lineHeight: 1.6 }}>{tr(m)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Procurement & delivery details */}
+            {(p.endUser || p.supplier || p.poNumber || p.dependencies) && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '20px 0 12px' }}>
+                  <span style={{ width: 6, height: 20, borderRadius: 4, background: '#2e7d55' }} />
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('تفاصيل التنفيذ والتوريد', 'Delivery & procurement details')}</h3>
+                </div>
+                <div className="pfacts" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#e6ebe6', border: '1px solid #e6ebe6', borderRadius: 16, overflow: 'hidden' }}>
+                  {[
+                    { k: rl('المستخدم النهائي', 'End user'), v: p.endUser },
+                    { k: rl('اسم المورد', 'Supplier'), v: p.supplier },
+                    { k: rl('رقم طلب الشراء / العقد / التوريد', 'PO / contract / supply no.'), v: p.poNumber },
+                    { k: rl('الاعتماديات', 'Dependencies'), v: p.dependencies },
+                  ].filter((x) => x.v && String(x.v).trim()).map((x, i) => (
+                    <div key={i} style={{ background: '#fbfcfb', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ fontSize: 12, color: '#8a938c' }}>{x.k}</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: '#2a332d', lineHeight: 1.6 }}>{tr(String(x.v))}</span>
                     </div>
                   ))}
                 </div>

@@ -18,6 +18,7 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const cu = useCurrentUser();
   const data = useStore((s) => s.data);
+  const logout = useStore((s) => s.logout);
 
   const pendingMeetings = data.reqMeetings.filter((m) => m.status === 'بانتظار الاعتماد').length;
   const corrBadge = data.correspondence.filter((c) => c.needsAction).length;
@@ -97,10 +98,14 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
       </nav>
       <div className="sb-profile" style={{ margin: 12, padding: '14px 15px', borderRadius: 16, background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.08)', display: 'flex', alignItems: 'center', gap: 11 }}>
         <Avatar name={cu.name} img={cu.img ? asset(cu.img) : undefined} size={42} />
-        <div className="sb-proftext" style={{ minWidth: 0 }}>
+        <div className="sb-proftext" style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>{roleName}</div>
           <div style={{ fontSize: 11, color: '#9fb8a9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{roleTypeName}</div>
         </div>
+        <button onClick={logout} title={rl('تسجيل الخروج', 'Sign out')} aria-label={rl('تسجيل الخروج', 'Sign out')}
+          style={{ flex: 'none', width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.05)', color: '#f0b9b3', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+        </button>
       </div>
     </aside>
   );

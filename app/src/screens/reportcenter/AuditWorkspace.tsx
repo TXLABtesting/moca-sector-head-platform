@@ -10,9 +10,10 @@ import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { triggerDownload } from '../../shared/fileGen';
-import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, excelSerialToDate } from './templateIO';
+import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, excelSerialToDate, parseBulk, alias, pick } from './templateIO';
 import { audBullets } from './shared';
 import type { AuditArea, AuditRep, AuditObsLog } from '../../data/types';
+import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -22,13 +23,6 @@ const AUDIT_UNITS = [
   'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية',
   'إدارة العقود والمشتريات', 'إدارة الخدمات والبنية التحتية', 'مركز التجربة المتكاملة',
 ];
-const STC: Record<string, [string, string]> = {
-  'مسودة': ['#eceeeb', '#6d7973'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf0d6', '#a9791f'],
-  'قيد المتابعة': ['#fbf0d6', '#a9791f'],
-  'معتمد': ['#e2f0e8', '#2e7d55'],
-  'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
-};
 const OBSC: Record<string, [string, string]> = {
   'مغلق': ['#e2f0e8', '#2e7d55'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
@@ -310,9 +304,9 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
       r.period = (f.period || '').trim(); r.freq = f.freq; r.resp = f.resp || cu.name;
       r.attachments = atts; r.notes = (f.notes || '').trim();
       r.lastUpdate = 'الآن'; r.updatedBy = cu.name;
-      if (send) { r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
+      if (send) { r.status = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id; }
       else if (!r._mrev && r.status !== 'معتمد') r.status = existing ? r.status : 'مسودة';
-      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إنشاء التقرير'), sent: !!send, by: cu.name });
+      (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? 'تحديث بيانات التقرير' : 'إنشاء التقرير'), sent: !!send, by: cu.name });
       // EDIT mode: write the inline-edited observations back to the shared register
       if (existing) {
         obsList.forEach((od) => {
@@ -466,8 +460,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
-        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ كمسودة</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إرسال لرئيس القطاع</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ</button>
       </div>
     </Modal>
   );
@@ -521,8 +514,8 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
       if (r) {
         r.lastUpdate = 'الآن'; r.updatedBy = cu.name;
         if (send) {
-          r.status = 'بانتظار مراجعة رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id;
-          (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: 'بانتظار مراجعة رئيس القطاع', sent: true, by: cu.name, note: 'ملاحظة: ' + f.title.trim() });
+          r.status = 'بانتظار اعتماد رئيس القطاع'; r._mrev = true; r._mret = ''; r._mowner = r._mowner || cu.id;
+          (r._mlog = r._mlog || []).unshift({ at: 'الآن', to: 'بانتظار اعتماد رئيس القطاع', sent: true, by: cu.name, note: 'ملاحظة: ' + f.title.trim() });
         }
       }
     });
@@ -557,8 +550,7 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
-        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ كمسودة</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إرسال لرئيس القطاع</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حفظ</button>
       </div>
     </Modal>
   );
@@ -664,7 +656,7 @@ function RepView({ repId, onEditRep, onAddObs, onOpenObs, onEditObs, onClose }: 
   if (!r) return null;
   const meta = r as AuditRep & { _mret?: string };
   const st = meta._mret ? 'أعيد للتعديل' : r.status;
-  const [bg, fg] = STC[st] || ['#eceeeb', '#6d7973'];
+  const [bg, fg] = wfTone(st);
   const obs = data.audit.filter((a) => (a.rep || 'admin2025') === r.id);
 
   return (
@@ -731,6 +723,8 @@ export function AuditWorkspace() {
   const { tr, dl } = useI18n();
   const cu = useCurrentUser();
   const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
   const reports = (data.auditReps || []).slice().sort((a, b) => (b.year || '').localeCompare(a.year || ''));
   const manage = cu.type !== 'chair' && (can(cu, 'auditReports', 'add') || can(cu, 'auditReports', 'edit'));
 
@@ -741,6 +735,43 @@ export function AuditWorkspace() {
 
   const obsCount = (repId: string) => data.audit.filter((a) => (a.rep || 'admin2025') === repId);
 
+  // ---- bulk import (one follow-up report per row) ----
+  const AR_FREQ = ['دوري', 'حسب الحاجة'];
+  const AR_COLS = [
+    { field: 'title', match: alias('عنوان التقرير', 'العنوان', 'التقرير') },
+    { field: 'unit', match: alias('الإدارة', 'الوحدة') },
+    { field: 'year', match: alias('السنة') },
+    { field: 'period', match: alias('الفترة', 'الدورة') },
+    { field: 'freq', match: alias('التكرار', 'النوع', 'الدورية'), norm: pick(AR_FREQ, 'دوري') },
+    { field: 'resp', match: alias('المسؤول', 'المعدّ') },
+    { field: 'notes', match: alias('ملاحظات') },
+  ];
+  const AR_HEADERS = ['عنوان التقرير', 'الإدارة', 'السنة', 'الفترة', 'التكرار', 'المسؤول', 'ملاحظات'];
+  const AR_EXAMPLE = ['تقرير متابعة الربع الثالث', 'إدارة الشؤون الإدارية', '2026', 'الربع الثالث', 'دوري', 'حسن همام', 'صف مثال — احذفه'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlAuditBulk = () => triggerDownload(makeXlsx([AR_HEADERS, AR_EXAMPLE], 'تقارير المتابعة'), 'Audit_Reports_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, AR_COLS, (r) => !!r.title) : [];
+      if (!rows.length) { showToast('لم يُعثر على تقارير في الملف — تأكد من مطابقة الأعمدة للقالب'); return; }
+      mutate((d) => {
+        d.auditReps = d.auditReps || [];
+        rows.forEach((r, i) => {
+          const rec = {
+            id: 'aur' + Date.now() + i, title: r.title, unit: r.unit || '', year: r.year || '2026',
+            period: r.period || '', freq: r.freq || 'دوري', status: 'مسودة', resp: r.resp || cu.name,
+            attachments: [], notes: r.notes || '', _mowner: cu.id,
+          } as unknown as (typeof d.auditReps)[number];
+          d.auditReps.unshift(rec);
+        });
+      });
+      showToast('تم استيراد ' + rows.length + ' تقريراً');
+    } catch {
+      showToast('تعذّر استيراد الملف');
+    }
+  };
+
   return (
     <div>
       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -749,7 +780,14 @@ export function AuditWorkspace() {
           <p style={{ margin: 0, fontSize: 12.5, color: '#7d867f' }}>إدارة التقارير الدورية وتقارير الحاجة وملاحظاتها — سجل مشترك واحد يظهر لرئيس القطاع فوراً.</p>
         </div>
         {manage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={dlAuditBulk} title="تنزيل قالب إكسيل بصف لكل تقرير" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>قالب الاستيراد
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة تقارير دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>استيراد دفعة
+            </button>
             <button onClick={() => setRepForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               إضافة تقرير جديد
@@ -765,7 +803,7 @@ export function AuditWorkspace() {
         {reports.map((r) => {
           const meta = r as AuditRep & { _mret?: string };
           const st = meta._mret ? 'أعيد للتعديل' : r.status;
-          const [bg, fg] = STC[st] || ['#eceeeb', '#6d7973'];
+          const [bg, fg] = wfTone(st);
           const o = obsCount(r.id);
           return (
             <div key={r.id} className="trow" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1.1fr 70px 90px 1.1fr 1fr 250px', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f2f4f0', alignItems: 'center' }}>

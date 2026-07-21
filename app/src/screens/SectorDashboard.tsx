@@ -7,7 +7,8 @@ import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { useCurrentUser } from '../store/useCurrentUser';
-import { WFS, SCOPES } from '../domain/permissions';
+import { SCOPES } from '../domain/permissions';
+import { wfTone } from '../domain/approval';
 import { PS, PUNIT } from '../shared/constants';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -43,13 +44,13 @@ export function SectorDashboard() {
     const t = title.trim();
     if (!t) { showToast(rl('يرجى إدخال عنوان التحديث', 'Please enter a title')); return; }
     mutateWork((w) => {
-      w.unshift({ id: 'sm' + Date.now(), owner: cu.id, section: 'projects', title: t + (note.trim() ? ' — ' + note.trim() : ''), status: 'بانتظار مراجعة رئيس القطاع', date: rl('اليوم', 'Today') });
+      w.unshift({ id: 'sm' + Date.now(), owner: cu.id, section: 'projects', title: t + (note.trim() ? ' — ' + note.trim() : ''), status: 'بانتظار اعتماد رئيس القطاع', date: rl('اليوم', 'Today') });
     });
     setTitle(''); setNote('');
     showToast(rl('أُرسل التحديث إلى رئيس القطاع — يظهر في لوحتها الآن', 'Update sent to the Sector Head — visible on her board now'));
   };
 
-  const wfPair = (st: string): [string, string] => WFS[st] || WFS['مسودة'];
+  const wfPair = (st: string): [string, string] => wfTone(st);
 
   return (
     <Fade style={{ maxWidth: 1180 }}>
@@ -118,7 +119,7 @@ export function SectorDashboard() {
             <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#c9a24b" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" /></svg>
             <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700 }}>{rl('إرسال تحديث / ملاحظة لرئيس القطاع', 'Send an update / note to the Sector Head')}</h3>
           </div>
-          <p style={{ margin: '0 0 14px', fontSize: 11.5, color: 'rgba(255,255,255,.65)', lineHeight: 1.7 }}>{rl('يظهر البند فوراً في صندوق مراجعة رئيس القطاع بحالة «بانتظار مراجعة رئيس القطاع».', 'The item instantly appears in the Sector Head’s review inbox as “Awaiting Sector Head review”.')}</p>
+          <p style={{ margin: '0 0 14px', fontSize: 11.5, color: 'rgba(255,255,255,.65)', lineHeight: 1.7 }}>{rl('يظهر البند فوراً في صندوق مراجعة رئيس القطاع بحالة «بانتظار اعتماد رئيس القطاع».', 'The item instantly appears in the Sector Head’s review inbox as “Awaiting Sector Head review”.')}</p>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={rl('عنوان التحديث أو الملاحظة…', 'Update / note title…')}
             style={{ width: '100%', boxSizing: 'border-box', border: '1px solid rgba(255,255,255,.18)', background: 'rgba(255,255,255,.09)', color: '#fff', borderRadius: 11, padding: '11px 13px', fontSize: 13, fontFamily: 'inherit', outline: 'none', marginBottom: 9 }} />
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={4} placeholder={rl('التفاصيل (اختياري)…', 'Details (optional)…')}

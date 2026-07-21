@@ -6,12 +6,11 @@ import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { buildNotifications, loadRead, markRead, markAllRead, dayLabel, KIND_STYLE, KIND_LABELS, type Notif } from '../layout/notifData';
-import { ChairReview } from './chair/ChairReview';
 
 /** Notifications Center: every alert in one place, grouped by day (newest
  *  first), with read/unread state, filters and search. Clicking an alert
- *  opens the exact related item. The chair's actionable review inbox lives
- *  here too — the dashboard keeps executive summaries only. */
+ *  opens the exact related item. The chair's approval decisions now live on
+ *  the dashboard "Chair approvals" tab; here we only point to them. */
 export function NotificationsCenter() {
   const { lang, tr } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
@@ -75,7 +74,24 @@ export function NotificationsCenter() {
         {rl('كل التنبيهات في مكان واحد — النقر على أي تنبيه يفتح البند المرتبط به مباشرة.', 'All alerts in one place — clicking any alert opens its exact related item.')}
       </p>
 
-      {cu.type === 'chair' && <ChairReview />}
+      {cu.type === 'chair' && (() => {
+        // Approvals cover projects & leaves only — documents are view-only.
+        let n = data.projects.filter((p) => p.status === 'بانتظار الاعتماد' || p.status === 'لم يبدأ' || (p.extendReq && !(p.extendReq as { decided?: boolean }).decided)).length;
+        n += data.leaves.filter((l) => l.status === 'بانتظار الاعتماد').length;
+        if (n === 0) return null;
+        return (
+          <div onClick={() => goto('dashboard')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, borderRadius: 16, padding: '15px 18px', background: '#fbf7ee', border: '1.5px solid #ecdcae' }}>
+            <span style={{ width: 38, height: 38, flex: 'none', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fbf2df', color: '#a9791f' }}>
+              <svg width={19} height={19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#17211c' }}>{rl('بنود بانتظار اعتمادك', 'Items awaiting your approval')}</div>
+              <div style={{ fontSize: 11.5, color: '#8a6a1f', marginTop: 2 }}>{rl('اعتمادات المشاريع والإجازات في «اعتماد رئيس القطاع» باللوحة الرئيسية — اضغط للانتقال.', 'Project & leave approvals under “Chair approvals” on the dashboard — click to go.')}</div>
+            </div>
+            <span style={{ flex: 'none', fontSize: 13, fontWeight: 800, color: '#a9791f', background: '#fbf2df', borderRadius: 20, padding: '5px 14px' }}>{n}</span>
+          </div>
+        );
+      })()}
 
       {/* filters */}
       <div className="glass" style={{ borderRadius: 16, padding: '12px 14px', marginBottom: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>

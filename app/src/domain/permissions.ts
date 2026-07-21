@@ -84,18 +84,6 @@ export const SEED_USERS: SeedUser[] = [
   { id: 'sysadmin', name: 'مدير النظام', job: 'إدارة النظام والصلاحيات', type: 'sysadmin', scope: 'all', g: { dashboard: 'v', permissions: 'vaeds', assistant: 'v' } },
 ];
 
-/** workflow status -> [bg, fg] */
-export const WFS: Record<string, [string, string]> = {
-  'مسودة': ['#eceeeb', '#6d7973'],
-  'قيد التحديث': ['#e3edf6', '#2f6aa8'],
-  'مرسل للمراجعة': ['#f1e8f5', '#7a4d94'],
-  'بانتظار مراجعة رئيس القطاع': ['#fbf2df', '#a9791f'],
-  'أعيد للتعديل': ['#f7e6e4', '#b0433b'],
-  'معتمد': ['#e2f0e8', '#2e7d55'],
-  'مكتمل': ['#dcefe0', '#1f7a4d'],
-  'ملغي': ['#eceeeb', '#9aa39b'],
-};
-
 /** section key -> the page it maps to for navigation */
 export const SEC_PAGE: Record<string, string> = {
   correspondence: 'correspondence', minutes: 'meetings', minuteTasks: 'mtasks',

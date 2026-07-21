@@ -7,7 +7,7 @@ import { useCurrentUser } from '../store/useCurrentUser';
 import { can } from '../domain/permissions';
 import { useToast } from '../components/Toast';
 import { initials, memberImg, asset } from '../shared/helpers';
-import { ownedBy } from './member/workflow';
+import { ownedBy, pushUpdateReq } from './member/workflow';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
@@ -416,6 +416,24 @@ function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, sho
   tr: (s: string) => string;
   dl: (s: string) => string;
 }) {
+  const mutate = useStore((s) => s.mutate);
+  const [dirTarget, setDirTarget] = useState<{ mNo: string; ti: number } | null>(null);
+  const [dirDraft, setDirDraft] = useState('');
+  const reqUpdate = (owner: string, title: string) => { mutate((d) => pushUpdateReq(d, { owner, title, section: 'committees' })); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
+  const mutateTask = (mNo: string, ti: number, fn: (t: CommitteeTask) => void) => mutate((d) => {
+    const cc = d.committees.find((x) => x.id === c.id); if (!cc) return;
+    const mm = (cc.meetings || []).find((x) => x.no === mNo); if (!mm) return;
+    const tk = (mm.tasks || [])[ti]; if (tk) fn(tk);
+  });
+  const saveDirective = () => {
+    const txt = dirDraft.trim();
+    if (txt && dirTarget) {
+      mutateTask(dirTarget.mNo, dirTarget.ti, (x) => { x.directive = txt; });
+      showToast(rl('تمت إضافة التوجيه إلى المهمة', 'Directive added to the task'));
+    }
+    setDirTarget(null); setDirDraft('');
+  };
+  const toggleReviewed = (mNo: string, ti: number, cur: boolean) => { mutateTask(mNo, ti, (x) => { x.reviewed = !x.reviewed; }); showToast(cur ? rl('أُلغيت علامة المراجعة', 'Review mark removed') : rl('تم وضع علامة: تمت المراجعة', 'Marked as reviewed')); };
   const meetings = c.meetings || [];
   const addBtn = canCoord ? (
     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
@@ -484,10 +502,13 @@ function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, sho
                   <Badge bg={tsBg} fg={tsFg} style={{ flex: 'none', fontSize: 10, padding: '4px 10px' }}>{tr(t.status)}</Badge>
                   {canApprove && (
                     <div style={{ flex: 'none', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <button onClick={() => showToast(rl('تمت إضافة التوجيه', 'Directive added'))} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إضافة توجيه', 'Add directive')}</button>
-                      <button onClick={() => showToast(rl('تم إرسال طلب التحديث', 'Update request sent'))} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('طلب تحديث', 'Request update')}</button>
-                      <button onClick={() => showToast(rl('تم وضع علامة: تمت المراجعة', 'Marked as reviewed'))} style={{ background: '#e2f0e8', color: '#2e7d55', border: '1px solid #cce6d4', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تمت المراجعة', 'Reviewed')}</button>
+                      <button onClick={() => { setDirTarget({ mNo: m.no, ti }); setDirDraft(t.directive || ''); }} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{t.directive ? rl('تعديل التوجيه', 'Edit directive') : rl('إضافة توجيه', 'Add directive')}</button>
+                      <button onClick={() => reqUpdate(t.owner, t.title)} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('طلب تحديث', 'Request update')}</button>
+                      <button onClick={() => toggleReviewed(m.no, ti, !!t.reviewed)} style={{ background: t.reviewed ? '#2e7d55' : '#e2f0e8', color: t.reviewed ? '#fff' : '#2e7d55', border: '1px solid #cce6d4', borderRadius: 7, padding: '6px 11px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{t.reviewed ? rl('✓ تمت المراجعة', '✓ Reviewed') : rl('تمت المراجعة', 'Reviewed')}</button>
                     </div>
+                  )}
+                  {t.directive && (
+                    <div style={{ flexBasis: '100%', fontSize: 11, color: '#6a5a2b', background: '#fbf7ee', border: '1px solid #ecdcae', borderRadius: 8, padding: '7px 11px', lineHeight: 1.6 }}><b>{rl('توجيه رئيس القطاع', 'Sector Head directive')}:</b> {tr(t.directive)}</div>
                   )}
                 </div>
               );
@@ -495,6 +516,18 @@ function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, sho
           </div>
         </div>
       ))}
+
+      <Modal open={dirTarget !== null} onClose={() => setDirTarget(null)} width={460}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 16.5, fontWeight: 700, color: '#17211c' }}>{rl('توجيه رئيس القطاع', 'Sector Head directive')}</h3>
+        <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rl('يُحفظ التوجيه على مهمة اللجنة ويظهر أسفلها.', 'Saved on the committee task and shown beneath it.')}</p>
+        <textarea value={dirDraft} onChange={(e) => setDirDraft(e.target.value)} rows={4} autoFocus
+          placeholder={rl('اكتب التوجيه…', 'Write the directive…')}
+          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 11, padding: '11px 13px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none', resize: 'vertical' }} />
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end' }}>
+          <button onClick={() => setDirTarget(null)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+          <button onClick={saveDirective} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ التوجيه', 'Save directive')}</button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -620,7 +653,7 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
         c.decisions = [{ num: (f.decNum || '').trim() || String((c.decisions || []).length + 1), year: (f.decYear || '2026').trim(), kind: f.decKind || 'قرار تشكيل', img: decFiles[0] }, ...(c.decisions || [])];
       }
       if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
-      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : (existing ? rl('تحديث بيانات اللجنة', 'Committee updated') : rl('إنشاء اللجنة', 'Committee created')), sent: !!send, by: cu.name });
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : (existing ? rl('تحديث بيانات اللجنة', 'Committee updated') : rl('إنشاء اللجنة', 'Committee created')), sent: !!send, by: cu.name });
     });
     showToast(send ? rl('أُرسلت تحديثات اللجنة لرئيس القطاع للمراجعة', 'Committee updates sent for Sector Head review') : rl('تم حفظ بيانات اللجنة', 'Committee saved'));
     onClose();
@@ -669,7 +702,6 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
         <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع', 'Send to Sector Head')}</button>
       </div>
     </Modal>
   );
@@ -721,7 +753,7 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
       m.absent = absent; m.attachments = atts; m.tasks = cleanTasks;
       c.actualMeetings = c.meetings.length;
       if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
-      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار مراجعة رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.points || '').slice(0, 80), sent: !!send, by: cu.name });
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.points || '').slice(0, 80), sent: !!send, by: cu.name });
     });
     showToast(send ? rl('أُرسل محضر الاجتماع لرئيس القطاع للمراجعة', 'Meeting minutes sent for Sector Head review') : rl('تم حفظ الاجتماع والمحضر', 'Meeting & minutes saved'));
     onClose();
@@ -778,7 +810,6 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
         <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع', 'Send to Sector Head')}</button>
       </div>
     </Modal>
   );

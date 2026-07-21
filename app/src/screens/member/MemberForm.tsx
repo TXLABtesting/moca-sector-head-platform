@@ -14,7 +14,7 @@ import { SECTIONS } from '../../domain/permissions';
 
 interface Props { open: boolean; onClose: () => void; section: string; editId?: string | null }
 
-const STATUS_OPTS = ['مسودة', 'قيد التحديث', 'قيد المتابعة', 'قيد التنفيذ', 'مرسل للمراجعة', 'متأخر', 'مكتمل', 'معتمد'];
+const STATUS_OPTS = ['مسودة', 'قيد التحديث', 'قيد المتابعة', 'قيد التنفيذ', 'بانتظار اعتماد رئيس القطاع', 'متأخر', 'مكتمل', 'معتمد'];
 const PRI_OPTS = ['عالية', 'متوسطة', 'منخفضة'];
 
 export function MemberForm({ open, onClose, section, editId }: Props) {
@@ -72,12 +72,12 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
           r._mret = ''; r._mrev = !!send;
           if (send) r._mowner = r._mowner || cu.id;
           r._mlog = r._mlog || [];
-          r._mlog.unshift({ at: lang === 'en' ? 'Just now' : 'الآن', to: send ? 'بانتظار مراجعة رئيس القطاع' : (f.fstatus || coll.status(r)), note: (f.note || '').trim(), sent: !!send, by: cu.name });
+          r._mlog.unshift({ at: lang === 'en' ? 'Just now' : 'الآن', to: send ? 'بانتظار اعتماد رئيس القطاع' : (f.fstatus || coll.status(r)), note: (f.note || '').trim(), sent: !!send, by: cu.name });
         }
       });
     } else {
       // sections without a shared collection (e.g. finReports, recommendations) → workflow items
-      const status = send ? 'بانتظار مراجعة رئيس القطاع' : ((f.fstatus || '').trim() || 'مسودة');
+      const status = send ? 'بانتظار اعتماد رئيس القطاع' : ((f.fstatus || '').trim() || 'مسودة');
       mutateWork((w) => {
         const it = editId ? w.find((x) => x.id === editId) : undefined;
         if (it) { it.title = title; it.status = status; it.date = rl('اليوم', 'Today'); if (send) it.reason = undefined; }
@@ -166,8 +166,7 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
 
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
-        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ كمسودة', 'Save as draft')}</button>
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع', 'Send to Sector Head')}</button>
+        <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>
       </div>
     </Modal>
   );
