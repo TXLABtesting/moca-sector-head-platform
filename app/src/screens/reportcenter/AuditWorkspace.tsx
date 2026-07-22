@@ -13,6 +13,7 @@ import { triggerDownload } from '../../shared/fileGen';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, excelSerialToDate, parseBulk, alias, pick } from './templateIO';
 import { audBullets } from './shared';
 import type { AuditArea, AuditRep, AuditObsLog } from '../../data/types';
+import { APP_TODAY_AR } from '../../shared/today';
 import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -735,38 +736,44 @@ export function AuditWorkspace() {
 
   const obsCount = (repId: string) => data.audit.filter((a) => (a.rep || 'admin2025') === repId);
 
-  // ---- bulk import (one follow-up report per row) ----
-  const AR_FREQ = ['دوري', 'حسب الحاجة'];
+  // ---- bulk import (one OBSERVATION per row — matches the audit-office sheet) ----
   const AR_COLS = [
-    { field: 'title', match: alias('عنوان التقرير', 'العنوان', 'التقرير') },
-    { field: 'unit', match: alias('الإدارة', 'الوحدة') },
-    { field: 'year', match: alias('السنة') },
-    { field: 'period', match: alias('الفترة', 'الدورة') },
-    { field: 'freq', match: alias('التكرار', 'النوع', 'الدورية'), norm: pick(AR_FREQ, 'دوري') },
-    { field: 'resp', match: alias('المسؤول', 'المعدّ') },
-    { field: 'notes', match: alias('ملاحظات') },
+    { field: 'num', match: alias('رقم الملاحظة', 'رقم') },
+    { field: 'area', match: alias('اسم الملاحظة', 'عنوان الملاحظة') },
+    { field: 'obs', match: alias('الملاحظة حسب تقرير التدقيق الداخلي', 'الملاحظة حسب', 'حسب تقرير التدقيق') },
+    { field: 'action', match: alias('ملاحظات وشرح آلية اغلاق الملاحظة', 'آلية اغلاق', 'آلية إغلاق', 'شرح آلية') },
+    { field: 'due', match: alias('تاريخ التنفيذ', 'تاريخ الإنجاز') },
+    { field: 'owner', match: alias('المسؤول') },
+    { field: 'status', match: alias('الحالة', 'المنجز'), norm: pick(OBS_STATUSES, 'قيد التنفيذ') },
+    { field: 'notes', match: (h: string) => h.trim() === 'ملاحظات' }, // exact — avoids the «ملاحظات وشرح…» column
   ];
-  const AR_HEADERS = ['عنوان التقرير', 'الإدارة', 'السنة', 'الفترة', 'التكرار', 'المسؤول', 'ملاحظات'];
-  const AR_EXAMPLE = ['تقرير متابعة الربع الثالث', 'إدارة الشؤون الإدارية', '2026', 'الربع الثالث', 'دوري', 'حسن همام', 'صف مثال — احذفه'];
+  const AR_HEADERS = ['رقم الملاحظة', 'اسم الملاحظة', 'الملاحظة حسب تقرير التدقيق الداخلي', 'ملاحظات وشرح آلية اغلاق الملاحظة', 'تاريخ التنفيذ', 'المسؤول', 'الحالة', 'ملاحظات'];
+  const AR_EXAMPLE = ['م1', 'ضعف في ضوابط الصلاحيات', 'لوحظ عدم مراجعة صلاحيات المستخدمين دورياً', 'تم تفعيل مراجعة ربع سنوية وإغلاق الصلاحيات غير المستخدمة', '30 يوليو 2026', 'حسن همام', 'قيد التنفيذ', 'صف مثال — احذفه قبل الرفع'];
   const bulkRef = useRef<HTMLInputElement>(null);
-  const dlAuditBulk = () => triggerDownload(makeXlsx([AR_HEADERS, AR_EXAMPLE], 'تقارير المتابعة'), 'Audit_Reports_Bulk_Template.xlsx');
+  const dlAuditBulk = () => triggerDownload(makeXlsx([AR_HEADERS, AR_EXAMPLE], 'ملاحظات التدقيق'), 'Audit_Observations_Template.xlsx');
   const onBulk = async (file: File) => {
     try {
       const blocks = await fileToBlocks(file);
-      const rows = blocks ? parseBulk(blocks.tables, AR_COLS, (r) => !!r.title) : [];
-      if (!rows.length) { showToast('لم يُعثر على تقارير في الملف — تأكد من مطابقة الأعمدة للقالب'); return; }
+      const rows = blocks ? parseBulk(blocks.tables, AR_COLS, (r) => !!(r.area || r.obs || r.num)) : [];
+      if (!rows.length) { showToast('لم يُعثر على ملاحظات في الملف — تأكد من مطابقة الأعمدة للقالب'); return; }
       mutate((d) => {
         d.auditReps = d.auditReps || [];
+        // The imported observations land in one new follow-up report container.
+        const repId = 'aur' + Date.now();
+        d.auditReps.unshift({
+          id: repId, title: 'تقرير المتابعة - مكتب التدقيق (' + APP_TODAY_AR + ')', unit: '', year: '2026',
+          period: '', freq: 'دوري', status: 'مسودة', resp: cu.name, attachments: [], notes: '', _mowner: cu.id,
+        } as unknown as (typeof d.auditReps)[number]);
         rows.forEach((r, i) => {
-          const rec = {
-            id: 'aur' + Date.now() + i, title: r.title, unit: r.unit || '', year: r.year || '2026',
-            period: r.period || '', freq: r.freq || 'دوري', status: 'مسودة', resp: r.resp || cu.name,
-            attachments: [], notes: r.notes || '', _mowner: cu.id,
-          } as unknown as (typeof d.auditReps)[number];
-          d.auditReps.unshift(rec);
+          d.audit.push({
+            id: 'au' + Date.now() + i, num: (r.num || '').trim() || 'م' + (i + 1), area: (r.area || '').trim(),
+            obs: (r.obs || '').trim(), action: (r.action || '').trim(), owner: (r.owner || '').trim() || cu.name,
+            status: r.status || 'قيد التنفيذ', imp: 'متوسطة', due: excelSerialToDate((r.due || '').trim()) || '—',
+            updated: 'الآن', notes: (r.notes || '').trim(), rep: repId, log: [],
+          } as AuditArea);
         });
       });
-      showToast('تم استيراد ' + rows.length + ' تقريراً');
+      showToast('تم استيراد ' + rows.length + ' ملاحظة ضمن تقرير جديد');
     } catch {
       showToast('تعذّر استيراد الملف');
     }
@@ -781,11 +788,11 @@ export function AuditWorkspace() {
         </div>
         {manage && (
           <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={dlAuditBulk} title="تنزيل قالب إكسيل بصف لكل تقرير" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button onClick={dlAuditBulk} title="تنزيل قالب إكسيل بصف لكل ملاحظة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>قالب الاستيراد
             </button>
             <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
-            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة تقارير دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة ملاحظات دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>استيراد دفعة
             </button>
             <button onClick={() => setRepForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
