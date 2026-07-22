@@ -292,15 +292,21 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
 
       {secHead('المهام الناتجة عن الاجتماع')}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <p style={{ margin: '-2px 0 2px', fontSize: 11.5, color: '#9aa39b' }}>لكل مهمة: صف بعنوان المهمة والمسؤول عنها وحالتها وتاريخ إنجازها ونسبة الإنجاز، مع مشاركين إضافيين إن وُجدوا.</p>
+        {actions.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.1fr 1fr 1fr 64px 26px', gap: 8, padding: '0 12px', fontSize: 10.5, fontWeight: 700, color: '#7d867f' }}>
+            <span>المهمة</span><span>المسؤول</span><span>الحالة</span><span>تاريخ الإنجاز</span><span style={{ textAlign: 'center' }}>الإنجاز %</span><span />
+          </div>
+        )}
         {actions.map((a, i) => (
           <div key={i} style={{ border: '1px solid #e6ece7', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.1fr 1fr 1fr 64px 26px', gap: 8, alignItems: 'center' }}>
-              <input value={a.text} onChange={(e) => setAct(i, 'text', e.target.value)} placeholder="المهمة" style={inputStyle} />
+              <input value={a.text} onChange={(e) => setAct(i, 'text', e.target.value)} placeholder="عنوان المهمة" style={inputStyle} />
               <Dropdown value={a.owner} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setAct(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: 'المسؤول' }} />
               <Dropdown value={a.status} options={TASK_STATUSES.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setAct(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
               <DateField value={a.due} onChange={(v) => setAct(i, 'due', v)} />
-              <input value={String(a.prog ?? '')} onChange={(e) => setAct(i, 'prog', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} placeholder="%" style={{ ...inputStyle, textAlign: 'center', padding: '9px 6px' }} />
-              <button type="button" onClick={() => setActions((p) => p.filter((_, j) => j !== i))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 14 }}>✕</button>
+              <input value={String(a.prog ?? '')} onChange={(e) => setAct(i, 'prog', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} placeholder="0-100" title="نسبة الإنجاز %" style={{ ...inputStyle, textAlign: 'center', padding: '9px 6px' }} />
+              <button type="button" onClick={() => setActions((p) => p.filter((_, j) => j !== i))} title="حذف المهمة" style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 14 }}>✕</button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: '#7d867f', flex: 'none' }}>مشاركون إضافيون:</span>
