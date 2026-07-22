@@ -230,6 +230,19 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
       m.keyPoints = keyPoints.filter((x) => x.trim());
       m.decisions = decisions.filter((x) => x.trim());
       m.actions = cleanActions;
+      // Sync these tasks into the shared minute-tasks list so they show up in
+      // «مهام الاجتماعات» (stats) and on the minute-tasks page — re-synced on
+      // every save (old entries for this meeting are replaced).
+      d.mtasks = (d.mtasks || []).filter((tk) => tk.meetingId !== m.id);
+      cleanActions.forEach((a) => {
+        d.mtasks.unshift({
+          id: 'mt-' + a.id, meetingId: m.id, mDate: m.date, meeting: title, dept: (f.entity || '').trim() || '—',
+          task: a.text, owner: a.owner || cu.name, participants: a.participants || [],
+          support: '', prerequisite: '', budget: '', dependencies: '',
+          status: a.status || 'قيد التنفيذ', due: a.due || '', prog: a.prog || 0, lastUpdate: a.lastUpdate,
+          notes: '', directives: [], reviewed: false,
+        });
+      });
       m.attachments = atts; m.attachment = atts[0] || m.attachment;
       m.chairNotes = (f.chairNotes || '').trim();
       if (send) {

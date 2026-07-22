@@ -669,12 +669,19 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
     name: existing.name, chair: existing.chair, rapporteur: existing.rapporteur,
     purpose: existing.purpose || '', freq: existing.freq || '', status: existing.status || '',
     cat: existing.cat || '', reqMeetings: String(existing.reqMeetings ?? ''),
+    created: existing.created || '', actualMeetings: String(existing.actualMeetings ?? ''),
+    hasWorkPlan: existing.hasWorkPlan ? 'نعم' : 'لا', statement: existing.statement || '',
+    recommendation: existing.recommendation || '',
     decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
   } : {
     name: '', chair: 'رئيس القطاع', rapporteur: cu.name, purpose: '', freq: 'شهرية',
-    status: 'نشطة', cat: 'لجنة دائمة', reqMeetings: '12', decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
+    status: 'نشطة', cat: 'لجنة دائمة', reqMeetings: '12',
+    created: '', actualMeetings: '0', hasWorkPlan: 'لا', statement: '', recommendation: '',
+    decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
   });
   const [members, setMembers] = useState<string[]>(() => (existing?.members ? [...existing.members] : []));
+  const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
+  const [improvements, setImprovements] = useState<string[]>(() => (existing?.improvements ? [...existing.improvements] : []));
   const [decFiles, setDecFiles] = useState<string[]>([]);
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -701,6 +708,13 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
       c.name = name; c.chair = (f.chair || '').trim() || 'رئيس القطاع'; c.rapporteur = f.rapporteur || cu.name;
       c.purpose = (f.purpose || '').trim(); c.freq = f.freq; c.status = f.status; c.cat = (f.cat || '').trim();
       c.reqMeetings = parseInt(f.reqMeetings, 10) || 0;
+      c.created = (f.created || '').trim() || c.created || '2026';
+      c.actualMeetings = parseInt(f.actualMeetings, 10) || 0;
+      c.hasWorkPlan = f.hasWorkPlan === 'نعم';
+      c.statement = (f.statement || '').trim();
+      c.recommendation = (f.recommendation || '').trim();
+      c.absent = absent;
+      c.improvements = improvements.filter((x) => x.trim());
       c.members = members;
       if ((f.decNum || '').trim() || decFiles.length) {
         c.decisions = [{ num: (f.decNum || '').trim() || String((c.decisions || []).length + 1), year: (f.decYear || '2026').trim(), kind: f.decKind || 'قرار تشكيل', img: decFiles[0] }, ...(c.decisions || [])];
@@ -727,6 +741,9 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={statusOpts.map((v) => ({ v, label: tr(v) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('التصنيف', 'Category')}</Label><input value={f.cat} onChange={setI('cat')} style={inputStyle} /></div>
         <div><Label>{rl('الاجتماعات المطلوبة سنوياً', 'Required meetings / year')}</Label><input value={f.reqMeetings} onChange={setI('reqMeetings')} style={inputStyle} /></div>
+        <div><Label>{rl('عدد الاجتماعات الفعلي', 'Actual meetings held')}</Label><input value={f.actualMeetings} onChange={setI('actualMeetings')} style={inputStyle} /></div>
+        <div><Label>{rl('تاريخ الإنشاء', 'Created date')}</Label><input value={f.created} onChange={setI('created')} placeholder={rl('مثال: 8 يناير 2025', 'e.g. 8 Jan 2025')} style={inputStyle} /></div>
+        <div><Label>{rl('خطة عمل محددة مسبقاً', 'Predefined work plan')}</Label><Dropdown value={f.hasWorkPlan} options={['نعم', 'لا'].map((v) => ({ v, label: tr(v) }))} onChange={set('hasWorkPlan')} opt={{ block: true, size: 'sm' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الغرض / المهام', 'Purpose')}</Label><textarea value={f.purpose} onChange={setI('purpose')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('الأعضاء', 'Members')}</Label>
@@ -737,6 +754,16 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
             placeholder={rl('اكتب اسم العضو ثم اضغط Enter (يمكن إضافة أسماء خارج القائمة)…', 'Type a member name then press Enter (names outside the list allowed)…')}
           />
         </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الأعضاء غير المشاركين', 'Non-participating members')}</Label>
+          <TagInput values={absent} onChange={setAbsent} suggestions={members} placeholder={rl('اكتب اسم عضو غير مشارك ثم اضغط Enter…', 'Type a non-participating member then Enter…')} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('البيان', 'Statement')}</Label><textarea value={f.statement} onChange={setI('statement')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('نقاط تطوير وتحسينية', 'Development & improvement points')}</Label>
+          <TagInput values={improvements} onChange={setImprovements} placeholder={rl('اكتب نقطة تحسينية ثم اضغط Enter…', 'Type an improvement point then Enter…')} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('التوصية لرئيس القطاع', 'Recommendation to the Sector Head')}</Label><textarea value={f.recommendation} onChange={setI('recommendation')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1', border: '1px dashed #d8dedb', borderRadius: 12, padding: '12px 14px' }}>
           <Label>{rl('قرار التشكيل / التحديث (اختياري)', 'Formation / update decision (optional)')}</Label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>

@@ -190,6 +190,7 @@ export interface AuditRep {
 
 export interface MinuteTask {
   id: string;
+  meetingId?: string;   // links a task synced from a meeting's minutes
   mDate: string;
   meeting: string;
   dept: string;
