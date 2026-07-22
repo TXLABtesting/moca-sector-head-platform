@@ -228,6 +228,13 @@ export interface Correspondence {
   followup: string;
   attachment?: string;
   notes: string;
+  // Full outgoing/incoming register fields.
+  concerned?: string;    // الشخص المعني لهذا المستند
+  count?: string;        // العدد
+  replyDate?: string;    // تاريخ رد المستند من المستلم
+  deliveredTo?: string;  // تسليم للشخص المعني (تم / لم يُسلّم)
+  deliverDate?: string;  // تاريخ التسليم للشخص المعني
+  state?: string;        // الحالة (مفتوح / منجز / مغلق …)
 }
 
 export interface OfficeTask {
