@@ -427,10 +427,16 @@ function SummaryTab({ c, rl, tr, dl }: {
         ))}
       </div>
 
-      {c.statement && (
-        <div style={{ marginTop: 16, background: '#f7f9f7', border: '1px solid #eef1ec', borderRadius: 12, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, color: '#9aa39b', fontWeight: 700, marginBottom: 6 }}>{rl('البيان', 'Statement')}</div>
-          <div style={{ fontSize: 13, color: '#2a332d', lineHeight: 1.7 }}>{tr(c.statement)}</div>
+      {(c.weaknesses || []).length > 0 && (
+        <div style={{ marginTop: 16, background: '#fbf1ef', border: '1px solid #efd9d4', borderRadius: 12, padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: '#b0433b', fontWeight: 700, marginBottom: 8 }}>{rl('نقاط الضعف', 'Weak points')}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {(c.weaknesses || []).map((wp, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: '#8a3a30', lineHeight: 1.6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#b0433b', marginTop: 7, flex: 'none' }} />{tr(wp)}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -670,17 +676,18 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
     purpose: existing.purpose || '', freq: existing.freq || '', status: existing.status || '',
     cat: existing.cat || '', reqMeetings: String(existing.reqMeetings ?? ''),
     created: existing.created || '', actualMeetings: String(existing.actualMeetings ?? ''),
-    hasWorkPlan: existing.hasWorkPlan ? 'نعم' : 'لا', statement: existing.statement || '',
+    hasWorkPlan: existing.hasWorkPlan ? 'نعم' : 'لا',
     recommendation: existing.recommendation || '',
     decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
   } : {
     name: '', chair: 'رئيس القطاع', rapporteur: cu.name, purpose: '', freq: 'شهرية',
     status: 'نشطة', cat: 'لجنة دائمة', reqMeetings: '12',
-    created: '', actualMeetings: '0', hasWorkPlan: 'لا', statement: '', recommendation: '',
+    created: '', actualMeetings: '0', hasWorkPlan: 'لا', recommendation: '',
     decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
   });
   const [members, setMembers] = useState<string[]>(() => (existing?.members ? [...existing.members] : []));
   const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
+  const [weaknesses, setWeaknesses] = useState<string[]>(() => (existing?.weaknesses ? [...existing.weaknesses] : []));
   const [improvements, setImprovements] = useState<string[]>(() => (existing?.improvements ? [...existing.improvements] : []));
   const [decFiles, setDecFiles] = useState<string[]>([]);
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -711,9 +718,9 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
       c.created = (f.created || '').trim() || c.created || '2026';
       c.actualMeetings = parseInt(f.actualMeetings, 10) || 0;
       c.hasWorkPlan = f.hasWorkPlan === 'نعم';
-      c.statement = (f.statement || '').trim();
       c.recommendation = (f.recommendation || '').trim();
       c.absent = absent;
+      c.weaknesses = weaknesses.filter((x) => x.trim());
       c.improvements = improvements.filter((x) => x.trim());
       c.members = members;
       if ((f.decNum || '').trim() || decFiles.length) {
@@ -758,7 +765,10 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
           <Label>{rl('الأعضاء غير المشاركين', 'Non-participating members')}</Label>
           <TagInput values={absent} onChange={setAbsent} suggestions={members} placeholder={rl('اكتب اسم عضو غير مشارك ثم اضغط Enter…', 'Type a non-participating member then Enter…')} />
         </div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('البيان', 'Statement')}</Label><textarea value={f.statement} onChange={setI('statement')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('نقاط الضعف', 'Weak points')}</Label>
+          <TagInput values={weaknesses} onChange={setWeaknesses} placeholder={rl('اكتب نقطة ضعف ثم اضغط Enter…', 'Type a weak point then Enter…')} />
+        </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('نقاط تطوير وتحسينية', 'Development & improvement points')}</Label>
           <TagInput values={improvements} onChange={setImprovements} placeholder={rl('اكتب نقطة تحسينية ثم اضغط Enter…', 'Type an improvement point then Enter…')} />

@@ -420,6 +420,7 @@ export interface Committee {
   absent: string[];
   scores: CommitteeScores;
   statement: string;
+  weaknesses?: string[];
   improvements: string[];
   recommendation: string;
   members: string[];
