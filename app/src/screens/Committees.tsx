@@ -69,20 +69,28 @@ export function Committees() {
   // ---- bulk import (one committee per row) ----
   const CM_FREQ = ['أسبوعية', 'نصف شهرية', 'شهرية', 'ربع سنوية', 'نصف سنوية', 'سنوية', 'حسب الحاجة'];
   const CM_STATUS = ['نشطة', 'متوقفة', 'منتهية'];
+  const CM_WORKPLAN = ['نعم', 'لا'];
   const CM_COLS = [
     { field: 'name', match: alias('اسم اللجنة', 'اللجنة', 'الاسم') },
     { field: 'chair', match: alias('الرئيس', 'رئيس اللجنة') },
     { field: 'rapporteur', match: alias('المقرر', 'مقرر اللجنة') },
+    { field: 'cat', match: alias('الفئة', 'النوع', 'التصنيف') },
     { field: 'purpose', match: alias('الغرض', 'الهدف', 'المهام') },
     { field: 'freq', match: alias('الدورية', 'التكرار'), norm: pick(CM_FREQ, 'شهرية') },
-    { field: 'reqMeetings', match: alias('عدد الاجتماعات', 'الاجتماعات المطلوبة') },
-    { field: 'cat', match: alias('الفئة', 'النوع', 'التصنيف') },
+    { field: 'reqMeetings', match: alias('عدد الاجتماعات المطلوبة', 'الاجتماعات المطلوبة', 'عدد الاجتماعات') },
+    { field: 'actualMeetings', match: alias('عدد الاجتماعات الفعلي', 'الاجتماعات الفعلية') },
+    { field: 'created', match: alias('تاريخ الإنشاء') },
+    { field: 'hasWorkPlan', match: alias('خطة عمل محددة مسبقاً', 'خطة عمل'), norm: pick(CM_WORKPLAN, 'لا') },
     { field: 'status', match: alias('الحالة'), norm: pick(CM_STATUS, 'نشطة') },
-    { field: 'members', match: alias('الأعضاء', 'أعضاء اللجنة', 'الأعضاء (يفصل بينهم فاصلة)') },
+    { field: 'members', match: alias('الأعضاء (يفصل بينهم فاصلة)', 'الأعضاء', 'أعضاء اللجنة') },
+    { field: 'absent', match: alias('الأعضاء غير المشاركين') },
+    { field: 'weaknesses', match: alias('نقاط الضعف') },
+    { field: 'improvements', match: alias('نقاط تطوير وتحسينية', 'نقاط التطوير') },
+    { field: 'recommendation', match: alias('التوصية لرئيس القطاع', 'التوصية') },
   ];
-  const splitMembers = (s: string): string[] => String(s || '').split(/[،,;\n]+/).map((x) => x.trim()).filter(Boolean);
-  const CM_HEADERS = ['اسم اللجنة', 'الرئيس', 'المقرر', 'الغرض', 'الدورية', 'عدد الاجتماعات المطلوبة', 'الفئة', 'الحالة', 'الأعضاء (يفصل بينهم فاصلة)'];
-  const CM_EXAMPLE = ['لجنة الأمن السيبراني', 'رئيس القطاع', 'سماح أبو شرخ', 'متابعة أمن المعلومات', 'شهرية', '12', 'لجنة دائمة', 'نشطة', 'أحمد المنصوري، فاطمة الحمادي، سعيد النعيمي'];
+  const splitList = (s: string): string[] => String(s || '').split(/[،,;\n]+/).map((x) => x.trim()).filter(Boolean);
+  const CM_HEADERS = ['اسم اللجنة', 'الرئيس', 'المقرر', 'الفئة', 'الغرض', 'الدورية', 'عدد الاجتماعات المطلوبة', 'عدد الاجتماعات الفعلي', 'تاريخ الإنشاء', 'خطة عمل محددة مسبقاً', 'الحالة', 'الأعضاء (يفصل بينهم فاصلة)', 'الأعضاء غير المشاركين', 'نقاط الضعف', 'نقاط تطوير وتحسينية', 'التوصية لرئيس القطاع'];
+  const CM_EXAMPLE = ['اللجنة الإشرافية للأمن السيبراني', 'فوزية الطاير', 'سماح أبو شرخ', 'لجنة إشرافية', 'متابعة أمن المعلومات والمشاريع', 'شهرية', '12', '5', '8 يناير 2025', 'نعم', 'نشطة', 'أحمد المنصوري، فاطمة الحمادي، سعيد النعيمي', 'محمد الياسي', 'تأخر بعض المخرجات، ضعف الحضور', 'تكثيف الاجتماعات، متابعة المهام', 'الاستمرار مع رفع وتيرة المتابعة'];
   const bulkRef = useRef<HTMLInputElement>(null);
   const dlCommitteeBulk = () => triggerDownload(makeXlsx([CM_HEADERS, CM_EXAMPLE], 'اللجان'), 'Committees_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
@@ -95,9 +103,11 @@ export function Committees() {
           const rec = {
             id: 'cm' + Date.now() + i, name: r.name, chair: r.chair || 'رئيس القطاع', rapporteur: r.rapporteur || cu.name,
             purpose: r.purpose || '', freq: r.freq || 'شهرية', reqMeetings: parseInt(r.reqMeetings, 10) || 0,
-            actualMeetings: 0, created: '2026', reformed: '', status: r.status || 'نشطة', cat: r.cat || '', hasWorkPlan: false,
-            absent: [], scores: { outputs: 0, minutes: 0, meetings: 0, teamwork: 0 }, statement: '', improvements: [],
-            recommendation: '', members: splitMembers(r.members), decisions: [], meetings: [], _mowner: cu.id,
+            actualMeetings: parseInt(r.actualMeetings, 10) || 0, created: (r.created || '').trim() || '2026', reformed: '',
+            status: r.status || 'نشطة', cat: r.cat || '', hasWorkPlan: r.hasWorkPlan === 'نعم',
+            absent: splitList(r.absent), scores: { outputs: 0, minutes: 0, meetings: 0, teamwork: 0 }, statement: '',
+            weaknesses: splitList(r.weaknesses), improvements: splitList(r.improvements),
+            recommendation: (r.recommendation || '').trim(), members: splitList(r.members), decisions: [], meetings: [], _mowner: cu.id,
           } as unknown as Committee;
           d.committees.unshift(rec);
         });
