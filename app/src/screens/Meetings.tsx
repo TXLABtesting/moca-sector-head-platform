@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Fade, Badge } from '../components/ui';
 import { Dropdown } from '../components/Dropdown';
 import { useI18n } from '../i18n/i18n';
@@ -37,6 +37,28 @@ function MinutesList() {
   const [mForm, setMForm] = useState<{ id: string | null } | null>(null);
   const meetings = data.meetings;
   const mtasks = data.mtasks;
+  const mutate = useStore((s) => s.mutate);
+
+  // Backfill: meetings saved before task-sync existed have actions that aren't
+  // in the shared minute-tasks list yet — mirror them once so «مهام الاجتماعات»
+  // (and the minute-tasks page) reflect every task. Converges (need→false).
+  useEffect(() => {
+    const need = meetings.some((m) => (m.actions || []).length > 0 && !mtasks.some((tk) => tk.meetingId === m.id));
+    if (!need) return;
+    mutate((d) => {
+      d.meetings.forEach((m) => {
+        if (!(m.actions || []).length || (d.mtasks || []).some((tk) => tk.meetingId === m.id)) return;
+        (m.actions || []).forEach((a, i) => {
+          d.mtasks.push({
+            id: 'mt-' + (a.id || m.id + '-' + i), meetingId: m.id, mDate: m.date, meeting: m.title, dept: m.entity || '—',
+            task: a.text, owner: a.owner || '—', participants: a.participants || [], support: '', prerequisite: '',
+            budget: '', dependencies: '', status: a.status || 'قيد التنفيذ', due: a.due || '', prog: a.prog || 0,
+            notes: '', directives: [], reviewed: false,
+          });
+        });
+      });
+    });
+  }, [meetings, mtasks, mutate]);
 
   const lateMt = mtasks.filter((a) => a.status === 'متأخر').length;
   const doneMt = mtasks.filter((a) => a.status === 'مكتمل').length;

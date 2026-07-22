@@ -112,11 +112,11 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
   const topUtil = FM.entities.length ? FM.entities.reduce((a, b) => (allocRatio(b) > allocRatio(a) ? b : a)) : null;
   const topRemain = FM.entities.length ? FM.entities.reduce((a, b) => ((b.remaining || 0) > (a.remaining || 0) ? b : a)) : null;
   const finRisks = [
-    { label: rl('الجهة الأعلى تخصيصاً للميزانية', 'Highest allocation ratio'), value: topUtil ? topUtil.code + ' · ' + allocRatio(topUtil) + '%' : '—', tone: 'gold' },
-    { label: rl('الأعلى ميزانية متبقية', 'Highest remaining budget'), value: topRemain ? topRemain.code + ' · ' + mAED(topRemain.remaining || 0) : '—', tone: 'red' },
-    { label: rl('عقود متجاوزة أكثر من 60 يوم', 'Contracts overdue >60 days'), value: fmt(over60) + rl(' درهم', ' AED'), tone: 'red' },
-    { label: rl('إجمالي المبالغ جارى تسويتها', 'Total amounts under settlement'), value: fmt(relT.settling) + rl(' درهم', ' AED'), tone: 'amber' },
-  ].map((r) => ({ label: r.label, value: r.value, dot: r.tone === 'red' ? '#b0433b' : '#a9791f', bg: r.tone === 'red' ? '#faf0ef' : '#fbf7ee' }));
+    { label: rl('الجهة الأعلى تخصيصاً للميزانية', 'Highest allocation ratio'), value: topUtil ? tr(topUtil.name) : '—', sub: topUtil ? rl('نسبة التخصيص ', 'Allocation ') + allocRatio(topUtil) + '%' : '', tone: 'gold' },
+    { label: rl('الأعلى ميزانية متبقية', 'Highest remaining budget'), value: topRemain ? tr(topRemain.name) : '—', sub: topRemain ? rl('المتبقي ', 'Remaining ') + mAED(topRemain.remaining || 0) : '', tone: 'red' },
+    { label: rl('عقود متجاوزة أكثر من 60 يوم', 'Contracts overdue >60 days'), value: fmt(over60) + rl(' درهم', ' AED'), sub: '', tone: 'red' },
+    { label: rl('إجمالي المبالغ جارى تسويتها', 'Total amounts under settlement'), value: fmt(relT.settling) + rl(' درهم', ' AED'), sub: '', tone: 'amber' },
+  ].map((r) => ({ label: r.label, value: r.value, sub: r.sub, dot: r.tone === 'red' ? '#b0433b' : '#a9791f', bg: r.tone === 'red' ? '#faf0ef' : '#fbf7ee' }));
 
   const period = tr(FM.period);
   const entityPanel = (() => { if (!selEntity) return null; const e = FM.entities.find((x) => x.code === selEntity); if (!e) return null; const col = entColors[e.code] || '#1f4a37'; const total = e.totalAvailable || 0; const alloc = e.allocations || 0; const remain = e.remaining != null ? e.remaining : total - alloc; return { code: e.code, name: tr(e.name), color: col, govSupport: mAED(e.govSupport || 0), totalAvailable: mAED(total), allocations: mAED(alloc), remaining: mAED(remain), utilLabel: pct(alloc, total) + '%', overdue: e.overdue, overdueLabel: rl(e.overdue + ' عقد متأخر', e.overdue + ' overdue contracts') }; })();
@@ -320,7 +320,11 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
         {finRisks.map((r, i) => (
           <div key={i} style={{ background: r.bg, borderRadius: 15, padding: '16px 17px', display: 'flex', alignItems: 'flex-start', gap: 11 }}>
             <span style={{ width: 10, height: 10, flex: 'none', borderRadius: '50%', background: r.dot, marginTop: 5 }}></span>
-            <div><div style={{ fontSize: 12, color: '#7d867f', fontWeight: 600, marginBottom: 5, lineHeight: 1.4 }}>{r.label}</div><div style={{ fontSize: 14.5, fontWeight: 800, color: '#17211c' }}>{r.value}</div></div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11.5, color: '#7d867f', fontWeight: 600, marginBottom: 6, lineHeight: 1.4 }}>{r.label}</div>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: '#17211c', lineHeight: 1.45 }}>{r.value}</div>
+              {r.sub && <div style={{ fontSize: 11.5, fontWeight: 700, color: r.dot, marginTop: 3 }}>{r.sub}</div>}
+            </div>
           </div>
         ))}
       </div>
