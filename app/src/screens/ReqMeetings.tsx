@@ -10,6 +10,7 @@ import { Dropdown } from '../components/Dropdown';
 import { Fade, Modal, Avatar } from '../components/ui';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
+import { TagInput } from '../components/TagInput';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import {
   parseProposed, timeRange, timeLabel, ymdKey, outlookUrl,
@@ -529,16 +530,10 @@ export function ReqMeetings() {
                       <Tile icon="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" label={rl('الموعد الجديد المقترح', 'New proposed time')} accent>{pd.newDateDisp}</Tile>
                     )}
 
-                    {/* location / link */}
-                    {(pd.locationDisp || pd.linkDisp) && (
+                    {/* location */}
+                    {pd.locationDisp && (
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        {pd.locationDisp && <Tile icon="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z M12 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" label={rl('مكان الاجتماع', 'Location')}>{pd.locationDisp}</Tile>}
-                        {pd.linkDisp && (
-                          <div style={{ flex: 1, minWidth: 150, background: '#f6f8f4', border: '1px solid #eef1ec', borderRadius: 12, padding: '11px 13px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: '#8a938c', fontWeight: 600, marginBottom: 5 }}>{tileIcon('M9 15l6-6M10.5 6.5 12 5a4 4 0 0 1 6 6l-1.5 1.5M13.5 17.5 12 19a4 4 0 0 1-6-6l1.5-1.5')}{rl('رابط الاجتماع الافتراضي', 'Online meeting link')}</div>
-                            <a href={pd.linkDisp} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 700, color: '#2f6aa8', wordBreak: 'break-all' }}>{pd.linkDisp}</a>
-                          </div>
-                        )}
+                        <Tile icon="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z M12 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" label={rl('مكان الاجتماع', 'Location')}>{pd.locationDisp}</Tile>
                       </div>
                     )}
 
@@ -679,6 +674,7 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
   const { showToast } = useToast();
 
   const existing = meetingId ? data.reqMeetings.find((r) => r.id === meetingId) : null;
+  const peopleOpts = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]));
   const [f, setF] = useState<Record<string, string>>(() => {
     if (existing) {
       const pp = parseProposed(existing.proposed);
@@ -737,15 +733,22 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('موضوع الاجتماع', 'Meeting subject')}</Label><input value={f.subject} onChange={setI('subject')} style={inputStyle} /></div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الحضور', 'Attendees')}</Label><input value={f.attendees} onChange={setI('attendees')} placeholder={rl('مثال: محمد الشرهان، وئام، علي', 'e.g. Mohammed, Weam, Ali')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الحضور', 'Attendees')}</Label>
+          <TagInput
+            values={(f.attendees || '').split(/[،,;\n]+/).map((s) => s.trim()).filter(Boolean)}
+            onChange={(arr) => set('attendees')(arr.join('، '))}
+            suggestions={peopleOpts}
+            placeholder={rl('اكتب اسم الحاضر ثم اضغط Enter…', 'Type an attendee then press Enter…')}
+          />
+        </div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الجهة الطالبة / بناءً على', 'Requesting entity / based on')}</Label><input value={f.basis} onChange={setI('basis')} style={inputStyle} /></div>
         <div><Label>{rl('تاريخ الاجتماع', 'Meeting date')}</Label><DateField value={f.date} onChange={set('date')} /></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}><Label>{rl('من', 'From')}</Label><Dropdown value={f.from} options={timeOpts} onChange={set('from')} opt={{ block: true, size: 'sm' }} /></div>
           <div style={{ flex: 1 }}><Label>{rl('إلى', 'To')}</Label><Dropdown value={f.to} options={timeOpts} onChange={set('to')} opt={{ block: true, size: 'sm' }} /></div>
         </div>
-        <div><Label>{rl('مكان الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات - الطابق 12', 'Meeting room — floor 12')} style={inputStyle} /></div>
-        <div><Label>{rl('رابط الاجتماع الافتراضي (اختياري)', 'Online meeting link (optional)')}</Label><input value={f.link} onChange={setI('link')} placeholder="https://teams.microsoft.com/…" dir="ltr" style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مكان الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات - الطابق 12', 'Meeting room — floor 12')} style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('جدول الأعمال والمرفقات', 'Agenda & attachments')}</Label>
           <FileUploadField files={agenda} onChange={setAgenda} />

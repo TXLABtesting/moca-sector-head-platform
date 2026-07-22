@@ -273,8 +273,11 @@ export function Correspondence() {
     const [dbg, dfg] = dirColors(doc.dir);
     const [prBg, prFg] = (PR as Record<string, readonly string[]>)[doc.priority] || ['#eceeeb', '#6d7973'];
 
-    const fieldLabel: CSSProperties = { fontSize: 11, color: '#9aa39b', marginBottom: 4 };
-    const fieldVal: CSSProperties = { fontSize: 13.5, color: '#2a332d' };
+    // Each label/value pair sits in its own light cell so the two read as one
+    // unit — clearer than free-floating text spread across a wide grid.
+    const cellBox: CSSProperties = { background: '#f7f9f7', border: '1px solid #eef1ec', borderRadius: 12, padding: '10px 13px' };
+    const fieldLabel: CSSProperties = { fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 4 };
+    const fieldVal: CSSProperties = { fontSize: 13.5, color: '#17211c', fontWeight: 600, lineHeight: 1.5 };
 
     return (
       <Fade>
@@ -296,25 +299,25 @@ export function Correspondence() {
                 </button>
               </div>
             )}
-            <div className="rg2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 24px' }}>
-              <div><div style={fieldLabel}>{t('thEntity')}</div><div style={fieldVal}>{tr(doc.entity)}</div></div>
-              <div><div style={fieldLabel}>{rl('الشخص المعني لهذا المستند', 'Concerned person')}</div><div style={fieldVal}>{doc.concerned ? tr(doc.concerned) : '—'}</div></div>
-              <div><div style={fieldLabel}>{t('dDocType')}</div><div style={fieldVal}>{tr(doc.type)}</div></div>
-              <div><div style={fieldLabel}>{rl('العدد', 'Count')}</div><div style={fieldVal}>{doc.count ? tr(doc.count) : '—'}</div></div>
-              <div><div style={fieldLabel}>{t('dSender')}</div><div style={fieldVal}>{tr(doc.sender)}</div></div>
-              <div><div style={fieldLabel}>{t('dRecipient')}</div><div style={fieldVal}>{tr(doc.recipient)}</div></div>
-              <div><div style={fieldLabel}>{t('thDate')}</div><div style={fieldVal}>{dl(doc.date)}</div></div>
-              <div><div style={fieldLabel}>{t('dRecvDate')}</div><div style={fieldVal}>{dl(doc.recvDate)}</div></div>
-              <div><div style={fieldLabel}>{rl('تاريخ رد المستند من المستلم', 'Reply date from recipient')}</div><div style={fieldVal}>{doc.replyDate ? dl(doc.replyDate) : '—'}</div></div>
-              <div><div style={fieldLabel}>{rl('تسليم للشخص المعني', 'Delivered to concerned person')}</div><div style={fieldVal}>{doc.deliveredTo ? tr(doc.deliveredTo) : '—'}</div></div>
-              <div><div style={fieldLabel}>{rl('تاريخ التسليم للشخص المعني', 'Delivery date to concerned person')}</div><div style={fieldVal}>{doc.deliverDate ? dl(doc.deliverDate) : '—'}</div></div>
-              <div><div style={fieldLabel}>{rl('الحالة', 'State')}</div><div style={fieldVal}>{doc.state ? tr(doc.state) : '—'}</div></div>
+            <div className="rg2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10 }}>
+              <div style={cellBox}><div style={fieldLabel}>{t('thEntity')}</div><div style={fieldVal}>{tr(doc.entity)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('الشخص المعني لهذا المستند', 'Concerned person')}</div><div style={fieldVal}>{doc.concerned ? tr(doc.concerned) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dDocType')}</div><div style={fieldVal}>{tr(doc.type)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('العدد', 'Count')}</div><div style={fieldVal}>{doc.count ? tr(doc.count) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dSender')}</div><div style={fieldVal}>{tr(doc.sender)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dRecipient')}</div><div style={fieldVal}>{tr(doc.recipient)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('thDate')}</div><div style={fieldVal}>{dl(doc.date)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dRecvDate')}</div><div style={fieldVal}>{dl(doc.recvDate)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('تاريخ رد المستند من المستلم', 'Reply date from recipient')}</div><div style={fieldVal}>{doc.replyDate ? dl(doc.replyDate) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('تسليم للشخص المعني', 'Delivered to concerned person')}</div><div style={fieldVal}>{doc.deliveredTo ? tr(doc.deliveredTo) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('تاريخ التسليم للشخص المعني', 'Delivery date to concerned person')}</div><div style={fieldVal}>{doc.deliverDate ? dl(doc.deliverDate) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('الحالة', 'State')}</div><div style={fieldVal}>{doc.state ? tr(doc.state) : '—'}</div></div>
             </div>
             <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1px solid #eef0ec' }}>
               <div style={{ fontSize: 11, color: '#9aa39b', marginBottom: 5 }}>{t('requiredAction')}</div>
               <div style={{ fontSize: 13.5, color: '#2a332d', lineHeight: 1.6, marginBottom: 16 }}>{tr(doc.action)}</div>
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                <div><div style={fieldLabel}>{t('followupOwner')}</div><div style={{ fontSize: 13, fontWeight: 600, color: '#2a332d' }}>{tr(doc.followup)}</div></div>
+                <div style={cellBox}><div style={fieldLabel}>{t('followupOwner')}</div><div style={{ fontSize: 13, fontWeight: 600, color: '#2a332d' }}>{tr(doc.followup)}</div></div>
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <div style={{ fontSize: 11, color: '#9aa39b', marginBottom: 6 }}>{t('thCurStatus')}</div>
                   <span style={{ display: 'inline-block', fontSize: 11.5, fontWeight: 600, borderRadius: 20, padding: '6px 14px', background: sbg, color: sfg }}>{tr(doc.status)}</span>

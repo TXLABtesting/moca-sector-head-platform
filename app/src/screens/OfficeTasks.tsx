@@ -725,13 +725,11 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
   const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
-  const [parts, setParts] = useState<string[]>(() => (existing?.participants ? [...existing.participants] : []));
+  // participants preserved on edit; the field was removed from the form.
+  const parts = existing?.participants ? [...existing.participants] : [];
 
   // creator is automatically the primary owner — no manual selection
   const primaryOwner = existing ? existing.owner : cu.name;
-  const partOptions = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]))
-    .filter((n) => n !== primaryOwner);
-  const togglePart = (n: string) => setParts((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p, n]));
   const STATUSES = ['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'];
 
   const save = (send: boolean) => {
@@ -768,23 +766,8 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
         <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
-        <div>
-          <Label>{rl('المشاركون في المهمة (اختياري)', 'Participants (optional)')}</Label>
-          <Dropdown value="" options={partOptions.filter((n) => !parts.includes(n)).map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => { if (v) togglePart(v); }} opt={{ block: true, size: 'sm', placeholder: rl('اختر مشاركًا لإضافته…', 'Pick a participant to add…') }} />
-        </div>
-        {parts.length > 0 && (
-          <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {parts.map((n) => (
-              <span key={n} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #1e4634', background: '#eef5f0', color: '#1e4634', borderRadius: 20, padding: '4px 8px 4px 7px', fontSize: 11.5, fontWeight: 700 }}>
-                <Avatar name={n} size={20} />
-                {tr(n)}
-                <button type="button" onClick={() => togglePart(n)} title={rl('إزالة', 'Remove')} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1, display: 'flex' }}>✕</button>
-              </span>
-            ))}
-          </div>
-        )}
         <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
-        <div><Label>{rl('الموعد النهائي (فارغ = بدون موعد)', 'Deadline (empty = none)')}</Label><DateField value={f.end} onChange={set('end')} /></div>
+        <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><DateField value={f.end} onChange={set('end')} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المرفقات', 'Attachments')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الوصف', 'Description')}</Label><textarea value={f.desc} onChange={setI('desc')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>

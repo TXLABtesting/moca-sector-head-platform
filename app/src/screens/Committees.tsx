@@ -13,6 +13,7 @@ import { ownedBy, pushUpdateReq } from './member/workflow';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
+import { TagInput } from '../components/TagInput';
 import type { Committee, CommitteeMeeting, CommitteeTask, CommitteeDecision } from '../data/types';
 import { SectionAddButton } from '../components/SectionAddButton';
 
@@ -674,15 +675,6 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
     status: 'نشطة', cat: 'لجنة دائمة', reqMeetings: '12', decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
   });
   const [members, setMembers] = useState<string[]>(() => (existing?.members ? [...existing.members] : []));
-  const [memberInput, setMemberInput] = useState('');
-  const addMember = (raw: string) => {
-    // Accept several typed at once (comma / newline separated) — names may be
-    // outside the suggestions list, so we never restrict to known people.
-    const parts = String(raw).split(/[،,;\n]+/).map((s) => s.trim()).filter(Boolean);
-    if (!parts.length) return;
-    setMembers((p) => { const next = [...p]; parts.forEach((n) => { if (!next.includes(n)) next.push(n); }); return next; });
-    setMemberInput('');
-  };
   const [decFiles, setDecFiles] = useState<string[]>([]);
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -738,30 +730,12 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الغرض / المهام', 'Purpose')}</Label><textarea value={f.purpose} onChange={setI('purpose')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('الأعضاء', 'Members')}</Label>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-            <input
-              value={memberInput}
-              onChange={(e) => setMemberInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMember(memberInput); } }}
-              list="committee-people-suggest"
-              placeholder={rl('اكتب اسم العضو ثم اضغط Enter (يمكن إضافة أسماء خارج القائمة)…', 'Type a member name then press Enter (names outside the list are allowed)…')}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <datalist id="committee-people-suggest">
-              {peopleOpts.filter((n) => !members.includes(n)).map((n) => <option key={n} value={n} />)}
-            </datalist>
-            <button type="button" onClick={() => addMember(memberInput)} disabled={!memberInput.trim()} style={{ flex: 'none', background: memberInput.trim() ? '#1e4634' : '#e2e6df', color: '#fff', border: 'none', borderRadius: 10, padding: '0 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: memberInput.trim() ? 'pointer' : 'default' }}>{rl('إضافة', 'Add')}</button>
-          </div>
-          {members.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
-              {members.map((n) => (
-                <span key={n} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #1e4634', background: '#eef5f0', color: '#1e4634', borderRadius: 20, padding: '4px 9px', fontSize: 11.5, fontWeight: 700 }}>
-                  {tr(n)}
-                  <button type="button" onClick={() => setMembers((p) => p.filter((x) => x !== n))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}>✕</button>
-                </span>
-              ))}
-            </div>
-          )}
+          <TagInput
+            values={members}
+            onChange={setMembers}
+            suggestions={peopleOpts}
+            placeholder={rl('اكتب اسم العضو ثم اضغط Enter (يمكن إضافة أسماء خارج القائمة)…', 'Type a member name then press Enter (names outside the list allowed)…')}
+          />
         </div>
         <div style={{ gridColumn: '1 / -1', border: '1px dashed #d8dedb', borderRadius: 12, padding: '12px 14px' }}>
           <Label>{rl('قرار التشكيل / التحديث (اختياري)', 'Formation / update decision (optional)')}</Label>
