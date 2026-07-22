@@ -1,5 +1,16 @@
 import { useRef, useState } from 'react';
 import { useI18n } from '../i18n/i18n';
+import { backendEnabled, uploadFile } from '../demo/demoBackend';
+
+/** Uploaded files are stored as the bucket's public URL; show a clean filename
+ *  (strip the bucket path and the random `<hash>_` upload prefix). */
+function displayName(s: string): string {
+  if (!/^https?:\/\//.test(s)) return s;
+  try {
+    const last = decodeURIComponent(new URL(s).pathname.split('/').pop() || s);
+    return last.replace(/^[a-z0-9]+_/i, '');
+  } catch { return s; }
+}
 
 /** File-type chip colours by extension. */
 function extStyle(name: string): { bg: string; fg: string; label: string } {
@@ -26,24 +37,31 @@ export function FileUploadField({ files, onChange, multiple = true }: {
   const [meta, setMeta] = useState<Record<string, { size: string; preview?: string }>>({});
   const [dragOver, setDragOver] = useState(false);
 
-  const addFiles = (list: FileList | null) => {
+  const addFiles = async (list: FileList | null) => {
     if (!list || !list.length) return;
     const picked = Array.from(list);
-    const names: string[] = [];
-    picked.forEach((file) => {
-      names.push(file.name);
+    // Each stored token is the bucket's public URL when the shared demo backend
+    // is on (durable, shareable), otherwise the plain file name (local demo).
+    const tokens: string[] = [];
+    for (const file of picked) {
       const size = file.size >= 1048576
         ? (file.size / 1048576).toFixed(1) + ' MB'
         : Math.max(1, Math.round(file.size / 1024)) + ' KB';
+      let token = file.name;
+      if (backendEnabled) {
+        const url = await uploadFile(file);
+        if (url) token = url;
+      }
+      tokens.push(token);
       if (file.type.startsWith('image/')) {
         const rd = new FileReader();
-        rd.onload = () => setMeta((m) => ({ ...m, [file.name]: { size, preview: String(rd.result) } }));
+        rd.onload = () => setMeta((m) => ({ ...m, [token]: { size, preview: String(rd.result) } }));
         rd.readAsDataURL(file);
       } else {
-        setMeta((m) => ({ ...m, [file.name]: { size } }));
+        setMeta((m) => ({ ...m, [token]: { size } }));
       }
-    });
-    onChange(multiple ? [...files.filter((f) => !names.includes(f)), ...names] : [names[0]]);
+    }
+    onChange(multiple ? [...files.filter((f) => !tokens.includes(f)), ...tokens] : [tokens[0]]);
   };
 
   return (
@@ -70,8 +88,10 @@ export function FileUploadField({ files, onChange, multiple = true }: {
       {files.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
           {files.map((fn, i) => {
-            const es = extStyle(fn);
+            const label = displayName(fn);
+            const es = extStyle(label);
             const m = meta[fn];
+            const isUrl = /^https?:\/\//.test(fn);
             return (
               <div key={fn + i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 10, padding: '7px 10px' }}>
                 {m?.preview ? (
@@ -82,7 +102,11 @@ export function FileUploadField({ files, onChange, multiple = true }: {
                   </span>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#2a332d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fn}</div>
+                  {isUrl ? (
+                    <a href={fn} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, fontWeight: 600, color: '#1f6fb0', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{label}</a>
+                  ) : (
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#2a332d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+                  )}
                   <div style={{ fontSize: 10, color: '#9aa39b' }}>{m?.size ? m.size + ' · ' : ''}{tr(es.label)}</div>
                 </div>
                 <button type="button" onClick={() => onChange(files.filter((_, x) => x !== i))} title={rl('إزالة', 'Remove')}

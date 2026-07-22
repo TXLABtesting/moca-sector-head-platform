@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-arabic": "^5.0.20",
+    "@supabase/supabase-js": "^2.110.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^4.5.5"

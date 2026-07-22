@@ -94,7 +94,12 @@ export const useStore = create<AppState>()(
 
       nextId: (prefix) => { const id = prefix + get().seq; set((s) => ({ seq: s.seq + 1 })); return id; },
 
-      resetAll: () => set({ data: clone(seedData), work: clone(WORK_ITEMS), users: clone(SEED_USERS), changeLog: [], seq: 1 }),
+      resetAll: () => {
+        set({ data: clone(seedData), work: clone(WORK_ITEMS), users: clone(SEED_USERS), changeLog: [], seq: 1 });
+        // When the shared demo database is active, also restore it server-side
+        // (admin-gated RPC) so every client returns to the sample data.
+        import('../demo/demoBackend').then((m) => { if (m.backendEnabled) m.resetDemo(); }).catch(() => {});
+      },
     }),
     {
       name: 'moca.platform',
