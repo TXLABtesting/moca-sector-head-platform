@@ -243,32 +243,56 @@ function ListView({ committees, rl, tr, dl, openC }: {
     decN += (c.decisions || []).length;
   });
 
+  const hasLate = (c: Committee) => (c.meetings || []).some((m) => (m.tasks || []).some((t) => t.status === 'متأخر'));
+  const thisMonth = (c: Committee) => (c.meetings || []).some((m) => /يونيو|July|يوليو/.test(m.date));
   const kpis = [
-    { v: String(committees.length), l: rl('إجمالي اللجان التي أترأسها', 'Committees I chair'), c: '#1f4a37', bg: '#e9f0ec', icon: 'list' },
-    { v: String(withOpen), l: rl('لجان بمهام مفتوحة', 'Committees with open tasks'), c: '#3a6ea5', bg: '#e9f0f6', icon: 'folder' },
-    { v: String(lateN), l: rl('مهام متأخرة', 'Overdue tasks'), c: '#b0433b', bg: '#f7e6e4', icon: 'alert' },
-    { v: String(mThisMonth), l: rl('اجتماعات هذا الشهر', 'Meetings this month'), c: '#a9791f', bg: '#fbf3df', icon: 'cal' },
-    { v: String(decN), l: rl('قرارات مرفقة', 'Attached decisions'), c: '#7a4d94', bg: '#f3ecf6', icon: 'doc' },
+    { key: 'all', v: String(committees.length), l: rl('إجمالي اللجان التي أترأسها', 'Committees I chair'), c: '#1f4a37', bg: '#e9f0ec', icon: 'list' },
+    { key: 'open', v: String(withOpen), l: rl('لجان بمهام مفتوحة', 'Committees with open tasks'), c: '#3a6ea5', bg: '#e9f0f6', icon: 'folder' },
+    { key: 'late', v: String(lateN), l: rl('مهام متأخرة', 'Overdue tasks'), c: '#b0433b', bg: '#f7e6e4', icon: 'alert' },
+    { key: 'meetings', v: String(mThisMonth), l: rl('اجتماعات هذا الشهر', 'Meetings this month'), c: '#a9791f', bg: '#fbf3df', icon: 'cal' },
+    { key: 'decisions', v: String(decN), l: rl('قرارات مرفقة', 'Attached decisions'), c: '#7a4d94', bg: '#f3ecf6', icon: 'doc' },
   ];
+  const [filter, setFilter] = useState('all');
+  const filtered = committees.filter((c) =>
+    filter === 'open' ? openTaskCount(c) > 0
+      : filter === 'late' ? hasLate(c)
+      : filter === 'meetings' ? thisMonth(c)
+      : filter === 'decisions' ? (c.decisions || []).length > 0
+      : true);
+  const activeKpi = kpis.find((k) => k.key === filter);
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
-        {kpis.map((k, i) => (
-          <div key={i} className="glass" style={{ border: '1px solid rgba(255,255,255,.7)', borderRadius: 16, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,.14)', padding: '15px 15px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-            <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: k.bg, color: k.c }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: KPI_ICONS[k.icon] }} />
-            </span>
-            <div>
-              <div style={{ fontSize: 25, fontWeight: 800, color: '#17211c', letterSpacing: '-.5px', lineHeight: 1 }}>{k.v}</div>
-              <div style={{ fontSize: 10.5, color: '#6d7973', marginTop: 5, lineHeight: 1.4 }}>{k.l}</div>
-            </div>
-          </div>
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 14 }}>
+        {kpis.map((k, i) => {
+          const on = filter === k.key;
+          return (
+            <button key={i} type="button" onClick={() => setFilter(on && k.key !== 'all' ? 'all' : k.key)} title={rl('اضغط للتصفية', 'Click to filter')} className="glass" style={{ textAlign: 'start', fontFamily: 'inherit', border: on ? '1.5px solid ' + k.c : '1px solid rgba(255,255,255,.7)', borderRadius: 16, boxShadow: on ? '0 8px 24px -10px ' + k.c + '66' : '0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,.14)', padding: '15px 15px', display: 'flex', flexDirection: 'column', gap: 11, cursor: 'pointer', transition: 'all .12s', outline: on ? '3px solid ' + k.bg : 'none' }}>
+              <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: k.bg, color: k.c }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: KPI_ICONS[k.icon] }} />
+              </span>
+              <div>
+                <div style={{ fontSize: 25, fontWeight: 800, color: '#17211c', letterSpacing: '-.5px', lineHeight: 1 }}>{k.v}</div>
+                <div style={{ fontSize: 10.5, color: '#6d7973', marginTop: 5, lineHeight: 1.4 }}>{k.l}</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
+      {filter !== 'all' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, background: '#fff', border: '1px solid #eef1ec', borderRadius: 11, padding: '9px 14px', fontSize: 12.5, color: '#3c4a42' }}>
+          <span style={{ fontWeight: 700 }}>{rl('مُصفّى حسب', 'Filtered by')}: {activeKpi?.l}</span>
+          <span style={{ color: '#9aa39b' }}>({filtered.length})</span>
+          <button type="button" onClick={() => setFilter('all')} style={{ marginInlineStart: 'auto', background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 8, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء التصفية', 'Clear filter')}</button>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 13 }}>
-        {committees.map((c) => {
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', padding: 28, textAlign: 'center', color: '#9aa39b', fontSize: 13, background: '#fff', border: '1px dashed #d8dedb', borderRadius: 14 }}>{rl('لا توجد لجان مطابقة لهذه التصفية', 'No committees match this filter')}</div>
+        )}
+        {filtered.map((c) => {
           const [stBg, stFg] = stc(c.status);
           const open = openTaskCount(c);
           return (
