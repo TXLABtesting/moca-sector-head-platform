@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Modal } from '../../components/ui';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
@@ -7,11 +7,120 @@ import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
+import { triggerDownload } from '../../shared/fileGen';
+import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup, excelSerialToDate } from '../reportcenter/templateIO';
 import type { Meeting, MeetingAction } from '../../data/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const TASK_STATUSES = ['مفتوح', 'قيد التنفيذ', 'مكتمل', 'متأخر'];
+
+/* ---------------- minutes template (download) + import (auto-fill) ----------------
+   One sheet, sectioned: meeting info (key/value), attendees, absentees, topics,
+   decisions, resulting tasks (table), and Sector-Head notes — mirroring every
+   field of the form so an uploaded template fills it completely. */
+const MIN_INFO: [string, string][] = [
+  ['موضوع الاجتماع', 'اجتماع لجنة تطوير الخدمات'],
+  ['تاريخ الاجتماع', '22 يوليو 2026'],
+  ['وقت الاجتماع', '10:00 ص - 11:00 ص'],
+  ['الجهة / الإدارة المعنية', 'مكتب رئيس القطاع'],
+  ['مكان الاجتماع أو رابطه', 'قاعة الاجتماعات - الطابق 12'],
+  ['ملخص الاجتماع', 'استعراض مستجدات المشاريع واعتماد الخطة'],
+];
+const MIN_ACTION_HEAD = ['المهمة', 'المسؤول', 'تاريخ الإنجاز', 'الحالة', 'نسبة الإنجاز %', 'مشاركون إضافيون'];
+function minutesTemplateRows(): string[][] {
+  const blanks = (n: number, w: number) => Array.from({ length: n }, () => Array.from({ length: w }, () => ''));
+  return [
+    ['محضر اجتماع — قالب الإدخال'], [],
+    ['١) بيانات الاجتماع'], ['الحقل', 'القيمة'], ...MIN_INFO.map(([k, v]) => [k, v]), [],
+    ['٢) الحضور (اسم لكل صف)'], ['الاسم'], ['أحمد المنصوري'], ['فاطمة الحمادي'], ...blanks(4, 1), [],
+    ['٣) الغياب (اسم لكل صف)'], ['الاسم'], ['سعيد النعيمي'], ...blanks(4, 1), [],
+    ['٤) أبرز المواضيع التي نوقشت'], ['الموضوع'], ['مراجعة مؤشرات الأداء للربع الحالي'], ...blanks(5, 1), [],
+    ['٥) القرارات والتوصيات'], ['القرار / التوصية'], ['اعتماد خطة العمل للربع القادم'], ...blanks(5, 1), [],
+    ['٦) المهام الناتجة عن الاجتماع'], MIN_ACTION_HEAD,
+    ['إعداد تقرير المتابعة', 'أحمد المنصوري', '30 يوليو 2026', 'قيد التنفيذ', '20', 'فاطمة الحمادي'],
+    ...blanks(6, 6), [],
+    ['٧) ملاحظات رئيس القطاع'], ['الملاحظات', ''],
+  ];
+}
+const dlMinutesXlsx = () => triggerDownload(makeXlsx(minutesTemplateRows(), 'محضر الاجتماع'), 'Meeting_Minutes_Template.xlsx');
+const dlMinutesDocx = () => triggerDownload(makeDocx(
+  wP('قالب محضر اجتماع', { bold: true, size: 36 }) + wP('') +
+  wP('١) بيانات الاجتماع', { bold: true, size: 26 }) + wTbl(['الحقل', 'القيمة'], MIN_INFO.map(([k]) => [k, 'اكتب هنا'])) + wP('') +
+  wP('٢) الحضور — اسم لكل سطر', { bold: true, size: 26 }) + wP('…') +
+  wP('٣) الغياب — اسم لكل سطر', { bold: true, size: 26 }) + wP('…') +
+  wP('٤) أبرز المواضيع التي نوقشت', { bold: true, size: 26 }) + wP('…') +
+  wP('٥) القرارات والتوصيات', { bold: true, size: 26 }) + wP('…') +
+  wP('٦) المهام الناتجة', { bold: true, size: 26 }) + wTbl(MIN_ACTION_HEAD, [['', '', '', '', '', '']]) + wP('') +
+  wP('٧) ملاحظات رئيس القطاع', { bold: true, size: 26 }) + wP('…')
+), 'Meeting_Minutes_Template.docx');
+
+interface ParsedMinutes {
+  title?: string; date?: string; time?: string; entity?: string; location?: string; summary?: string; chairNotes?: string;
+  attendees?: string[]; absentees?: string[]; keyPoints?: string[]; decisions?: string[];
+  actions?: MeetingAction[];
+}
+/** Read a filled minutes template (the sectioned sheet above) back into the form. */
+function parseMinutesFile(tables: string[][][]): ParsedMinutes {
+  const out: ParsedMinutes = {};
+  const kv = (re: RegExp) => kvLookup(tables, re);
+  out.title = kv(/^موضوع الاجتماع/);
+  out.date = (() => { const v = kv(/^تاريخ الاجتماع/); return v ? excelSerialToDate(v) : undefined; })();
+  out.time = kv(/^وقت الاجتماع/);
+  out.entity = kv(/^الجهة/);
+  out.location = kv(/^مكان الاجتماع/);
+  out.summary = kv(/^ملخص الاجتماع/);
+  out.chairNotes = kv(/^الملاحظات|^ملاحظات رئيس القطاع/);
+
+  const table = tables.slice().sort((a, b) => b.length - a.length)[0] || [];
+  const cell = (r: string[], i: number) => (r && r[i] ? r[i].trim() : '');
+  const findRow = (re: RegExp) => table.findIndex((r) => re.test(cell(r, 0)));
+  const SECTIONS = [/^١?\)?\s*بيانات/, /الحضور/, /الغياب/, /المواضيع/, /القرارات/, /المهام/, /ملاحظات رئيس/];
+  const nextSectionAfter = (start: number) => {
+    for (let i = start + 1; i < table.length; i++) if (SECTIONS.some((re) => re.test(cell(table[i], 0)))) return i;
+    return table.length;
+  };
+  // A single-column list: rows after the section's column-header until the next section.
+  const list = (sectionRe: RegExp, headerRe: RegExp): string[] => {
+    const s = findRow(sectionRe); if (s < 0) return [];
+    const end = nextSectionAfter(s);
+    const res: string[] = [];
+    for (let i = s + 1; i < end; i++) {
+      const v = cell(table[i], 0);
+      if (!v || headerRe.test(v)) continue;
+      res.push(v);
+    }
+    return res;
+  };
+  const att = list(/^٢?\)?\s*الحضور|الحضور/, /^الاسم$/);
+  const abs = list(/الغياب/, /^الاسم$/);
+  const kps = list(/المواضيع/, /^الموضوع$/);
+  const decs = list(/القرارات/, /^(القرار|القرار \/ التوصية)$/);
+  if (att.length) out.attendees = att;
+  if (abs.length) out.absentees = abs;
+  if (kps.length) out.keyPoints = kps;
+  if (decs.length) out.decisions = decs;
+
+  // Actions table.
+  const as = findRow(/المهام/);
+  if (as >= 0) {
+    const end = nextSectionAfter(as);
+    const acts: MeetingAction[] = [];
+    for (let i = as + 1; i < end; i++) {
+      const r = table[i];
+      const text = cell(r, 0);
+      if (!text || /^المهمة$/.test(text)) continue;
+      acts.push({
+        id: '', text, owner: cell(r, 1), due: excelSerialToDate(cell(r, 2)) || cell(r, 2),
+        status: TASK_STATUSES.find((s) => cell(r, 3).includes(s)) || 'قيد التنفيذ',
+        prog: parseInt(cell(r, 4), 10) || 0,
+        participants: cell(r, 5) ? cell(r, 5).split(/[،,;]+/).map((x) => x.trim()).filter(Boolean) : [],
+      });
+    }
+    if (acts.length) out.actions = acts;
+  }
+  return out;
+}
 const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
 const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
 const secHead = (t: string) => (
@@ -94,6 +203,32 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
   const setAct = (i: number, k: keyof MeetingAction, v: unknown) => setActions((p) => p.map((a, j) => (j === i ? { ...a, [k]: v } : a)) as MeetingAction[]);
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [parsedFrom, setParsedFrom] = useState('');
+  const onUpload = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      if (!blocks) { showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة'); setAtts((p) => [...p, file.name]); return; }
+      const p = parseMinutesFile(blocks.tables);
+      setF((prev) => ({
+        ...prev,
+        title: p.title ?? prev.title, date: p.date ?? prev.date, time: p.time ?? prev.time,
+        entity: p.entity ?? prev.entity, location: p.location ?? prev.location,
+        summary: p.summary ?? prev.summary, chairNotes: p.chairNotes ?? prev.chairNotes,
+      }));
+      if (p.attendees) setAttendees(p.attendees);
+      if (p.absentees) setAbsentees(p.absentees);
+      if (p.keyPoints) setKeyPoints(p.keyPoints);
+      if (p.decisions) setDecisions(p.decisions);
+      if (p.actions) setActions(p.actions.map((a) => ({ ...a, id: '', participants: a.participants || [] })));
+      setParsedFrom(file.name);
+      showToast('قُرئ المحضر وعُبّئت الحقول — راجع البيانات قبل الحفظ');
+    } catch {
+      showToast('تعذّرت قراءة الملف تلقائياً — أُرفق دون تعبئة');
+      setAtts((p) => [...p, file.name]);
+    }
+  };
+
   const save = (send: boolean) => {
     const title = (f.title || '').trim();
     if (!title) { showToast('يرجى إدخال موضوع الاجتماع'); return; }
@@ -131,6 +266,29 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
     <Modal open onClose={onClose} width={780}>
       <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{existing ? 'تعديل محضر الاجتماع' : 'محضر اجتماع جديد'}</h3>
       <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>يُحفظ في نفس السجل الذي يراه رئيس القطاع — لا يُنشأ سجل مكرر عند التعديل.</p>
+
+      {!existing && (
+        <>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6, background: '#f7f9f6', border: '1px dashed #cdd8ce', borderRadius: 12, padding: '10px 12px', alignItems: 'center' }}>
+            <button type="button" onClick={dlMinutesDocx} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>قالب Word
+            </button>
+            <button type="button" onClick={dlMinutesXlsx} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>قالب Excel
+            </button>
+            <input ref={fileRef} type="file" accept=".doc,.docx,.xlsx,.xls,.csv,.html,.htm,.txt" style={{ display: 'none' }} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file); e.target.value = ''; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', border: 'none', color: '#fff', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 0-4 4m4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg>رفع القالب المكتمل (تعبئة تلقائية)
+            </button>
+            <span style={{ fontSize: 10.5, color: '#7d867f' }}>يُقبل Word أو Excel — تُعرض البيانات للمراجعة قبل الحفظ.</span>
+          </div>
+          {parsedFrom && (
+            <div style={{ margin: '8px 0 0', background: '#eef3f0', border: '1px solid #d6e5db', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, color: '#1e4634' }}>
+              قُرئت البيانات من «{parsedFrom}» — راجعها وعدّلها قبل الحفظ.
+            </div>
+          )}
+        </>
+      )}
 
       {secHead('بيانات الاجتماع')}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
