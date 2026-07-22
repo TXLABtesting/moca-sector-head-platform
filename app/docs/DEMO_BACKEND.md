@@ -117,7 +117,32 @@ The passphrase (`VITE_DEMO_RESET_PASSPHRASE`) must match `demo_config.reset_pass
 
 ---
 
-## 8. Test checklist (requirement 15)
+## 8. CI/CD — automatic build & deploy (`.github/workflows/deploy-demo.yml`)
+
+Every push to the **`demo`** branch (or a manual *Run workflow*) builds the app
+with the demo configuration and publishes it to the `gh-pages` branch that
+GitHub Pages already serves. Production branches are never built by this
+workflow.
+
+**Where to add the secrets:** repo → **Settings → Secrets and variables →
+Actions → New repository secret**.
+
+| Secret | Required? | Notes |
+|---|---|---|
+| `VITE_SUPABASE_URL` | **Required** | Demo project URL. |
+| `VITE_SUPABASE_ANON_KEY` | **Required** | Public anon key (RLS-protected). |
+| `VITE_DEMO_RESET_PASSPHRASE` | **Required** | Must equal `demo_config.reset_passphrase`. |
+| `VITE_DEMO_BUCKET` | Optional | Defaults to `demo-uploads` if unset. |
+
+If any **required** secret is missing, the workflow **stops at the Preflight
+step with a clear error** listing exactly which secrets are absent — nothing is
+built or deployed. Secrets are never printed or committed; the anon key is
+public-by-design and injected only at build time. Deployment uses the built-in
+`GITHUB_TOKEN` (no personal token, no credentials in the repo).
+
+---
+
+## 9. Test checklist (requirement 15)
 
 Run against the live demo project after setup:
 

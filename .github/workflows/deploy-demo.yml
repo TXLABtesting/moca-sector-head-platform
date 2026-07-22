@@ -1,0 +1,91 @@
+name: Deploy demo
+
+# Builds and deploys the DEMO site on every push to `demo`.
+#
+# Safety / separation:
+#   • Triggers ONLY on the `demo` branch — production branches are never built
+#     or deployed by this workflow.
+#   • All secrets come from GitHub Secrets (Settings → Secrets and variables →
+#     Actions). Nothing is hardcoded and no credentials are committed.
+#   • Uses only the DEMO Supabase project + DEMO storage bucket (VITE_DEMO_*).
+#   • Publishes to the `gh-pages` branch with the built-in GITHUB_TOKEN — the
+#     same source GitHub Pages already serves — so the live site's config is
+#     unchanged and a failed run never touches what's published.
+
+on:
+  push:
+    branches: [demo]
+  workflow_dispatch:
+
+# Least privilege: only permission needed is to push the gh-pages branch.
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Stop early with a clear error if any REQUIRED secret is missing.
+      - name: Preflight — verify required secrets
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DEMO_RESET_PASSPHRASE: ${{ secrets.VITE_DEMO_RESET_PASSPHRASE }}
+        run: |
+          missing=()
+          [ -z "$VITE_SUPABASE_URL" ]          && missing+=("VITE_SUPABASE_URL")
+          [ -z "$VITE_SUPABASE_ANON_KEY" ]      && missing+=("VITE_SUPABASE_ANON_KEY")
+          [ -z "$VITE_DEMO_RESET_PASSPHRASE" ]  && missing+=("VITE_DEMO_RESET_PASSPHRASE")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error title=Missing GitHub Secrets::The demo build is blocked because these required secrets are not set: ${missing[*]}"
+            echo ""
+            echo "Add them in: repo → Settings → Secrets and variables → Actions → New repository secret."
+            echo "See app/docs/DEMO_BACKEND.md for what each value should be."
+            exit 1
+          fi
+          echo "✓ All required secrets are present."
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      # Build with DEMO configuration only. Optional vars fall back to safe
+      # defaults inside the app when their secret is absent.
+      - name: Build (demo configuration)
+        working-directory: app
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DEMO_BUCKET: ${{ secrets.VITE_DEMO_BUCKET }}
+          VITE_DEMO_RESET_PASSPHRASE: ${{ secrets.VITE_DEMO_RESET_PASSPHRASE }}
+          VITE_DEMO: 'true'
+        run: npm run build
+
+      - name: Publish to gh-pages
+        working-directory: app/dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          touch .nojekyll
+          git init -q
+          git checkout -q -b gh-pages
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git commit -q -m "Deploy demo ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          echo "✓ Published to gh-pages (served at the GitHub Pages URL)."
