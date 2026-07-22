@@ -111,10 +111,17 @@ export function TeamLeaves() {
       if (!rows.length) { showToast(rl('لم يُعثر على إجازات في الملف — تأكد من مطابقة الأعمدة للقالب', 'No leaves found — check the template columns')); return; }
       mutate((d) => {
         rows.forEach((r, i) => {
+          // Auto-calculate leave days from the two dates when the column is
+          // blank (e.g. a template formula that wasn't cached).
+          let days = parseInt(r.days, 10) || 0;
+          if (!days) {
+            const s = parseAr(r.start || ''), e = parseAr(r.end || '');
+            if (s && e && +e >= +s) days = Math.round((+e - +s) / 86400000) + 1;
+          }
           const rec = {
             id: 'lv' + Date.now() + i, person: r.person, cat: (r.cat as LeaveCat) || 'office',
             role: r.role || '', dept: r.dept || '', type: r.type || 'سنوية',
-            start: r.start || '', end: r.end || '', days: parseInt(r.days, 10) || 0,
+            start: r.start || '', end: r.end || '', days,
             status: r.status || 'مخططة', backup: r.backup || '—', notes: r.notes || '', _mowner: cu.id,
           } as unknown as Leave;
           d.leaves.unshift(rec);

@@ -18,7 +18,16 @@ import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const REG_STATUSES = ['—', 'معتمد', 'تم التسليم', 'بانتظار الاعتماد', 'لم يستلم', 'قيد المراجعة', 'مدمج', 'غير مطلوب'];
+const REG_STATUSES = ['—', 'غير مطلوب', 'لم يستلم', 'قيد الاعتماد', 'مستلم - في الموعد', 'مستلم - متأخر', 'مستلم - متأخر جدا'];
+
+/** Classify a receipt by its day of the month:
+ *  ≤7 → في الموعد · 8–14 → متأخر · ≥15 → متأخر جدا. */
+function classifyReceipt(dateStr: string): string {
+  const day = parseInt((dateStr || '').trim(), 10);
+  if (day >= 15) return 'مستلم - متأخر جدا';
+  if (day >= 8) return 'مستلم - متأخر';
+  return 'مستلم - في الموعد';
+}
 const MONTH_FIELDS: { k: 'jan' | 'feb' | 'mar' | 'apr' | 'may'; pk: string; ar: string }[] = [
   { k: 'jan', pk: 'm1', ar: 'يناير' }, { k: 'feb', pk: 'm2', ar: 'فبراير' }, { k: 'mar', pk: 'm3', ar: 'مارس' }, { k: 'apr', pk: 'm4', ar: 'أبريل' }, { k: 'may', pk: 'm5', ar: 'مايو' },
 ];
@@ -67,10 +76,10 @@ const mCells = (pairs: Record<number, [string, string]>): string[] =>
   BULK_MONTHS.flatMap((_, i) => pairs[i + 1] || ['—', '']);
 const BULK_EXAMPLE: string[][] = [
   ['تقرير الأداء المالي الشهري', 'الأداء المالي', '7 من كل شهر', 'شهري', 'عبادة شراب', 'إدارة الخدمات المالية', '2026',
-    ...mCells({ 1: ['معتمد', '7 يناير'], 2: ['معتمد', '6 فبراير'], 3: ['بانتظار الاعتماد', '9 مارس'] }),
+    ...mCells({ 1: ['مستلم - في الموعد', '5 يناير'], 2: ['مستلم - متأخر', '11 فبراير'], 3: ['قيد الاعتماد', ''] }),
     'يُعقد اجتماع شهري يوم 10 لمناقشة التقرير', 'لاعتماد رئيس القطاع'],
   ['تقرير المخاطر الربعي', 'تدقيق', 'نهاية كل ربع', 'ربع سنوي', 'حسن همام', 'مركز التجربة المتكاملة', '2026',
-    ...mCells({ 3: ['معتمد', '28 مارس'], 6: ['بانتظار الاعتماد', ''] }),
+    ...mCells({ 3: ['مستلم - متأخر جدا', '18 مارس'], 6: ['لم يستلم', ''] }),
     'صف مثال — احذفه قبل الرفع. اترك الأشهر غير المعنية = —', ''],
 ];
 const dlRegBulkTemplateXlsx = () => triggerDownload(makeXlsx([BULK_HEADERS, ...BULK_EXAMPLE], 'سجل التقارير'), 'Reports_Register_Bulk_Template.xlsx');
@@ -79,13 +88,14 @@ const dlRegBulkTemplateXlsx = () => triggerDownload(makeXlsx([BULK_HEADERS, ...B
    Order matters — negatives («لم يستلم») are checked before positives, and «مراجعة»
    before the generic «قيد …». Long unrecognized free-text is left blank for review. */
 const REG_STATUS_ALIASES: [RegExp, string][] = [
-  [/معتمد/, 'معتمد'],
-  [/عدم اصدار|عدم إصدار|عدم الاصدار|لا يصدر|غير مطلوب|لا ينطبق|لا يوجد/, 'غير مطلوب'],
-  [/دمج|مدمج/, 'مدمج'],
+  [/عدم اصدار|عدم إصدار|عدم الاصدار|لا يصدر|غير مطلوب|لا ينطبق|لا يوجد|دمج|مدمج/, 'غير مطلوب'],
   [/لم يستلم|لم يتم|لم يصدر|لم يُستلم/, 'لم يستلم'],
-  [/تم التسليم|تم الاستلام|تم الإرسال|تم الارسال/, 'تم التسليم'],
-  [/مراجعة|للمراجعة/, 'قيد المراجعة'],
-  [/بانتظار|قيد|لأعتماد|لاعتماد|للأعتماد|للاعتماد|جاهز|تأشير|للتأشير|للعرض/, 'بانتظار الاعتماد'],
+  // any receipt → a generic «مستلم» which the parser then classifies by day
+  [/في الموعد/, 'مستلم - في الموعد'],
+  [/متأخر جدا|متأخر جدًا/, 'مستلم - متأخر جدا'],
+  [/متأخر/, 'مستلم - متأخر'],
+  [/معتمد|تم التسليم|تم الاستلام|مستلم|تم الإرسال|تم الارسال/, 'مستلم'],
+  [/بانتظار|قيد|مراجعة|لأعتماد|لاعتماد|للأعتماد|للاعتماد|جاهز|تأشير|للتأشير|للعرض/, 'قيد الاعتماد'],
 ];
 function normRegStatus(v: string): string | undefined {
   const s = (v || '').trim();
@@ -180,11 +190,13 @@ function bulkReports(tables: string[][][]): Partial<RegReport>[] {
     const periods: Record<string, string> = {};
     let latestDate = '';
     monthStatusCol.forEach((sc, mi) => {
-      if (sc >= 0) {
-        const st = normRegStatus(g(sc));
-        if (st) monthPeriodKeys(freq, mi + 1).forEach((k) => { periods[k] = st; });
-      }
       const dv = monthDateCol[mi] >= 0 ? g(monthDateCol[mi]) : '';
+      if (sc >= 0) {
+        let st = normRegStatus(g(sc));
+        // A generic receipt is classified on-time/late/very-late by its day.
+        if (st === 'مستلم') st = classifyReceipt(dv);
+        if (st) monthPeriodKeys(freq, mi + 1).forEach((k) => { periods[k] = st!; });
+      }
       if (dv) latestDate = dv; // scan is Jan→Dec, so the last non-empty is the most recent
     });
     out.push({
@@ -216,7 +228,7 @@ function parseRegFile(tables: string[][][]): RegParsed {
   const months: Record<string, string> = {};
   MONTH_FIELDS.forEach(({ pk, ar }) => {
     const v = kvLookup(tables, new RegExp('^حالة ' + ar));
-    if (v) { const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s)) || (v.trim() === '—' ? '—' : undefined); if (st) months[pk] = st; }
+    if (v) { let st = normRegStatus(v); if (st === 'مستلم') st = 'مستلم - في الموعد'; if (st) months[pk] = st; }
   });
   if (Object.keys(months).length) found.months = months;
   found.notes = kvLookup(tables, /^ملاحظات/);
