@@ -81,20 +81,20 @@ function buildFinDocx(fm: FinModel, projects: FinBigProject[], entities: FinEnti
   const body =
     wP('الملخص التنفيذي المالي', { bold: true, size: 36 }) + wP('') +
     wTbl(['الحقل', 'القيمة'], kvRows(fm)) +
-    wP('المشاريع الكبرى', { bold: true, size: 28 }) +
-    wTbl(['المشروع', 'المخصص (مليون درهم)', 'المدفوع (مليون درهم)'], projects.length ? projects.map((p) => [p.name, String(p.alloc), String(p.paid)]) : [['اكتب هنا', '', '']]) +
-    wP('الجهات', { bold: true, size: 28 }) +
-    wTbl(['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'], entities.length ? entities.map((e) => [e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]) : [['اكتب هنا', '', '', '', '', '']]) +
+    wP('أكبر المشاريع تخصيصاً للميزانية', { bold: true, size: 28 }) +
+    wTbl(['اسم المشروع', 'الميزانية المعتمدة للعام الحالي', 'مخصصات الميزانية', 'الميزانية المتبقية'], projects.length ? projects.map((p) => [p.name, String(p.approvedBudget || 0), String(p.allocations || 0), String(p.remaining != null ? p.remaining : (p.approvedBudget || 0) - (p.allocations || 0))]) : [['اكتب هنا', '', '', '']]) +
+    wP('توزيع الميزانية حسب الجهة', { bold: true, size: 28 }) +
+    wTbl(['اسم الجهة', 'الدعم الحكومي للعام', 'اجمالي الميزانية المتاحة', 'مخصصات الميزانية', 'الميزانية المتبقية'], entities.length ? entities.map((e) => [e.name, String(e.govSupport || 0), String(e.totalAvailable || 0), String(e.allocations || 0), String(e.remaining != null ? e.remaining : (e.totalAvailable || 0) - (e.allocations || 0))]) : [['اكتب هنا', '', '', '', '']]) +
     wP('الأطراف ذات العلاقة', { bold: true, size: 28 }) +
     wTbl(['من', 'إلى', 'القسم', 'البند', 'القيمة'], fm.related.length ? fm.related.flatMap(relTemplateRows) : [['اكتب هنا', '', 'تفاصيل جارى التسوية', '', '']]);
   return makeDocx(body);
 }
 function buildFinXlsx(fm: FinModel, projects: FinBigProject[], entities: FinEntity[]): Blob {
   const rows: string[][] = [['الحقل', 'القيمة'], ...kvRows(fm)];
-  rows.push([''], ['المشروع', 'المخصص', 'المدفوع']);
-  (projects.length ? projects : [{ name: '', alloc: 0, paid: 0 }]).forEach((p) => rows.push([p.name, String(p.alloc || ''), String(p.paid || '')]));
-  rows.push([''], ['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق']);
-  (entities.length ? entities : []).forEach((e) => rows.push([e.name, String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]));
+  rows.push([''], ['اسم المشروع', 'الميزانية المعتمدة للعام الحالي', 'مخصصات الميزانية', 'الميزانية المتبقية']);
+  (projects.length ? projects : [{ name: '', approvedBudget: 0, allocations: 0, remaining: 0 } as FinBigProject]).forEach((p) => rows.push([p.name, String(p.approvedBudget || ''), String(p.allocations || ''), String(p.remaining != null ? p.remaining : (p.approvedBudget || 0) - (p.allocations || 0))]));
+  rows.push([''], ['اسم الجهة', 'الدعم الحكومي للعام', 'اجمالي الميزانية المتاحة', 'مخصصات الميزانية', 'الميزانية المتبقية']);
+  (entities.length ? entities : []).forEach((e) => rows.push([e.name, String(e.govSupport || 0), String(e.totalAvailable || 0), String(e.allocations || 0), String(e.remaining != null ? e.remaining : (e.totalAvailable || 0) - (e.allocations || 0))]));
   rows.push([''], ['من', 'إلى', 'القسم', 'البند', 'القيمة']);
   (fm.related.length ? fm.related : []).forEach((rp) => relTemplateRows(rp).forEach((r) => rows.push(r)));
   return makeXlsx(rows, 'الملخص المالي');
@@ -106,8 +106,8 @@ interface FinParsed {
   opexE?: number; opexP?: number; capexE?: number; capexP?: number;
   relAll?: number; relSettling?: number; relPrior?: number; relCurrent?: number;
   biDaily?: number; biFixed?: number; biActive?: number;
-  projects?: { name: string; alloc: number; paid: number }[];
-  entities?: { name: string; alloc: number; used: number; commit: number; paid: number; due: number }[];
+  projects?: { name: string; approvedBudget: number; allocations: number; remaining: number }[];
+  entities?: { name: string; govSupport: number; totalAvailable: number; allocations: number; remaining: number }[];
   related?: { from: string; to: string; sections: { title: string; rows: { n: string; v: number }[] }[] }[];
   missing: string[];
 }
@@ -142,10 +142,10 @@ function parseFinFile(tables: string[][][]): FinParsed {
   found.opexP = kvNum(/^التشغيلية - المدفوع/);
   found.capexE = kvNum(/^الرأسمالية - المتوقع/);
   found.capexP = kvNum(/^الرأسمالية - المدفوع/);
-  const projRows = sliceSection(tables, (r) => /المشروع/.test(r[0] || '') && /المخصص/.test(r.join(' ')));
-  if (projRows.length) found.projects = projRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), paid: num(r[2] || '') })).filter((p) => p.name && p.name !== 'اكتب هنا');
-  const entRows = sliceSection(tables, (r) => /^الجهة/.test((r[0] || '').trim()) && /المخصص/.test(r.join(' ')));
-  if (entRows.length) found.entities = entRows.map((r) => ({ name: (r[0] || '').trim(), alloc: num(r[1] || ''), used: num(r[2] || ''), commit: num(r[3] || ''), paid: num(r[4] || ''), due: num(r[5] || '') })).filter((e) => e.name && e.name !== 'اكتب هنا');
+  const projRows = sliceSection(tables, (r) => /المشروع/.test(r[0] || '') && /(المعتمدة|مخصص)/.test(r.join(' ')));
+  if (projRows.length) found.projects = projRows.map((r) => ({ name: (r[0] || '').trim(), approvedBudget: num(r[1] || ''), allocations: num(r[2] || ''), remaining: num(r[3] || '') })).filter((p) => p.name && p.name !== 'اكتب هنا');
+  const entRows = sliceSection(tables, (r) => /الجهة/.test((r[0] || '').trim()) && /(الدعم|المتاحة|مخصص)/.test(r.join(' ')));
+  if (entRows.length) found.entities = entRows.map((r) => ({ name: (r[0] || '').trim(), govSupport: num(r[1] || ''), totalAvailable: num(r[2] || ''), allocations: num(r[3] || ''), remaining: num(r[4] || '') })).filter((e) => e.name && e.name !== 'اكتب هنا');
   found.relAll = kvNum(/^إجمالي الأرصدة بين الجهات/);
   found.relSettling = kvNum(/^إجمالي جار[ىي] التسوية/);
   found.relPrior = kvNum(/^عقود مرحلة من العام السابق/);
@@ -215,9 +215,12 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
     biActive: String(source.bankInterest.activeDeposits),
   });
   const [rel, setRel] = useState<RelDraft[]>(() => source.related.map(relDraftFrom));
-  const [projects, setProjects] = useState<FinBigProject[]>(() => source.bigProjects.map((p) => ({ ...p })));
-  const [ents, setEnts] = useState<{ name: string; alloc: number; used: number; commit: number; paid: number; due: number }[]>(
-    () => source.entities.map((e) => ({ name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due })));
+  const [projects, setProjects] = useState<FinBigProject[]>(() => source.bigProjects.map((p) => ({
+    name: p.name, approvedBudget: p.approvedBudget || 0, allocations: p.allocations || 0,
+    remaining: p.remaining != null ? p.remaining : (p.approvedBudget || 0) - (p.allocations || 0),
+  })));
+  const [ents, setEnts] = useState<{ name: string; govSupport: number; totalAvailable: number; allocations: number; remaining: number }[]>(
+    () => source.entities.map((e) => ({ name: e.name, govSupport: e.govSupport || 0, totalAvailable: e.totalAvailable || 0, allocations: e.allocations || 0, remaining: e.remaining != null ? e.remaining : (e.totalAvailable || 0) - (e.allocations || 0) })));
   const [aging, setAging] = useState<AgingBucket[]>(() => clone(source.aging || []));
   const [missing, setMissing] = useState<string[]>([]);
   const [parsedFrom, setParsedFrom] = useState('');
@@ -277,12 +280,17 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
       m.commit = num(f.commit); m.commitPaid = num(f.commitPaid); m.commitDue = num(f.commit) - num(f.commitPaid);
       m.opex = { ...m.opex, expected: num(f.opexE), paid: num(f.opexP), due: num(f.opexE) - num(f.opexP) };
       m.capex = { ...m.capex, expected: num(f.capexE), paid: num(f.capexP), due: num(f.capexE) - num(f.capexP) };
-      m.bigProjects = projects.filter((p) => p.name.trim()).map((p) => ({ ...p, alloc: +p.alloc || 0, paid: +p.paid || 0 }));
+      m.bigProjects = projects.filter((p) => p.name.trim()).map((p) => ({
+        name: p.name.trim(), approvedBudget: +(p.approvedBudget || 0), allocations: +(p.allocations || 0),
+        remaining: p.remaining != null ? +p.remaining : (+(p.approvedBudget || 0) - +(p.allocations || 0)),
+      }));
       m.entities = ents.filter((e) => e.name.trim()).map((e) => {
         const old = source.entities.find((x) => x.name === e.name) || m!.entities.find((x) => x.name === e.name);
+        const remaining = e.remaining != null ? e.remaining : (e.totalAvailable || 0) - (e.allocations || 0);
+        const patch = { govSupport: e.govSupport || 0, totalAvailable: e.totalAvailable || 0, allocations: e.allocations || 0, remaining };
         return old
-          ? { ...old, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due }
-          : { code: e.name.slice(0, 4), name: e.name, alloc: e.alloc, used: e.used, commit: e.commit, paid: e.paid, due: e.due, opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 }, projects: [], overdue: 0 };
+          ? { ...old, ...patch }
+          : { code: e.name.slice(0, 4), name: e.name, alloc: 0, used: 0, commit: 0, paid: 0, due: 0, opex: { expected: 0, paid: 0 }, capex: { expected: 0, paid: 0 }, projects: [], overdue: 0, ...patch };
       });
       m.aging = aging.map((b) => ({ bucket: b.bucket, risk: b.risk, items: b.items.filter((it) => it.supplier.trim() || it.amount) }));
       m.relTotals = { allPeriods: num(f.relAll), settling: num(f.relSettling), prior: num(f.relPrior), current: num(f.relCurrent) };
@@ -392,38 +400,41 @@ function FinForm({ year, create, onClose }: { year: string; create: boolean; onC
       </>)}
 
       {tab === 1 && (<>
-      {secHead('المشاريع الكبرى', needs('المشاريع الكبرى'))}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 150px 150px 26px', gap: 8 }}>
-          <span style={th}>المشروع</span><span style={th}>المخصص (مليون درهم)</span><span style={th}>المدفوع (مليون درهم)</span><span />
-        </div>
-        {projects.map((p, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.8fr 150px 150px 26px', gap: 8, alignItems: 'center' }}>
-            <input value={p.name} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} style={inputStyle} />
-            <input value={String(p.alloc || '')} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, alloc: num(e.target.value) } : x)))} style={inputStyle} />
-            <input value={String(p.paid || '')} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, paid: num(e.target.value) } : x)))} style={inputStyle} />
-            <button type="button" onClick={() => setProjects((prev) => prev.filter((_, j) => j !== i))} style={rowBtn}>✕</button>
+      {secHead('أكبر المشاريع تخصيصاً للميزانية', needs('المشاريع الكبرى'))}
+      <div style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: 640, display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 160px 150px 150px 26px', gap: 8 }}>
+            <span style={th}>اسم المشروع</span><span style={th}>الميزانية المعتمدة للعام الحالي</span><span style={th}>مخصصات الميزانية</span><span style={th}>الميزانية المتبقية</span><span />
           </div>
-        ))}
-        {addRowBtn('إضافة مشروع', () => setProjects((prev) => [...prev, { name: '', alloc: 0, paid: 0 }]))}
+          {projects.map((p, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.8fr 160px 150px 150px 26px', gap: 8, alignItems: 'center' }}>
+              <input value={p.name} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} style={inputStyle} />
+              {(['approvedBudget', 'allocations', 'remaining'] as const).map((k) => (
+                <input key={k} value={String(p[k] || '')} onChange={(e) => setProjects((prev) => prev.map((x, j) => (j === i ? { ...x, [k]: num(e.target.value) } : x)))} style={inputStyle} />
+              ))}
+              <button type="button" onClick={() => setProjects((prev) => prev.filter((_, j) => j !== i))} style={rowBtn}>✕</button>
+            </div>
+          ))}
+          {addRowBtn('إضافة مشروع', () => setProjects((prev) => [...prev, { name: '', approvedBudget: 0, allocations: 0, remaining: 0 }]))}
+        </div>
       </div>
 
-      {secHead('الجهات', needs('الجهات'))}
+      {secHead('توزيع الميزانية حسب الجهة', needs('الجهات'))}
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: 720, display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 110px 110px 110px 110px 110px 26px', gap: 7 }}>
-            <span style={th}>الجهة</span><span style={th}>المخصص</span><span style={th}>المستخدم</span><span style={th}>الالتزامات</span><span style={th}>المدفوع</span><span style={th}>المستحق</span><span />
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 150px 160px 140px 140px 26px', gap: 7 }}>
+            <span style={th}>اسم الجهة</span><span style={th}>الدعم الحكومي للعام</span><span style={th}>اجمالي الميزانية المتاحة</span><span style={th}>مخصصات الميزانية</span><span style={th}>الميزانية المتبقية</span><span />
           </div>
           {ents.map((e, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.6fr 110px 110px 110px 110px 110px 26px', gap: 7, alignItems: 'center' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.6fr 150px 160px 140px 140px 26px', gap: 7, alignItems: 'center' }}>
               <input value={e.name} onChange={(ev) => setEnts((prev) => prev.map((x, j) => (j === i ? { ...x, name: ev.target.value } : x)))} style={inputStyle} />
-              {(['alloc', 'used', 'commit', 'paid', 'due'] as const).map((k) => (
+              {(['govSupport', 'totalAvailable', 'allocations', 'remaining'] as const).map((k) => (
                 <input key={k} value={String(e[k] || '')} onChange={(ev) => setEnts((prev) => prev.map((x, j) => (j === i ? { ...x, [k]: num(ev.target.value) } : x)))} style={inputStyle} />
               ))}
               <button type="button" onClick={() => setEnts((prev) => prev.filter((_, j) => j !== i))} style={rowBtn}>✕</button>
             </div>
           ))}
-          {addRowBtn('إضافة جهة', () => setEnts((prev) => [...prev, { name: '', alloc: 0, used: 0, commit: 0, paid: 0, due: 0 }]))}
+          {addRowBtn('إضافة جهة', () => setEnts((prev) => [...prev, { name: '', govSupport: 0, totalAvailable: 0, allocations: 0, remaining: 0 }]))}
         </div>
       </div>
       </>)}

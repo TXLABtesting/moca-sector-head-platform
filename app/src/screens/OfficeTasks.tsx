@@ -1,4 +1,6 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { triggerDownload } from '../shared/fileGen';
+import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from './reportcenter/templateIO';
 import { Fade, Avatar, Modal, Drawer } from '../components/ui';
 import { MobileFilters } from '../components/MobileFilters';
 import { Dropdown } from '../components/Dropdown';
@@ -71,6 +73,44 @@ export function OfficeTasks() {
   const canAdd = !isChair && (can(cu, 'myTasks', 'add') || can(cu, 'myTasks', 'edit'));
   const canDrag = isChair || memberEdit;
   const [taskForm, setTaskForm] = useState<{ id: string | null } | null>(null);
+
+  // ---- bulk import (one office task per row) ----
+  const OT_COLS = [
+    { field: 'title', match: alias('عنوان المهمة', 'المهمة', 'العنوان') },
+    { field: 'dept', match: alias('الإدارة', 'القسم') },
+    { field: 'owner', match: alias('المسؤول', 'المكلّف') },
+    { field: 'status', match: alias('الحالة'), norm: pick(O_STATUS_LIST, 'لم يبدأ') },
+    { field: 'desc', match: alias('الوصف') },
+    { field: 'due', match: alias('تاريخ الاستحقاق', 'الاستحقاق', 'الموعد'), norm: excelSerialToDate },
+    { field: 'start', match: alias('تاريخ البدء', 'البدء'), norm: excelSerialToDate },
+    { field: 'end', match: alias('تاريخ الانتهاء', 'الانتهاء'), norm: excelSerialToDate },
+    { field: 'notes', match: alias('ملاحظات') },
+  ];
+  const OT_HEADERS = ['عنوان المهمة', 'الإدارة', 'المسؤول', 'الحالة', 'الوصف', 'تاريخ الاستحقاق', 'تاريخ البدء', 'تاريخ الانتهاء', 'ملاحظات'];
+  const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'إدارة الشؤون الإدارية', 'موزة المرزوقي', 'قيد التنفيذ', 'تجميع مؤشرات الأداء', '25 يوليو 2026', '1 يوليو 2026', '', 'صف مثال — احذفه'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب'), 'Office_Tasks_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, OT_COLS, (r) => !!r.title) : [];
+      if (!rows.length) { showToast(rl('لم يُعثر على مهام في الملف — تأكد من مطابقة الأعمدة للقالب', 'No tasks found — check the template columns')); return; }
+      mutate((d) => {
+        rows.forEach((r, i) => {
+          const rec = {
+            id: 'ot' + Date.now() + i, start: r.start || '', end: r.end || '', label: '',
+            title: r.title, dept: r.dept || '', owner: r.owner || cu.name, status: r.status || 'لم يبدأ',
+            desc: r.desc || '', lastUpdate: TODAY_AR, due: r.due || '', notes: r.notes || '',
+            directives: [], reviewed: false, attachments: [], participants: [], _mowner: cu.id,
+          } as unknown as OfficeTask;
+          d.otasks.unshift(rec);
+        });
+      });
+      showToast(rl('تم استيراد ', 'Imported ') + rows.length + rl(' مهمة', ' tasks'));
+    } catch {
+      showToast(rl('تعذّر استيراد الملف', 'Import failed'));
+    }
+  };
   const [drawerEdit, setDrawerEdit] = useState(false);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
@@ -252,7 +292,14 @@ export function OfficeTasks() {
           <p style={{ margin: 0, fontSize: 13, color: '#7d867f' }}>{rl('متابعة مهام المكتب وتحديث حالاتها', 'Track office tasks and update their statuses')}</p>
         </div>
         {canAdd && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" onClick={dlTaskBulk} title={rl('تنزيل قالب إكسيل بصف لكل مهمة', 'Template: one task per row')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 12, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>{rl('قالب الاستيراد', 'Import template')}
+          </button>
+          <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+          <button type="button" onClick={() => bulkRef.current?.click()} title={rl('رفع ملف إكسيل يحتوي عدة مهام دفعة واحدة', 'Upload many tasks at once')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 12, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>{rl('استيراد دفعة', 'Bulk import')}
+          </button>
           <button type="button" onClick={() => setTaskForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.55)', flex: 'none' }}>
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             {rl('إضافة مهمة', 'Add task')}

@@ -1,4 +1,6 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { triggerDownload } from '../shared/fileGen';
+import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from './reportcenter/templateIO';
 import { Fade, Drawer, Avatar, Badge, Modal } from '../components/ui';
 import { APP_TODAY } from '../shared/today';
 import { Dropdown } from '../components/Dropdown';
@@ -82,6 +84,47 @@ export function TeamLeaves() {
   const [editEnd, setEditEnd] = useState('');
   const [fPhase, setFPhase] = useState('');
   const [lvForm, setLvForm] = useState(false);
+
+  // ---- bulk import (one leave per row) ----
+  const LV_STATUS = ['بانتظار الاعتماد', 'معتمدة', 'مرفوضة', 'مخططة', 'منتهية'];
+  const LV_COLS = [
+    { field: 'person', match: alias('الموظف', 'الاسم', 'الشخص') },
+    { field: 'cat', match: alias('التصنيف', 'الفئة'), norm: (v: string) => (v.includes('مدير') ? 'manager' : 'office') },
+    { field: 'role', match: alias('الدور', 'الوظيفة', 'المسمى') },
+    { field: 'dept', match: alias('الإدارة', 'القسم') },
+    { field: 'type', match: alias('نوع الإجازة', 'النوع') },
+    { field: 'start', match: alias('تاريخ البداية', 'البداية', 'من'), norm: excelSerialToDate },
+    { field: 'end', match: alias('تاريخ النهاية', 'النهاية', 'إلى'), norm: excelSerialToDate },
+    { field: 'days', match: alias('عدد الأيام', 'الأيام') },
+    { field: 'status', match: alias('الحالة'), norm: pick(LV_STATUS, 'مخططة') },
+    { field: 'backup', match: alias('البديل') },
+    { field: 'notes', match: alias('ملاحظات') },
+  ];
+  const LV_HEADERS = ['الموظف', 'التصنيف', 'الدور', 'الإدارة', 'نوع الإجازة', 'تاريخ البداية', 'تاريخ النهاية', 'عدد الأيام', 'الحالة', 'البديل', 'ملاحظات'];
+  const LV_EXAMPLE = ['محمد الياسي', 'مكتب', 'منسق', 'إدارة الشؤون الإدارية', 'سنوية', '1 أغسطس 2026', '10 أغسطس 2026', '10', 'مخططة', 'موزة المرزوقي', 'صف مثال — احذفه'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlLeaveBulk = () => triggerDownload(makeXlsx([LV_HEADERS, LV_EXAMPLE], 'الإجازات'), 'Team_Leaves_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, LV_COLS, (r) => !!r.person) : [];
+      if (!rows.length) { showToast(rl('لم يُعثر على إجازات في الملف — تأكد من مطابقة الأعمدة للقالب', 'No leaves found — check the template columns')); return; }
+      mutate((d) => {
+        rows.forEach((r, i) => {
+          const rec = {
+            id: 'lv' + Date.now() + i, person: r.person, cat: (r.cat as LeaveCat) || 'office',
+            role: r.role || '', dept: r.dept || '', type: r.type || 'سنوية',
+            start: r.start || '', end: r.end || '', days: parseInt(r.days, 10) || 0,
+            status: r.status || 'مخططة', backup: r.backup || '—', notes: r.notes || '', _mowner: cu.id,
+          } as unknown as Leave;
+          d.leaves.unshift(rec);
+        });
+      });
+      showToast(rl('تم استيراد ', 'Imported ') + rows.length + rl(' إجازة', ' leaves'));
+    } catch {
+      showToast(rl('تعذّر استيراد الملف', 'Import failed'));
+    }
+  };
   const [lvEdit, setLvEdit] = useState(false);
 
   const CATL: Record<LeaveCat, string> = {
@@ -337,7 +380,14 @@ export function TeamLeaves() {
           </p>
         </div>
         {canManage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={dlLeaveBulk} title={rl('تنزيل قالب إكسيل بصف لكل إجازة', 'Template: one leave per row')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>{rl('قالب الاستيراد', 'Import template')}
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title={rl('رفع ملف إكسيل يحتوي عدة إجازات دفعة واحدة', 'Upload many leaves at once')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>{rl('استيراد دفعة', 'Bulk import')}
+            </button>
             <button onClick={() => setLvForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               {rl('إضافة إجازة', 'New leave')}

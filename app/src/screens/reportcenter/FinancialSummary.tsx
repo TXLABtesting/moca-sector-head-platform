@@ -69,9 +69,12 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
 
   const finUtil = pct(FM.used, FM.budget);
   const entityCards = FM.entities.map((e) => {
-    const u = pct(e.used, e.alloc);
+    const total = e.totalAvailable || 0;
+    const alloc = e.allocations || 0;
+    const remain = e.remaining != null ? e.remaining : total - alloc;
+    const u = pct(alloc, total);
     const col = entColors[e.code] || '#1f4a37';
-    return { code: e.code, name: tr(e.name), alloc: mAED(e.alloc), used: mAED(e.used), due: mAED(e.due), util: u, utilLabel: u + '%', color: col, hasOverdue: e.overdue > 0, overdueLabel: rl(e.overdue + ' عقد متأخر', e.overdue + ' overdue') };
+    return { code: e.code, name: tr(e.name), govSupport: mAED(e.govSupport || 0), totalAvailable: mAED(total), allocations: mAED(alloc), remaining: mAED(remain), util: u, utilLabel: u + '%', color: col, hasOverdue: e.overdue > 0, overdueLabel: rl(e.overdue + ' عقد متأخر', e.overdue + ' overdue') };
   });
   const finCommit = { paid: mAED(FM.commitPaid), due: mAED(FM.commitDue), total: mAED(FM.commit), paidPct: pct(FM.commitPaid, FM.commit), duePct: pct(FM.commitDue, FM.commit) };
   const expBlocks = [
@@ -79,9 +82,12 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
     { label: rl('المصروفات الرأسمالية', 'Capital expenses'), expected: FM.capex.expected, paid: FM.capex.paid, accent: '#7a4d94' },
   ].map((b) => { const due = b.expected - b.paid; const sp = pct(b.paid, b.expected); return { label: b.label, accent: b.accent, expected: mAED(b.expected), paid: mAED(b.paid), due: mAED(due), spentLabel: sp + '%' }; });
   const finBigProjects = FM.bigProjects.map((p) => {
-    const sp = pct(p.paid, p.alloc); const col = entColors[p.entity || ''] || '#1f4a37';
-    return { name: tr(p.name), entity: p.entity, alloc: mAED(p.alloc), paid: mAED(p.paid), remain: mAED(p.alloc - p.paid), spentLabel: sp + '%', color: col,
-      statusLabel: sp >= 80 ? rl('صرف مرتفع', 'High spend') : sp >= 40 ? rl('ضمن الخطة', 'On track') : rl('صرف منخفض', 'Low spend'),
+    const approved = p.approvedBudget || 0;
+    const alloc = p.allocations || 0;
+    const remain = p.remaining != null ? p.remaining : approved - alloc;
+    const sp = pct(alloc, approved); const col = entColors[p.entity || ''] || '#1f4a37';
+    return { name: tr(p.name), entity: p.entity, approvedBudget: mAED(approved), allocations: mAED(alloc), remaining: mAED(remain), spentLabel: sp + '%', color: col,
+      statusLabel: sp >= 80 ? rl('تخصيص مرتفع', 'High allocation') : sp >= 40 ? rl('ضمن الخطة', 'On track') : rl('تخصيص منخفض', 'Low allocation'),
       statusBg: sp >= 80 ? '#faf0ef' : sp >= 40 ? '#e2f0e8' : '#fbf0d6', statusFg: sp >= 80 ? '#b0433b' : sp >= 40 ? '#2e7d55' : '#a9791f' };
   });
   const relRows = FM.related.map((r) => { const total = r.items.reduce((s, x) => s + x.v, 0); return { from: r.from, to: r.to, fromColor: entColors[r.from] || '#5b6b62', toColor: entColors[r.to] || '#5b6b62', totalLabel: fmt(total), items: r.items.map((x) => ({ n: tr(x.n), v: fmt(x.v) })) }; });
@@ -106,18 +112,19 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
     { label: rl('إجمالي الفوائد البنكية المحصلة على الودائع الثابتة للجهات', 'Total bank interest collected on entity fixed deposits'), value: fmt(bi.fixedDeposits), bg: '#e9f0f6', dot: '#3a6ea5' },
     { label: rl('إجمالي الودائع الثابتة الجارية خلال الربع الحالي', 'Total active fixed deposits during the current quarter'), value: fmt(bi.activeDeposits), bg: '#f3ecf6', dot: '#7a4d94' },
   ];
-  // top entity by utilisation and by payable — derived from the entities you edit, not hard-coded.
-  const topUtil = FM.entities.length ? FM.entities.reduce((a, b) => (pct(b.used, b.alloc) > pct(a.used, a.alloc) ? b : a)) : null;
-  const topDue = FM.entities.length ? FM.entities.reduce((a, b) => (b.due > a.due ? b : a)) : null;
+  // top entity by allocation ratio and by remaining budget — derived from the entities you edit.
+  const allocRatio = (e: typeof FM.entities[number]) => pct(e.allocations || 0, e.totalAvailable || 0);
+  const topUtil = FM.entities.length ? FM.entities.reduce((a, b) => (allocRatio(b) > allocRatio(a) ? b : a)) : null;
+  const topRemain = FM.entities.length ? FM.entities.reduce((a, b) => ((b.remaining || 0) > (a.remaining || 0) ? b : a)) : null;
   const finRisks = [
-    { label: rl('الجهة الأعلى استخداماً للميزانية', 'Highest budget utilisation'), value: topUtil ? topUtil.code + ' · ' + pct(topUtil.used, topUtil.alloc) + '%' : '—', tone: 'gold' },
-    { label: rl('الأعلى مستحقات دفع', 'Highest payable'), value: topDue ? topDue.code + ' · ' + mAED(topDue.due) : '—', tone: 'red' },
+    { label: rl('الجهة الأعلى تخصيصاً للميزانية', 'Highest allocation ratio'), value: topUtil ? topUtil.code + ' · ' + allocRatio(topUtil) + '%' : '—', tone: 'gold' },
+    { label: rl('الأعلى ميزانية متبقية', 'Highest remaining budget'), value: topRemain ? topRemain.code + ' · ' + mAED(topRemain.remaining || 0) : '—', tone: 'red' },
     { label: rl('عقود متجاوزة أكثر من 60 يوم', 'Contracts overdue >60 days'), value: fmt(over60) + rl(' درهم', ' AED'), tone: 'red' },
     { label: rl('إجمالي المبالغ جارى تسويتها', 'Total amounts under settlement'), value: fmt(relT.settling) + rl(' درهم', ' AED'), tone: 'amber' },
   ].map((r) => ({ label: r.label, value: r.value, dot: r.tone === 'red' ? '#b0433b' : '#a9791f', bg: r.tone === 'red' ? '#faf0ef' : '#fbf7ee' }));
 
   const period = tr(FM.period);
-  const entityPanel = (() => { if (!selEntity) return null; const e = FM.entities.find((x) => x.code === selEntity); if (!e) return null; const col = entColors[e.code] || '#1f4a37'; return { code: e.code, name: tr(e.name), color: col, alloc: mAED(e.alloc), used: mAED(e.used), remain: mAED(e.alloc - e.used), utilLabel: pct(e.used, e.alloc) + '%', commit: mAED(e.commit), paid: mAED(e.paid), due: mAED(e.due), opExpected: mAED(e.opex.expected), opPaid: mAED(e.opex.paid), capExpected: mAED(e.capex.expected), capPaid: mAED(e.capex.paid), overdue: e.overdue, overdueLabel: rl(e.overdue + ' عقد متأخر', e.overdue + ' overdue contracts'), projects: e.projects.map((p) => ({ name: tr(p.name), alloc: mAED(p.alloc), paid: mAED(p.paid), spentLabel: pct(p.paid, p.alloc) + '%' })) }; })();
+  const entityPanel = (() => { if (!selEntity) return null; const e = FM.entities.find((x) => x.code === selEntity); if (!e) return null; const col = entColors[e.code] || '#1f4a37'; const total = e.totalAvailable || 0; const alloc = e.allocations || 0; const remain = e.remaining != null ? e.remaining : total - alloc; return { code: e.code, name: tr(e.name), color: col, govSupport: mAED(e.govSupport || 0), totalAvailable: mAED(total), allocations: mAED(alloc), remaining: mAED(remain), utilLabel: pct(alloc, total) + '%', overdue: e.overdue, overdueLabel: rl(e.overdue + ' عقد متأخر', e.overdue + ' overdue contracts') }; })();
 
   return (
     <div style={{ animation: 'fadeUp .16s ease' }}>
@@ -141,8 +148,11 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
             ['الفوائد البنكية اليومية على الحسابات', String(bi.dailyAccounts)],
             ['الفوائد البنكية على الودائع الثابتة', String(bi.fixedDeposits)],
             ['الودائع الثابتة الجارية خلال الربع', String(bi.activeDeposits)], [],
-            ['الجهة', 'المخصص', 'المستخدم', 'الالتزامات', 'المدفوع', 'المستحق'],
-            ...FM.entities.map((e) => [tr(e.name), String(e.alloc), String(e.used), String(e.commit), String(e.paid), String(e.due)]),
+            ['اسم الجهة', 'الدعم الحكومي للعام', 'اجمالي الميزانية المتاحة', 'مخصصات الميزانية', 'الميزانية المتبقية'],
+            ...FM.entities.map((e) => [tr(e.name), String(e.govSupport || 0), String(e.totalAvailable || 0), String(e.allocations || 0), String(e.remaining != null ? e.remaining : (e.totalAvailable || 0) - (e.allocations || 0))]),
+            [],
+            ['اسم المشروع', 'الميزانية المعتمدة للعام الحالي', 'مخصصات الميزانية', 'الميزانية المتبقية'],
+            ...FM.bigProjects.map((p) => [tr(p.name), String(p.approvedBudget || 0), String(p.allocations || 0), String(p.remaining != null ? p.remaining : (p.approvedBudget || 0) - (p.allocations || 0))]),
           ];
           triggerDownload(makeXlsx(rows, 'الملخص المالي'), 'Financial_Summary_' + year + '.xlsx');
           showToast(rl('تم تنزيل الملخص التنفيذي المالي', 'Financial summary downloaded'));
@@ -191,10 +201,11 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
             </div>
             <div style={{ fontSize: 11.5, color: '#7d867f', lineHeight: 1.5, marginBottom: 12, minHeight: 32 }}>{e.name}</div>
             <div style={{ height: 7, borderRadius: 6, background: '#eef1ec', overflow: 'hidden', marginBottom: 12 }}><div style={{ height: '100%', width: e.utilLabel, background: e.color, borderRadius: 6 }}></div></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5 }}>
-              <div><div style={{ color: '#9aa39b', marginBottom: 2 }}>{t('fin_alloc')}</div><div style={{ fontWeight: 700, color: '#17211c' }}>{e.alloc}</div></div>
-              <div style={{ textAlign: 'center' }}><div style={{ color: '#9aa39b', marginBottom: 2 }}>{t('fin_used')}</div><div style={{ fontWeight: 700, color: '#a9791f' }}>{e.used}</div></div>
-              <div style={{ textAlign: 'end' }}><div style={{ color: '#9aa39b', marginBottom: 2 }}>{t('fin_due')}</div><div style={{ fontWeight: 700, color: '#b0433b' }}>{e.due}</div></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 8px', fontSize: 11.5 }}>
+              <div><div style={{ color: '#9aa39b', marginBottom: 2 }}>{rl('الدعم الحكومي للعام', 'Gov. support (year)')}</div><div style={{ fontWeight: 700, color: '#3a6ea5' }}>{e.govSupport}</div></div>
+              <div style={{ textAlign: 'end' }}><div style={{ color: '#9aa39b', marginBottom: 2 }}>{rl('اجمالي الميزانية المتاحة', 'Total available')}</div><div style={{ fontWeight: 700, color: '#17211c' }}>{e.totalAvailable}</div></div>
+              <div><div style={{ color: '#9aa39b', marginBottom: 2 }}>{rl('مخصصات الميزانية', 'Allocations')}</div><div style={{ fontWeight: 700, color: '#a9791f' }}>{e.allocations}</div></div>
+              <div style={{ textAlign: 'end' }}><div style={{ color: '#9aa39b', marginBottom: 2 }}>{rl('الميزانية المتبقية', 'Remaining')}</div><div style={{ fontWeight: 700, color: '#2e7d55' }}>{e.remaining}</div></div>
             </div>
           </div>
         ))}
@@ -240,7 +251,7 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
               <span style={{ fontSize: 10.5, fontWeight: 700, color: p.statusFg, background: p.statusBg, borderRadius: 20, padding: '3px 10px' }}>{p.statusLabel}</span>
             </div>
             <div style={{ height: 9, borderRadius: 6, background: '#eef1ec', overflow: 'hidden', marginBottom: 8 }}><div style={{ height: '100%', width: p.spentLabel, background: p.color, borderRadius: 6 }}></div></div>
-            <div style={{ display: 'flex', gap: 20, fontSize: 11.5, color: '#9aa39b' }}><span>{t('fin_alloc')}: <b style={{ color: '#17211c' }}>{p.alloc}</b></span><span>{t('fin_paid')}: <b style={{ color: '#2e7d55' }}>{p.paid}</b></span><span>{t('fin_remain')}: <b style={{ color: '#a9791f' }}>{p.remain}</b></span></div>
+            <div style={{ display: 'flex', gap: 20, fontSize: 11.5, color: '#9aa39b', flexWrap: 'wrap' }}><span>{rl('الميزانية المعتمدة للعام', 'Approved budget (year)')}: <b style={{ color: '#17211c' }}>{p.approvedBudget}</b></span><span>{rl('مخصصات الميزانية', 'Allocations')}: <b style={{ color: '#a9791f' }}>{p.allocations}</b></span><span>{rl('الميزانية المتبقية', 'Remaining')}: <b style={{ color: '#2e7d55' }}>{p.remaining}</b></span></div>
           </div>
         ))}
       </div>
@@ -362,34 +373,18 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
               <div style={{ fontSize: 13.5, color: '#bcd2c3', lineHeight: 1.5 }}>{entityPanel.name}</div>
             </div>
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ background: '#fff', borderRadius: 13, padding: '13px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 11.5, color: '#9aa39b', fontWeight: 600 }}>{rl('الدعم الحكومي للعام', 'Gov. support (year)')}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#3a6ea5' }}>{entityPanel.govSupport}</div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                <div style={{ background: '#fff', borderRadius: 13, padding: '13px 14px' }}><div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 6 }}>{t('fin_alloc')}</div><div style={{ fontSize: 16, fontWeight: 800, color: '#1f4a37' }}>{entityPanel.alloc}</div></div>
-                <div style={{ background: '#fff', borderRadius: 13, padding: '13px 14px' }}><div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 6 }}>{t('fin_used')}</div><div style={{ fontSize: 16, fontWeight: 800, color: '#a9791f' }}>{entityPanel.used}</div></div>
-                <div style={{ background: '#fff', borderRadius: 13, padding: '13px 14px' }}><div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 6 }}>{t('fin_remain')}</div><div style={{ fontSize: 16, fontWeight: 800, color: '#1f8a5b' }}>{entityPanel.remain}</div></div>
+                <div style={{ background: '#fff', borderRadius: 13, padding: '13px 14px' }}><div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 6 }}>{rl('اجمالي الميزانية المتاحة', 'Total available')}</div><div style={{ fontSize: 16, fontWeight: 800, color: '#1f4a37' }}>{entityPanel.totalAvailable}</div></div>
+                <div style={{ background: '#fff', borderRadius: 13, padding: '13px 14px' }}><div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 6 }}>{rl('مخصصات الميزانية', 'Allocations')}</div><div style={{ fontSize: 16, fontWeight: 800, color: '#a9791f' }}>{entityPanel.allocations}</div></div>
+                <div style={{ background: '#fff', borderRadius: 13, padding: '13px 14px' }}><div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 6 }}>{rl('الميزانية المتبقية', 'Remaining')}</div><div style={{ fontSize: 16, fontWeight: 800, color: '#1f8a5b' }}>{entityPanel.remaining}</div></div>
               </div>
               <div style={{ background: '#fff', borderRadius: 15, padding: '16px 18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 8 }}><span style={{ color: '#7d867f', fontWeight: 600 }}>{t('fin_util')}</span><span style={{ fontWeight: 800, color: entityPanel.color }}>{entityPanel.utilLabel}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 8 }}><span style={{ color: '#7d867f', fontWeight: 600 }}>{rl('نسبة التخصيص من المتاح', 'Allocated of available')}</span><span style={{ fontWeight: 800, color: entityPanel.color }}>{entityPanel.utilLabel}</span></div>
                 <div style={{ height: 8, borderRadius: 6, background: '#eef1ec', overflow: 'hidden' }}><div style={{ height: '100%', width: entityPanel.utilLabel, background: entityPanel.color, borderRadius: 6 }}></div></div>
-              </div>
-              <div style={{ background: '#fff', borderRadius: 15, padding: '16px 18px' }}>
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: '#17211c' }}>{t('fin_commitments')}</h4>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}><span style={{ color: '#9aa39b' }}>{t('fin_commitments')}</span><b style={{ color: '#7a4d94' }}>{entityPanel.commit}</b></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}><span style={{ color: '#9aa39b' }}>{t('fin_paid')}</span><b style={{ color: '#2e7d55' }}>{entityPanel.paid}</b></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><span style={{ color: '#9aa39b' }}>{t('fin_due')}</span><b style={{ color: '#b0433b' }}>{entityPanel.due}</b></div>
-              </div>
-              <div className="rg2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div style={{ background: '#fff', borderRadius: 15, padding: '15px 16px' }}><div style={{ fontSize: 11.5, fontWeight: 700, color: '#3a6ea5', marginBottom: 9 }}>{t('fin_expenses')} · {t('n_operating')}</div><div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 4 }}>{t('fin_expected')}: <b style={{ color: '#17211c' }}>{entityPanel.opExpected}</b></div><div style={{ fontSize: 11.5, color: '#9aa39b' }}>{t('fin_paid')}: <b style={{ color: '#2e7d55' }}>{entityPanel.opPaid}</b></div></div>
-                <div style={{ background: '#fff', borderRadius: 15, padding: '15px 16px' }}><div style={{ fontSize: 11.5, fontWeight: 700, color: '#7a4d94', marginBottom: 9 }}>{t('fin_expenses')} · {t('n_capital')}</div><div style={{ fontSize: 11.5, color: '#9aa39b', marginBottom: 4 }}>{t('fin_expected')}: <b style={{ color: '#17211c' }}>{entityPanel.capExpected}</b></div><div style={{ fontSize: 11.5, color: '#9aa39b' }}>{t('fin_paid')}: <b style={{ color: '#2e7d55' }}>{entityPanel.capPaid}</b></div></div>
-              </div>
-              <div style={{ background: '#fff', borderRadius: 15, padding: '16px 18px' }}>
-                <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: '#17211c' }}>{t('fin_bigProjects')}</h4>
-                {entityPanel.projects.map((p, i) => (
-                  <div key={i} style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}><span style={{ fontWeight: 700, color: '#17211c' }}>{p.name}</span><span style={{ fontWeight: 700, color: '#7d867f' }}>{p.spentLabel}</span></div>
-                    <div style={{ height: 7, borderRadius: 6, background: '#eef1ec', overflow: 'hidden', marginBottom: 5 }}><div style={{ height: '100%', width: p.spentLabel, background: entityPanel.color, borderRadius: 6 }}></div></div>
-                    <div style={{ fontSize: 11, color: '#9aa39b' }}>{t('fin_alloc')}: <b style={{ color: '#17211c' }}>{p.alloc}</b> · {t('fin_paid')}: <b style={{ color: '#2e7d55' }}>{p.paid}</b></div>
-                  </div>
-                ))}
               </div>
               {entityPanel.overdue > 0 && (
                 <div style={{ background: '#faf0ef', borderRadius: 15, padding: '15px 18px', display: 'flex', alignItems: 'center', gap: 11 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#b0433b', flex: 'none' }}></span><span style={{ fontSize: 12.5, fontWeight: 700, color: '#b0433b' }}>{entityPanel.overdueLabel}</span></div>

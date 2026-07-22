@@ -273,7 +273,16 @@ export interface RegReport {
 }
 
 export interface FinFlow { expected: number; paid: number; due?: number }
-export interface FinBigProject { name: string; entity?: string; alloc: number; paid: number }
+export interface FinBigProject {
+  name: string;
+  entity?: string;
+  alloc?: number;          // legacy
+  paid?: number;           // legacy
+  // ── current model (biggest projects by allocation) ──
+  approvedBudget?: number; // الميزانية المعتمدة للعام الحالي
+  allocations?: number;    // مخصصات الميزانية
+  remaining?: number;      // الميزانية المتبقية
+}
 export interface FinEntity {
   code: string;
   name: string;
@@ -286,6 +295,11 @@ export interface FinEntity {
   capex: FinFlow;
   projects: FinBigProject[];
   overdue: number;
+  // ── current model (budget distribution by entity) ──
+  govSupport?: number;     // الدعم الحكومي للعام
+  totalAvailable?: number; // اجمالي الميزانية المتاحة
+  allocations?: number;    // مخصصات الميزانية
+  remaining?: number;      // الميزانية المتبقية
 }
 export interface RelatedItem { n: string; v: number }
 /** A single line in a related-party breakdown section; v null = blank/unfilled. */

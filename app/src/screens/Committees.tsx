@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Fade, Card, Badge, Modal } from '../components/ui';
 import { useStore } from '../store/store';
+import { triggerDownload } from '../shared/fileGen';
+import { makeXlsx, fileToBlocks, parseBulk, alias, pick } from './reportcenter/templateIO';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -61,6 +63,47 @@ export function Committees() {
   const cu = useCurrentUser();
   const canApprove = can(cu, 'committees', 'approve');
   const { showToast } = useToast();
+  const mutate = useStore((s) => s.mutate);
+
+  // ---- bulk import (one committee per row) ----
+  const CM_FREQ = ['أسبوعية', 'نصف شهرية', 'شهرية', 'ربع سنوية', 'نصف سنوية', 'سنوية', 'حسب الحاجة'];
+  const CM_STATUS = ['نشطة', 'متوقفة', 'منتهية'];
+  const CM_COLS = [
+    { field: 'name', match: alias('اسم اللجنة', 'اللجنة', 'الاسم') },
+    { field: 'chair', match: alias('الرئيس', 'رئيس اللجنة') },
+    { field: 'rapporteur', match: alias('المقرر', 'مقرر اللجنة') },
+    { field: 'purpose', match: alias('الغرض', 'الهدف', 'المهام') },
+    { field: 'freq', match: alias('الدورية', 'التكرار'), norm: pick(CM_FREQ, 'شهرية') },
+    { field: 'reqMeetings', match: alias('عدد الاجتماعات', 'الاجتماعات المطلوبة') },
+    { field: 'cat', match: alias('الفئة', 'النوع', 'التصنيف') },
+    { field: 'status', match: alias('الحالة'), norm: pick(CM_STATUS, 'نشطة') },
+  ];
+  const CM_HEADERS = ['اسم اللجنة', 'الرئيس', 'المقرر', 'الغرض', 'الدورية', 'عدد الاجتماعات المطلوبة', 'الفئة', 'الحالة'];
+  const CM_EXAMPLE = ['لجنة الأمن السيبراني', 'رئيس القطاع', 'سماح أبو شرخ', 'متابعة أمن المعلومات', 'شهرية', '12', 'لجنة دائمة', 'نشطة'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlCommitteeBulk = () => triggerDownload(makeXlsx([CM_HEADERS, CM_EXAMPLE], 'اللجان'), 'Committees_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, CM_COLS, (r) => !!r.name) : [];
+      if (!rows.length) { showToast(rl('لم يُعثر على لجان في الملف — تأكد من مطابقة الأعمدة للقالب', 'No committees found — check the template columns')); return; }
+      mutate((d) => {
+        rows.forEach((r, i) => {
+          const rec = {
+            id: 'cm' + Date.now() + i, name: r.name, chair: r.chair || 'رئيس القطاع', rapporteur: r.rapporteur || cu.name,
+            purpose: r.purpose || '', freq: r.freq || 'شهرية', reqMeetings: parseInt(r.reqMeetings, 10) || 0,
+            actualMeetings: 0, created: '2026', reformed: '', status: r.status || 'نشطة', cat: r.cat || '', hasWorkPlan: false,
+            absent: [], scores: { outputs: 0, minutes: 0, meetings: 0, teamwork: 0 }, statement: '', improvements: [],
+            recommendation: '', members: [], decisions: [], meetings: [], _mowner: cu.id,
+          } as unknown as Committee;
+          d.committees.unshift(rec);
+        });
+      });
+      showToast(rl('تم استيراد ', 'Imported ') + rows.length + rl(' لجنة', ' committees'));
+    } catch {
+      showToast(rl('تعذّر استيراد الملف', 'Import failed'));
+    }
+  };
 
   // Committee Management Officer: full list + add/edit/send.
   // Committee Coordinator: only committees assigned as rapporteur, with
@@ -102,7 +145,14 @@ export function Committees() {
               </p>
             </div>
             {manage && (
-              <div className="page-head-action" style={{ flex: 'none' }}>
+              <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={dlCommitteeBulk} title={rl('تنزيل قالب إكسيل بصف لكل لجنة', 'Template: one committee per row')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>{rl('قالب الاستيراد', 'Import template')}
+                </button>
+                <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+                <button onClick={() => bulkRef.current?.click()} title={rl('رفع ملف إكسيل يحتوي عدة لجان دفعة واحدة', 'Upload many committees at once')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>{rl('استيراد دفعة', 'Bulk import')}
+                </button>
                 <button onClick={() => setCForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                   {rl('إضافة لجنة', 'New committee')}
