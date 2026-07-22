@@ -498,7 +498,17 @@ export function RegisterWorkspace() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [formId, setFormId] = useState<{ id: string | null } | null>(null);
   const [limit, setLimit] = useState(15);
+  const [askClear, setAskClear] = useState(false);
   const bulkRef = useRef<HTMLInputElement>(null);
+
+  const clearAll = () => {
+    const n = data.regReports.length;
+    mutate((d) => { d.regReports = []; });
+    setAskClear(false);
+    setOpenId(null);
+    setFormId(null);
+    showToast(`تم حذف ${n} تقرير من السجل — يمكنك الآن رفع بيانات جديدة`);
+  };
 
   const onBulk = async (file: File) => {
     try {
@@ -547,6 +557,12 @@ export function RegisterWorkspace() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>
               استيراد دفعة من إكسيل
             </button>
+            {data.regReports.length > 0 && (
+              <button onClick={() => setAskClear(true)} title="حذف كل تقارير السجل لبدء رفع بيانات جديدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fbf1ef', color: '#a5342b', border: '1px solid #eccbc6', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" /></svg>
+                حذف كل السجلات
+              </button>
+            )}
             <button onClick={() => setFormId({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               إضافة تقرير جديد للسجل
@@ -602,6 +618,22 @@ export function RegisterWorkspace() {
 
       {openId && !formId && <RegView regId={openId} initYear={year} onEdit={() => setFormId({ id: openId })} onClose={() => setOpenId(null)} />}
       {formId && <RegForm regId={formId.id} initYear={year} onClose={() => setFormId(null)} />}
+
+      <Modal open={askClear} onClose={() => setAskClear(false)} width={440}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <div style={{ flex: 'none', width: 42, height: 42, borderRadius: 12, background: '#fbece9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5342b' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" /></svg>
+          </div>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#17211c' }}>حذف كل تقارير السجل؟</h3>
+        </div>
+        <p style={{ margin: '0 0 20px', fontSize: 13, lineHeight: 1.7, color: '#5c665e' }}>
+          سيتم حذف <strong>{data.regReports.length}</strong> تقرير من سجل التقارير نهائياً لتتمكن من رفع بيانات جديدة. لا يمكن التراجع عن هذا الإجراء.
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={() => setAskClear(false)} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
+          <button onClick={clearAll} style={{ background: '#a5342b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>نعم، احذف الكل</button>
+        </div>
+      </Modal>
     </div>
   );
 }
