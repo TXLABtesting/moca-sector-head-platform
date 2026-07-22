@@ -143,7 +143,10 @@ export async function xlsxRows(buf: ArrayBuffer): Promise<string[][] | null> {
   const rows: string[][] = [];
   for (const rowXml of sheet.match(/<row[^>]*>[\s\S]*?<\/row>/g) || []) {
     const cells: string[] = [];
-    for (const cXml of rowXml.match(/<c [^>]*(?:\/>|>[\s\S]*?<\/c>)/g) || []) {
+    // NB: match self-closing cells (`<c r="J2"/>`) BEFORE open/close ones — a
+    // greedy `[^>]*` would swallow the `/` of `/>` and merge an empty cell with
+    // the next one, shifting every following column left by one.
+    for (const cXml of rowXml.match(/<c\b[^>]*?\/>|<c\b[^>]*?>[\s\S]*?<\/c>/g) || []) {
       const ref = (cXml.match(/r="([^"]+)"/) || [])[1] || '';
       const type = (cXml.match(/t="([^"]+)"/) || [])[1] || '';
       let val = '';
