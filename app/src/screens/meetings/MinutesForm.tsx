@@ -16,43 +16,42 @@ import type { Meeting, MeetingAction } from '../../data/types';
 const TASK_STATUSES = ['مفتوح', 'قيد التنفيذ', 'مكتمل', 'متأخر'];
 
 /* ---------------- minutes template (download) + import (auto-fill) ----------------
-   One sheet, sectioned: meeting info (key/value), attendees, absentees, topics,
-   decisions, resulting tasks (table), and Sector-Head notes — mirroring every
-   field of the form so an uploaded template fills it completely. */
-const MIN_INFO: [string, string][] = [
-  ['موضوع الاجتماع', 'اجتماع لجنة تطوير الخدمات'],
-  ['تاريخ الاجتماع', '22 يوليو 2026'],
-  ['وقت الاجتماع', '10:00 ص - 11:00 ص'],
-  ['الجهة / الإدارة المعنية', 'مكتب رئيس القطاع'],
-  ['مكان الاجتماع أو رابطه', 'قاعة الاجتماعات - الطابق 12'],
-  ['ملخص الاجتماع', 'استعراض مستجدات المشاريع واعتماد الخطة'],
-];
+   Clean top-to-bottom form (label → value) covering every meeting field, plus one
+   clearly-separated «المهام الناتجة» table. Multi-value fields (attendees, topics…)
+   are comma-separated in a single value cell — simple to read and to fill. */
 const MIN_ACTION_HEAD = ['المهمة', 'المسؤول', 'تاريخ الإنجاز', 'الحالة', 'نسبة الإنجاز %', 'مشاركون إضافيون'];
 function minutesTemplateRows(): string[][] {
-  const blanks = (n: number, w: number) => Array.from({ length: n }, () => Array.from({ length: w }, () => ''));
   return [
-    ['محضر اجتماع — قالب الإدخال'], [],
-    ['١) بيانات الاجتماع'], ['الحقل', 'القيمة'], ...MIN_INFO.map(([k, v]) => [k, v]), [],
-    ['٢) الحضور (اسم لكل صف)'], ['الاسم'], ['أحمد المنصوري'], ['فاطمة الحمادي'], ...blanks(4, 1), [],
-    ['٣) الغياب (اسم لكل صف)'], ['الاسم'], ['سعيد النعيمي'], ...blanks(4, 1), [],
-    ['٤) أبرز المواضيع التي نوقشت'], ['الموضوع'], ['مراجعة مؤشرات الأداء للربع الحالي'], ...blanks(5, 1), [],
-    ['٥) القرارات والتوصيات'], ['القرار / التوصية'], ['اعتماد خطة العمل للربع القادم'], ...blanks(5, 1), [],
-    ['٦) المهام الناتجة عن الاجتماع'], MIN_ACTION_HEAD,
+    ['موضوع الاجتماع', 'اجتماع لجنة تطوير الخدمات'],
+    ['تاريخ الاجتماع', '22 يوليو 2026'],
+    ['وقت الاجتماع', '10:00 ص - 11:00 ص'],
+    ['الجهة / الإدارة المعنية', 'مكتب رئيس القطاع'],
+    ['مكان الاجتماع أو رابطه', 'قاعة الاجتماعات - الطابق 12'],
+    ['ملخص الاجتماع', 'استعراض مستجدات المشاريع واعتماد الخطة'],
+    ['الحضور (يفصل بينهم فاصلة)', 'أحمد المنصوري، فاطمة الحمادي'],
+    ['الغياب (يفصل بينهم فاصلة)', 'سعيد النعيمي'],
+    ['أبرز المواضيع (يفصل بينها فاصلة)', 'مراجعة مؤشرات الأداء، اعتماد الجدول الزمني'],
+    ['القرارات والتوصيات (يفصل بينها فاصلة)', 'اعتماد خطة العمل للربع القادم'],
+    ['ملاحظات رئيس القطاع', ''],
+    ['', ''],
+    ['المهام الناتجة عن الاجتماع', ''],
+    MIN_ACTION_HEAD,
     ['إعداد تقرير المتابعة', 'أحمد المنصوري', '30 يوليو 2026', 'قيد التنفيذ', '20', 'فاطمة الحمادي'],
-    ...blanks(6, 6), [],
-    ['٧) ملاحظات رئيس القطاع'], ['الملاحظات', ''],
+    ['', '', '', '', '', ''], ['', '', '', '', '', ''], ['', '', '', '', '', ''],
   ];
 }
 const dlMinutesXlsx = () => triggerDownload(makeXlsx(minutesTemplateRows(), 'محضر الاجتماع'), 'Meeting_Minutes_Template.xlsx');
 const dlMinutesDocx = () => triggerDownload(makeDocx(
   wP('قالب محضر اجتماع', { bold: true, size: 36 }) + wP('') +
-  wP('١) بيانات الاجتماع', { bold: true, size: 26 }) + wTbl(['الحقل', 'القيمة'], MIN_INFO.map(([k]) => [k, 'اكتب هنا'])) + wP('') +
-  wP('٢) الحضور — اسم لكل سطر', { bold: true, size: 26 }) + wP('…') +
-  wP('٣) الغياب — اسم لكل سطر', { bold: true, size: 26 }) + wP('…') +
-  wP('٤) أبرز المواضيع التي نوقشت', { bold: true, size: 26 }) + wP('…') +
-  wP('٥) القرارات والتوصيات', { bold: true, size: 26 }) + wP('…') +
-  wP('٦) المهام الناتجة', { bold: true, size: 26 }) + wTbl(MIN_ACTION_HEAD, [['', '', '', '', '', '']]) + wP('') +
-  wP('٧) ملاحظات رئيس القطاع', { bold: true, size: 26 }) + wP('…')
+  wTbl(['الحقل', 'القيمة'], [
+    ['موضوع الاجتماع', 'اكتب هنا'], ['تاريخ الاجتماع', 'اكتب هنا'], ['وقت الاجتماع', 'اكتب هنا'],
+    ['الجهة / الإدارة المعنية', 'اكتب هنا'], ['مكان الاجتماع أو رابطه', 'اكتب هنا'], ['ملخص الاجتماع', 'اكتب هنا'],
+    ['الحضور (يفصل بينهم فاصلة)', 'اكتب هنا'], ['الغياب (يفصل بينهم فاصلة)', 'اكتب هنا'],
+    ['أبرز المواضيع (يفصل بينها فاصلة)', 'اكتب هنا'], ['القرارات والتوصيات (يفصل بينها فاصلة)', 'اكتب هنا'],
+    ['ملاحظات رئيس القطاع', 'اكتب هنا'],
+  ]) + wP('') +
+  wP('المهام الناتجة عن الاجتماع', { bold: true, size: 26 }) +
+  wTbl(MIN_ACTION_HEAD, [['', '', '', '', '', ''], ['', '', '', '', '', '']])
 ), 'Meeting_Minutes_Template.docx');
 
 interface ParsedMinutes {
@@ -60,56 +59,37 @@ interface ParsedMinutes {
   attendees?: string[]; absentees?: string[]; keyPoints?: string[]; decisions?: string[];
   actions?: MeetingAction[];
 }
-/** Read a filled minutes template (the sectioned sheet above) back into the form. */
+const splitVals = (s?: string): string[] | undefined => {
+  if (!s) return undefined;
+  const arr = s.split(/[\n،,;]+/).map((x) => x.trim()).filter(Boolean);
+  return arr.length ? arr : undefined;
+};
+/** Read a filled minutes template back into the form. */
 function parseMinutesFile(tables: string[][][]): ParsedMinutes {
   const out: ParsedMinutes = {};
   const kv = (re: RegExp) => kvLookup(tables, re);
   out.title = kv(/^موضوع الاجتماع/);
-  out.date = (() => { const v = kv(/^تاريخ الاجتماع/); return v ? excelSerialToDate(v) : undefined; })();
+  const dv = kv(/^تاريخ الاجتماع/); out.date = dv ? excelSerialToDate(dv) : undefined;
   out.time = kv(/^وقت الاجتماع/);
   out.entity = kv(/^الجهة/);
   out.location = kv(/^مكان الاجتماع/);
   out.summary = kv(/^ملخص الاجتماع/);
-  out.chairNotes = kv(/^الملاحظات|^ملاحظات رئيس القطاع/);
+  out.chairNotes = kv(/^ملاحظات رئيس القطاع|^الملاحظات/);
+  out.attendees = splitVals(kv(/^الحضور/));
+  out.absentees = splitVals(kv(/^الغياب/));
+  out.keyPoints = splitVals(kv(/^أبرز المواضيع|^المواضيع/));
+  out.decisions = splitVals(kv(/^القرارات/));
 
+  // Resulting-tasks table: find its header row, read the rows beneath it.
   const table = tables.slice().sort((a, b) => b.length - a.length)[0] || [];
   const cell = (r: string[], i: number) => (r && r[i] ? r[i].trim() : '');
-  const findRow = (re: RegExp) => table.findIndex((r) => re.test(cell(r, 0)));
-  const SECTIONS = [/^١?\)?\s*بيانات/, /الحضور/, /الغياب/, /المواضيع/, /القرارات/, /المهام/, /ملاحظات رئيس/];
-  const nextSectionAfter = (start: number) => {
-    for (let i = start + 1; i < table.length; i++) if (SECTIONS.some((re) => re.test(cell(table[i], 0)))) return i;
-    return table.length;
-  };
-  // A single-column list: rows after the section's column-header until the next section.
-  const list = (sectionRe: RegExp, headerRe: RegExp): string[] => {
-    const s = findRow(sectionRe); if (s < 0) return [];
-    const end = nextSectionAfter(s);
-    const res: string[] = [];
-    for (let i = s + 1; i < end; i++) {
-      const v = cell(table[i], 0);
-      if (!v || headerRe.test(v)) continue;
-      res.push(v);
-    }
-    return res;
-  };
-  const att = list(/^٢?\)?\s*الحضور|الحضور/, /^الاسم$/);
-  const abs = list(/الغياب/, /^الاسم$/);
-  const kps = list(/المواضيع/, /^الموضوع$/);
-  const decs = list(/القرارات/, /^(القرار|القرار \/ التوصية)$/);
-  if (att.length) out.attendees = att;
-  if (abs.length) out.absentees = abs;
-  if (kps.length) out.keyPoints = kps;
-  if (decs.length) out.decisions = decs;
-
-  // Actions table.
-  const as = findRow(/المهام/);
-  if (as >= 0) {
-    const end = nextSectionAfter(as);
+  const hi = table.findIndex((r) => cell(r, 0) === 'المهمة' && /مسؤول/.test(cell(r, 1)));
+  if (hi >= 0) {
     const acts: MeetingAction[] = [];
-    for (let i = as + 1; i < end; i++) {
+    for (let i = hi + 1; i < table.length; i++) {
       const r = table[i];
       const text = cell(r, 0);
-      if (!text || /^المهمة$/.test(text)) continue;
+      if (!text) continue;
       acts.push({
         id: '', text, owner: cell(r, 1), due: excelSerialToDate(cell(r, 2)) || cell(r, 2),
         status: TASK_STATUSES.find((s) => cell(r, 3).includes(s)) || 'قيد التنفيذ',
