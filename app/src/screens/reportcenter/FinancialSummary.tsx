@@ -76,11 +76,6 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
     const col = entColors[e.code] || '#1f4a37';
     return { code: e.code, name: tr(e.name), govSupport: mAED(e.govSupport || 0), totalAvailable: mAED(total), allocations: mAED(alloc), remaining: mAED(remain), util: u, utilLabel: u + '%', color: col, hasOverdue: e.overdue > 0, overdueLabel: rl(e.overdue + ' عقد متأخر', e.overdue + ' overdue') };
   });
-  const finCommit = { paid: mAED(FM.commitPaid), due: mAED(FM.commitDue), total: mAED(FM.commit), paidPct: pct(FM.commitPaid, FM.commit), duePct: pct(FM.commitDue, FM.commit) };
-  const expBlocks = [
-    { label: rl('المصروفات التشغيلية', 'Operating expenses'), expected: FM.opex.expected, paid: FM.opex.paid, accent: '#3a6ea5' },
-    { label: rl('المصروفات الرأسمالية', 'Capital expenses'), expected: FM.capex.expected, paid: FM.capex.paid, accent: '#7a4d94' },
-  ].map((b) => { const due = b.expected - b.paid; const sp = pct(b.paid, b.expected); return { label: b.label, accent: b.accent, expected: mAED(b.expected), paid: mAED(b.paid), due: mAED(due), spentLabel: sp + '%' }; });
   const finBigProjects = FM.bigProjects.map((p) => {
     const approved = p.approvedBudget || 0;
     const alloc = p.allocations || 0;
@@ -192,14 +187,13 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 14, marginBottom: 24 }}>
         {entityCards.map((e) => (
           <div key={e.code} onClick={() => setSelEntity(e.code)} style={{ background: '#fff', borderRadius: 16, padding: '17px 18px', boxShadow: cardSh, cursor: 'pointer', borderTop: '3px solid ' + e.color }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 800, color: e.color }}>{e.code}</span>
-                {e.hasOverdue && <span style={{ fontSize: 10, fontWeight: 700, color: '#b0433b', background: '#faf0ef', borderRadius: 20, padding: '2px 8px' }}>{e.overdueLabel}</span>}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12, gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: e.color, lineHeight: 1.5 }}>{e.name}</span>
+                {e.hasOverdue && <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 700, color: '#b0433b', background: '#faf0ef', borderRadius: 20, padding: '2px 8px' }}>{e.overdueLabel}</span>}
               </div>
-              <span style={{ fontSize: 18, fontWeight: 800, color: e.color }}>{e.utilLabel}</span>
+              <span style={{ fontSize: 18, fontWeight: 800, color: e.color, flex: 'none' }}>{e.utilLabel}</span>
             </div>
-            <div style={{ fontSize: 11.5, color: '#7d867f', lineHeight: 1.5, marginBottom: 12, minHeight: 32 }}>{e.name}</div>
             <div style={{ height: 7, borderRadius: 6, background: '#eef1ec', overflow: 'hidden', marginBottom: 12 }}><div style={{ height: '100%', width: e.utilLabel, background: e.color, borderRadius: 6 }}></div></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 8px', fontSize: 11.5 }}>
               <div><div style={{ color: '#9aa39b', marginBottom: 2 }}>{rl('الدعم الحكومي للعام', 'Gov. support (year)')}</div><div style={{ fontWeight: 700, color: '#3a6ea5' }}>{e.govSupport}</div></div>
@@ -209,36 +203,6 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
             </div>
           </div>
         ))}
-      </div>
-
-      {/* commitments + expenses */}
-      <div className="rg2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: '#fff', borderRadius: 18, padding: '20px 22px', boxShadow: cardSh }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: '#17211c' }}>{t('fin_commitments')}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}><span style={{ color: '#7d867f', fontWeight: 600 }}>{t('fin_paid')}</span><span style={{ fontWeight: 800, color: '#2e7d55' }}>{finCommit.paid}</span></div>
-              <div style={{ height: 8, borderRadius: 6, background: '#eef1ec', overflow: 'hidden' }}><div style={{ height: '100%', width: finCommit.paidPct + '%', background: '#2e7d55', borderRadius: 6 }}></div></div>
-            </div>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}><span style={{ color: '#7d867f', fontWeight: 600 }}>{t('fin_due')}</span><span style={{ fontWeight: 800, color: '#b0433b' }}>{finCommit.due}</span></div>
-              <div style={{ height: 8, borderRadius: 6, background: '#eef1ec', overflow: 'hidden' }}><div style={{ height: '100%', width: finCommit.duePct + '%', background: '#b0433b', borderRadius: 6 }}></div></div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #eef1ec', paddingTop: 12, fontSize: 13 }}><span style={{ color: '#17211c', fontWeight: 700 }}>{t('fin_commitments')}</span><span style={{ fontWeight: 800, color: '#7a4d94' }}>{finCommit.total}</span></div>
-          </div>
-        </div>
-        <div style={{ background: '#fff', borderRadius: 18, padding: '20px 22px', boxShadow: cardSh }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: '#17211c' }}>{t('fin_expenses')}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {expBlocks.map((x, i) => (
-              <div key={i}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}><span style={{ fontSize: 13, fontWeight: 700, color: x.accent }}>{x.label}</span><span style={{ fontSize: 12, fontWeight: 700, color: '#7d867f' }}>{x.spentLabel}</span></div>
-                <div style={{ height: 8, borderRadius: 6, background: '#eef1ec', overflow: 'hidden', marginBottom: 7 }}><div style={{ height: '100%', width: x.spentLabel, background: x.accent, borderRadius: 6 }}></div></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: '#9aa39b' }}><span>{t('fin_expected')}: <b style={{ color: '#17211c' }}>{x.expected}</b></span><span>{t('fin_paid')}: <b style={{ color: '#2e7d55' }}>{x.paid}</b></span><span>{t('fin_due')}: <b style={{ color: '#b0433b' }}>{x.due}</b></span></div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* biggest projects */}
@@ -366,11 +330,10 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
         {entityPanel && (
           <div>
             <div style={{ background: 'linear-gradient(120deg,#132b20,#1f4a37)', padding: '22px 24px', color: '#eaf1ec', position: 'sticky', top: 0, zIndex: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 20, fontWeight: 800, color: entityPanel.color, background: '#fff', borderRadius: 10, padding: '4px 12px' }}>{entityPanel.code}</span>
-                <button onClick={() => setSelEntity(null)} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none', borderRadius: 9, width: 34, height: 34, cursor: 'pointer', fontSize: 18 }}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <span style={{ fontSize: 17, fontWeight: 800, color: '#fff', lineHeight: 1.5 }}>{entityPanel.name}</span>
+                <button onClick={() => setSelEntity(null)} style={{ flex: 'none', background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none', borderRadius: 9, width: 34, height: 34, cursor: 'pointer', fontSize: 18 }}>✕</button>
               </div>
-              <div style={{ fontSize: 13.5, color: '#bcd2c3', lineHeight: 1.5 }}>{entityPanel.name}</div>
             </div>
             <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ background: '#fff', borderRadius: 13, padding: '13px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
