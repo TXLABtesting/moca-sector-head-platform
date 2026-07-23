@@ -80,7 +80,7 @@ export const SEED_USERS: SeedUser[] = [
   { id: 'hagar', name: 'هاجر هلول', job: 'مسؤولة الإنجاز والمتابعة والتقارير المالية', type: 'office', scope: 'office', img: 'assets/team/hagar.jpg', g: { dashboard: 'v', finReports: 'vaemrn', reportLog: 'vae', projUpdates: 'vaer', myTasks: 've', projects: 'v', assistant: 'v' } },
   { id: 'saif', name: 'سيف بيضاني', job: 'مسؤول المشاريع والمراحل والمخاطر', type: 'office', scope: 'office', g: { dashboard: 'v', projects: 'vaemsrn', projPhases: 'vae', projUpdates: 'vaer', projRisks: 'vae', myTasks: 've', assistant: 'v' } },
   { id: 'hasan', name: 'حسن همام', job: 'مسؤول الجودة والامتثال والتدقيق', type: 'office', scope: 'all', img: 'assets/team/hasan.jpg', g: { dashboard: 'v', auditReports: 'vaemrn', recommendations: 'vaesr', committees: 've', reportCenter: 've', myTasks: 've', assistant: 'v' } },
-  { id: 'rashed', name: 'راشد النعيمي', job: 'مدير إدارة الشؤون الإدارية', type: 'sector', scope: 'admin_affairs', g: { dashboard: 'v', projects: 'vrn', reportCenter: 'v', correspondence: 'v', assistant: 'v' } },
+  { id: 'rashed', name: 'راشد النعيمي', job: 'مدير إدارة الشؤون الإدارية', type: 'sector', scope: 'admin_affairs', g: { dashboard: 'v', projects: 'vrn', correspondence: 'v', assistant: 'v' } },
   { id: 'sysadmin', name: 'مدير النظام', job: 'إدارة النظام والصلاحيات', type: 'sysadmin', scope: 'all', g: { dashboard: 'v', permissions: 'vaeds', assistant: 'v' } },
 ];
 

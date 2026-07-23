@@ -103,7 +103,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 20,
+      version: 21,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -125,11 +125,11 @@ export const useStore = create<AppState>()(
         if (s && s.data && !s.data.updateRequests) s.data.updateRequests = [];
         // v17: documents no longer submit for approval — drop the ad-hoc queue.
         if (s && typeof from === 'number' && from < 17) s.work = [];
-        // v19/v20: refresh grants from the seed so Report Center scoping
-        // corrections reach existing installs — هاجر (v19), then موزة/فاطمة/سيف
-        // no longer carry the stray reportCenter grant that surfaced the
-        // retention-payments report (v20).
-        if (s && typeof from === 'number' && from < 20) s.users = clone(SEED_USERS);
+        // v19/v20/v21: refresh grants from the seed so Report Center scoping
+        // corrections reach existing installs — هاجر (v19); موزة/فاطمة/سيف
+        // lose the stray reportCenter grant that surfaced the retention report
+        // (v20); راشد likewise (v21). موزة also loses projects/committees.
+        if (s && typeof from === 'number' && from < 21) s.users = clone(SEED_USERS);
         return s as AppState;
       },
     }
