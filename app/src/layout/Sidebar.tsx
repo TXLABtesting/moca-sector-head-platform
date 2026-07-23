@@ -29,8 +29,11 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
 
   const activeKey = ACTIVE_MAP[page] || page;
   const see = (key: string) => {
-    // Report Center hosts several sub-reports; show it if any of them is visible.
-    if (key === 'reportcenter') return ['reportCenter', 'reportLog', 'finReports', 'auditReports', 'recommendations'].some((s) => canSee(cu, s));
+    // Report Center hosts several sub-reports; show it only if one with a real
+    // page/card is visible. `recommendations` is excluded on purpose — it has no
+    // entry in the hub yet, so it must not surface an empty Report Center
+    // (e.g. سماح has recommendations but no report-center report).
+    if (key === 'reportcenter') return ['reportCenter', 'reportLog', 'finReports', 'auditReports'].some((s) => canSee(cu, s));
     const sec = NAV_SECTION[key]; return !sec || sec === 'dashboard' ? true : canSee(cu, sec);
   };
 
