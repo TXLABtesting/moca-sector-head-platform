@@ -429,7 +429,6 @@ export function Correspondence() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
                   <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 5, padding: '2px 7px', background: dbg, color: dfg }}>{tr(c.dir)}</span>
-                  {c.needsAction && <span style={{ fontSize: 9.5, fontWeight: 600, color: '#b0433b' }}>● {t('needsActionTag')}</span>}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#2a332d', lineHeight: 1.4 }}>{tr(c.name)}</div>
               </div>
