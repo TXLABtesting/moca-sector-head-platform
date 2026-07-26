@@ -8,7 +8,7 @@ import { can } from '../../domain/permissions';
 import { Fade, Avatar, Modal } from '../../components/ui';
 import { WorkflowBanner } from '../../components/WorkflowBanner';
 import { parseAr } from '../../shared/helpers';
-import type { Project } from '../../data/types';
+import type { Project, ProjectTask } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
 import { APP_TODAY_AR } from '../../shared/today';
 import { ProjectEditModal } from './ProjectEditModal';
@@ -635,8 +635,7 @@ function TimelineTab({ p, en, rl, tr, t, canEdit, withP, showToast }: {
     setNewStage('');
     showToast(rl('تمت إضافة المرحلة إلى الجدول الزمني', 'Stage added to the timeline'));
   };
-  const setStageStatus = (i: number, status: string) => withP((proj) => { if (proj.tasks && proj.tasks[i]) proj.tasks[i].status = status; });
-  const setStageOwner = (i: number, owner: string) => withP((proj) => { if (proj.tasks && proj.tasks[i]) proj.tasks[i].owner = owner; });
+  const setStage = (i: number, patch: Partial<ProjectTask>) => withP((proj) => { if (proj.tasks && proj.tasks[i]) Object.assign(proj.tasks[i], patch); });
   const delStage = (i: number) => withP((proj) => { if (proj.tasks) proj.tasks.splice(i, 1); });
   const _en = parseAr(p.dueDate || '');
   const _st = p.startDate ? parseAr(p.startDate) : projRange(p).start;
@@ -662,10 +661,15 @@ function TimelineTab({ p, en, rl, tr, t, canEdit, withP, showToast }: {
     wait: ['#eceeeb', '#8a938c', rl('لم تبدأ', 'Not started'), '#eceeeb', '#6d7973', '#f8f9f7', '#e8ebe6'],
   };
   const milestones = (p.tasks || []).map((tk, i) => {
-    const s = new Date(ms.getTime() + span * i / NT);
-    const e = new Date(ms.getTime() + span * (i + 1) / NT);
+    // Per-stage dates when provided; otherwise fall back to an even split of the span.
+    const ps = parseAr(tk.start || '');
+    const pe = parseAr(tk.end || '');
+    const s = ps || new Date(ms.getTime() + span * i / NT);
+    const e = pe || (ps ? new Date(ps.getTime() + span / NT) : new Date(ms.getTime() + span * (i + 1) / NT));
     const kind = tk.status === 'مكتمل' ? 'ok' : tk.status === 'متأخر' ? 'late' : tk.status === 'قيد التنفيذ' ? 'prog' : 'wait';
-    const pct = tk.status === 'مكتمل' ? 100 : tk.status === 'قيد التنفيذ' ? 55 : tk.status === 'متأخر' ? 35 : 0;
+    // Manual progress overrides the status-derived percentage when set.
+    const pct = typeof tk.progress === 'number' && !isNaN(tk.progress) ? Math.max(0, Math.min(100, Math.round(tk.progress)))
+      : tk.status === 'مكتمل' ? 100 : tk.status === 'قيد التنفيذ' ? 55 : tk.status === 'متأخر' ? 35 : 0;
     const c = pal[kind];
     return {
       name: tr(tk.name), start: monthName(s.getMonth(), en), end: monthName(e.getMonth(), en) + ' ' + e.getFullYear(),
@@ -734,7 +738,7 @@ function TimelineTab({ p, en, rl, tr, t, canEdit, withP, showToast }: {
             <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('مراحل المشروع (تُغذّي الجدول الزمني)', 'Project stages (feed the timeline)')}</h3>
           </div>
           <p style={{ margin: '0 0 14px', fontSize: 11.5, color: '#8a938c', lineHeight: 1.7 }}>
-            {rl('أضِف مرحلة لكل شريط في المخطط. تُوزَّع المراحل تلقائيًا على المدة بين تاريخ البدء وتاريخ الانتهاء، ويتحدَّد لون الشريط ونسبة تعبئته حسب الحالة.', 'Add a stage for each bar. Stages spread automatically across the start→due span; each bar’s color and fill come from its status.')}
+            {rl('أضِف مرحلة لكل شريط في المخطط. حدِّد لكل مرحلة تاريخ بدء وتاريخ انتهاء ونسبة إنجاز — يُرسَم الشريط حسب هذه التواريخ. إن تركت التواريخ فارغة تُوزَّع المرحلة تلقائيًا على مدة المشروع.', 'Add a stage for each bar. Give each stage a start date, end date and progress — the bar is drawn from those dates. Leave dates empty to auto-distribute across the project span.')}
           </p>
 
           {(p.tasks || []).length === 0 && (
@@ -743,16 +747,27 @@ function TimelineTab({ p, en, rl, tr, t, canEdit, withP, showToast }: {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            {(p.tasks || []).map((tk, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px 1fr 150px 150px 34px', alignItems: 'center', gap: 8, background: '#fbfcfb', border: '1px solid #eef0ec', borderRadius: 11, padding: '8px 10px' }}>
-                <span style={{ width: 22, height: 22, borderRadius: 7, background: '#eef2ee', color: '#1e4634', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
-                <input value={tk.name} onChange={(e) => withP((proj) => { if (proj.tasks && proj.tasks[i]) proj.tasks[i].name = e.target.value; })} placeholder={rl('اسم المرحلة', 'Stage name')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
-                <input value={tk.owner || ''} onChange={(e) => setStageOwner(i, e.target.value)} placeholder={rl('المسؤول (اختياري)', 'Owner (optional)')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
-                <Dropdown value={tk.status} options={STAGE_STATUS.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setStageStatus(i, v)} opt={{ block: true, size: 'sm' }} />
-                <button onClick={() => delStage(i)} title={rl('حذف', 'Delete')} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid #f0dcd9', background: '#fdf6f5', color: '#b0433b', fontSize: 15, fontWeight: 700, cursor: 'pointer', lineHeight: 1 }}>×</button>
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+            {(p.tasks || []).map((tk, i) => {
+              const fieldCss: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+              const miniLbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: '#8a938c', margin: '0 0 4px' };
+              return (
+                <div key={i} style={{ background: '#fbfcfb', border: '1px solid #eef0ec', borderRadius: 12, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ flex: 'none', width: 22, height: 22, borderRadius: 7, background: '#eef2ee', color: '#1e4634', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                    <input value={tk.name} onChange={(e) => setStage(i, { name: e.target.value })} placeholder={rl('اسم المرحلة', 'Stage name')} style={{ ...fieldCss, flex: 1, fontWeight: 700 }} />
+                    <button onClick={() => delStage(i)} title={rl('حذف', 'Delete')} style={{ flex: 'none', width: 30, height: 30, borderRadius: 8, border: '1px solid #f0dcd9', background: '#fdf6f5', color: '#b0433b', fontSize: 15, fontWeight: 700, cursor: 'pointer', lineHeight: 1 }}>×</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+                    <div><div style={miniLbl}>{rl('تاريخ البدء', 'Start date')}</div><DateField value={tk.start || ''} onChange={(v) => setStage(i, { start: v })} /></div>
+                    <div><div style={miniLbl}>{rl('تاريخ الانتهاء', 'End date')}</div><DateField value={tk.end || ''} onChange={(v) => setStage(i, { end: v })} /></div>
+                    <div><div style={miniLbl}>{rl('الحالة', 'Status')}</div><Dropdown value={tk.status} options={STAGE_STATUS.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setStage(i, { status: v })} opt={{ block: true, size: 'sm' }} /></div>
+                    <div><div style={miniLbl}>{rl('نسبة الإنجاز %', 'Progress %')}</div><input type="number" min={0} max={100} value={typeof tk.progress === 'number' ? tk.progress : ''} onChange={(e) => setStage(i, { progress: e.target.value === '' ? undefined : Math.max(0, Math.min(100, Number(e.target.value))) })} placeholder={rl('تلقائي', 'Auto')} style={fieldCss} /></div>
+                    <div style={{ gridColumn: '1 / -1' }}><div style={miniLbl}>{rl('المسؤول (اختياري)', 'Owner (optional)')}</div><input value={tk.owner || ''} onChange={(e) => setStage(i, { owner: e.target.value })} placeholder={rl('اكتب اسم المسؤول…', 'Type owner name…')} style={fieldCss} /></div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>

@@ -51,6 +51,9 @@ export interface ProjectTask {
   name: string;
   owner: string;
   status: string;
+  start?: string;    // تاريخ بدء المرحلة (اختياري — يرجع للتوزيع التلقائي إن تُرك فارغًا)
+  end?: string;      // تاريخ انتهاء المرحلة
+  progress?: number; // نسبة الإنجاز اليدوية 0–100 (تتجاوز المشتقّة من الحالة)
 }
 
 export interface ProjectDirective {
