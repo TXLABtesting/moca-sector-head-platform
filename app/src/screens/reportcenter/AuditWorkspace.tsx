@@ -734,8 +734,18 @@ export function AuditWorkspace() {
   const [repForm, setRepForm] = useState<{ id: string | null } | null>(null);
   const [obsForm, setObsForm] = useState<{ repId: string; obsId: string | null } | null>(null);
   const [openObs, setOpenObs] = useState<string | null>(null);
+  const [askDel, setAskDel] = useState<string | null>(null);
 
   const obsCount = (repId: string) => data.audit.filter((a) => (a.rep || 'admin2025') === repId);
+  const deleteRep = (id: string) => {
+    mutate((d) => {
+      d.auditReps = (d.auditReps || []).filter((r) => r.id !== id);
+      d.audit = (d.audit || []).filter((a) => (a.rep || 'admin2025') !== id);
+    });
+    setAskDel(null);
+    setOpenRep(null);
+    showToast('تم حذف التقرير وملاحظاته');
+  };
 
   // ---- bulk import (one OBSERVATION per row — matches the audit-office sheet) ----
   const AR_COLS = [
@@ -827,7 +837,7 @@ export function AuditWorkspace() {
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <button onClick={() => setOpenRep(r.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>فتح</button>
                 {manage && <button onClick={() => setRepForm({ id: r.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>}
-                {manage && <button onClick={() => setObsForm({ repId: r.id, obsId: null })} style={{ background: '#fbf3df', color: '#8a6a1f', border: '1px solid #ecdcae', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إضافة ملاحظة جديدة</button>}
+                {manage && <button onClick={() => setAskDel(r.id)} title="حذف التقرير وكل ملاحظاته" style={{ background: '#fbf1ef', color: '#a5342b', border: '1px solid #eccbc6', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حذف</button>}
               </div>
             </div>
           );
@@ -850,6 +860,25 @@ export function AuditWorkspace() {
       )}
       {repForm && <RepForm repId={repForm.id} onClose={() => setRepForm(null)} />}
       {obsForm && <ObsForm repId={obsForm.repId} obsId={obsForm.obsId} onClose={() => setObsForm(null)} />}
+      <Modal open={askDel !== null} onClose={() => setAskDel(null)} width={440}>
+        {(() => { const rep = reports.find((r) => r.id === askDel); const n = askDel ? obsCount(askDel).length : 0; return (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 'none', width: 42, height: 42, borderRadius: 12, background: '#fbece9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5342b' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" /></svg>
+              </div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#17211c' }}>حذف التقرير؟</h3>
+            </div>
+            <p style={{ margin: '0 0 20px', fontSize: 13, lineHeight: 1.7, color: '#5c665e' }}>
+              سيتم حذف <strong>{rep ? tr(rep.title) : 'هذا التقرير'}</strong> مع <strong>{n}</strong> ملاحظة مرتبطة به نهائياً. لا يمكن التراجع عن هذا الإجراء.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setAskDel(null)} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
+              <button onClick={() => askDel && deleteRep(askDel)} style={{ background: '#a5342b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>نعم، احذف التقرير</button>
+            </div>
+          </>
+        ); })()}
+      </Modal>
       <ChairNotes noteKey="audit" />
     </div>
   );

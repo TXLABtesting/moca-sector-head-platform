@@ -388,14 +388,7 @@ export function OfficeTasks() {
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: a.prBg, color: a.prFg }}>{a.prLabel}</span>
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: '#eef3f0', color: '#2b5c44', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>{a.dept}</span>
                     </div>
-                    <div onClick={() => setSelOtask(a.id)} style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c', lineHeight: 1.45, marginBottom: 10, cursor: 'pointer' }}>{a.title}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 10.5, color: '#9aa39b' }}>{t('progress')}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#17211c' }}>{a.prog}%</span>
-                    </div>
-                    <div style={{ height: 5, borderRadius: 4, background: '#eef0ec', overflow: 'hidden', marginBottom: 11 }}>
-                      <div style={{ height: '100%', borderRadius: 4, background: a.accent, width: a.prog + '%' }} />
-                    </div>
+                    <div onClick={() => setSelOtask(a.id)} style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c', lineHeight: 1.45, marginBottom: 11, cursor: 'pointer' }}>{a.title}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, fontSize: 10.5, color: '#8a938c', paddingBottom: 10 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                         <Avatar name={a.ownerRaw} size={20} />

@@ -843,11 +843,14 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
   const memberPool = Array.from(new Set([...(committee?.members || []), ...data.members.map((m) => m.name)]));
 
   const [f, setF] = useState<Record<string, string>>(() => existing ? {
-    date: existing.date, present: String(existing.present), total: String(existing.total), points: existing.points || '',
+    date: existing.date, points: existing.points || '',
   } : {
-    date: '', present: '', total: String((committee?.members || []).length || ''), points: '',
+    date: '', points: '',
   });
   const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
+  // Attendance is derived: total = committee members, present = total − absentees.
+  const totalMembers = (committee?.members || []).length;
+  const presentCount = Math.max(0, totalMembers - absent.length);
   const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
   const [tasks, setTasks] = useState<CommitteeTask[]>(() => (existing?.tasks ? existing.tasks.map((t) => ({ ...t })) : []));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -867,7 +870,7 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
         m = { no: String(c.meetings.length + 1), date: '', present: 0, total: 0, minutes: false, points: '', tasks: [] };
         c.meetings.unshift(m);
       }
-      m.date = f.date; m.present = parseInt(f.present, 10) || 0; m.total = parseInt(f.total, 10) || (c.members || []).length;
+      m.date = f.date; m.total = (c.members || []).length; m.present = Math.max(0, m.total - absent.length);
       m.points = (f.points || '').trim(); m.minutes = !!(m.points || atts.length);
       m.absent = absent; m.attachments = atts; m.tasks = cleanTasks;
       c.actualMeetings = c.meetings.length;
@@ -889,10 +892,16 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
       <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{committee ? tr(committee.name) : ''}</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
         <div><Label>{rl('تاريخ الاجتماع', 'Meeting date')}</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
-        <div><Label>{rl('عدد الحضور', 'Present')}</Label><input value={f.present} onChange={setI('present')} style={inputStyle} /></div>
-        <div><Label>{rl('إجمالي الأعضاء', 'Total members')}</Label><input value={f.total} onChange={setI('total')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '2 / -1' }}>
+          <Label>{rl('الحضور (يُحسب تلقائياً)', 'Attendance (auto)')}</Label>
+          <div style={{ ...inputStyle, background: '#eef3f0', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <b style={{ color: '#1e4634' }}>{presentCount} {rl('من', 'of')} {totalMembers} {rl('حاضر', 'present')}</b>
+            <span style={{ color: '#9aa39b', fontSize: 11.5 }}>· {absent.length} {rl('غياب', 'absent')}</span>
+          </div>
+        </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('الغياب (اختر من الأعضاء)', 'Absences (pick from members)')}</Label>
+          <div style={{ fontSize: 11, color: '#9aa39b', margin: '-3px 0 7px' }}>{rl('إن لم تختر أحداً، يُعدّ جميع الأعضاء حاضرين.', 'If none are picked, all members are counted present.')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
             {(committee?.members || []).map((n) => {
               const on = absent.includes(n);
@@ -909,13 +918,21 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('المهام الناتجة عن الاجتماع', 'Tasks resulting from the meeting')}</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tasks.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 28px', gap: 8, padding: '0 3px', fontSize: 10.5, fontWeight: 700, color: '#9aa39b' }}>
+                <span>{rl('المهمة', 'Task')}</span>
+                <span>{rl('المسؤول', 'Owner')}</span>
+                <span>{rl('الحالة', 'Status')}</span>
+                <span>{rl('تاريخ الاستحقاق', 'Due date')}</span>
+                <span />
+              </div>
+            )}
             {tasks.map((t, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 64px 28px', gap: 8, alignItems: 'center' }}>
-                <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('المهمة', 'Task')} style={inputStyle} />
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 28px', gap: 8, alignItems: 'center' }}>
+                <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('عنوان المهمة', 'Task title')} style={inputStyle} />
                 <Dropdown value={t.owner} options={memberPool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setTask(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: rl('المسؤول', 'Owner') }} />
                 <Dropdown value={t.status} options={TSTAT.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setTask(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
                 <DateField value={t.due} onChange={(v) => setTask(i, 'due', v)} />
-                <input value={String(t.prog ?? '')} onChange={(e) => setTask(i, 'prog', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} placeholder="%" style={{ ...inputStyle, textAlign: 'center', padding: '10px 6px' }} />
                 <button type="button" onClick={() => setTasks((p) => p.filter((_, x) => x !== i))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 14 }}>✕</button>
               </div>
             ))}

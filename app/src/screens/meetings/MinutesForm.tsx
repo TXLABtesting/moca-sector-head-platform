@@ -101,6 +101,9 @@ function parseMinutesFile(tables: string[][][]): ParsedMinutes {
   }
   return out;
 }
+// Organizational units for the "الجهة / الإدارة المعنية" dropdown.
+const MEETING_UNITS = ['مكتب رئيس القطاع', 'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية', 'إدارة العقود والمشتريات', 'إدارة الخدمات والبنية التحتية', 'مركز التجربة المتكاملة'];
+
 const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
 const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
 const secHead = (t: string) => (
@@ -288,7 +291,7 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
         <div style={{ gridColumn: '1 / -1' }}><Label>موضوع الاجتماع</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>تاريخ الاجتماع</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
         <div><Label>وقت الاجتماع</Label><input value={f.time} onChange={setI('time')} placeholder="مثال: 10:00 ص - 11:00 ص" style={inputStyle} /></div>
-        <div><Label>الجهة / الإدارة المعنية</Label><input value={f.entity} onChange={setI('entity')} style={inputStyle} /></div>
+        <div><Label>الجهة / الإدارة المعنية</Label><Dropdown value={f.entity} options={[...new Set([...MEETING_UNITS, (f.entity || '').trim()])].filter(Boolean).map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, entity: v }))} opt={{ block: true, placeholder: 'اختر الجهة' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>مكان الاجتماع أو رابطه</Label><input value={f.location} onChange={setI('location')} placeholder="قاعة الاجتماعات - الطابق 12، أو رابط Teams" style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>ملخص الاجتماع</Label><textarea value={f.summary} onChange={setI('summary')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>
