@@ -290,7 +290,13 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>موضوع الاجتماع</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>تاريخ الاجتماع</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
-        <div><Label>وقت الاجتماع</Label><input value={f.time} onChange={setI('time')} placeholder="مثال: 10:00 ص - 11:00 ص" style={inputStyle} /></div>
+        <div><Label>وقت الاجتماع</Label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="time" value={(f.time || '').split(/\s*[-–]\s*/)[0] || ''} onChange={(e) => setF((p) => { const to = (p.time || '').split(/\s*[-–]\s*/)[1] || ''; return { ...p, time: [e.target.value, to].filter(Boolean).join(' - ') }; })} style={{ ...inputStyle, padding: '9px 8px' }} />
+            <span style={{ fontSize: 11, color: '#9aa39b', flex: 'none' }}>إلى</span>
+            <input type="time" value={(f.time || '').split(/\s*[-–]\s*/)[1] || ''} onChange={(e) => setF((p) => { const from = (p.time || '').split(/\s*[-–]\s*/)[0] || ''; return { ...p, time: [from, e.target.value].filter(Boolean).join(' - ') }; })} style={{ ...inputStyle, padding: '9px 8px' }} />
+          </div>
+        </div>
         <div><Label>الجهة / الإدارة المعنية</Label><Dropdown value={f.entity} options={[...new Set([...MEETING_UNITS, (f.entity || '').trim()])].filter(Boolean).map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, entity: v }))} opt={{ block: true, placeholder: 'اختر الجهة' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>مكان الاجتماع أو رابطه</Label><input value={f.location} onChange={setI('location')} placeholder="قاعة الاجتماعات - الطابق 12، أو رابط Teams" style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>ملخص الاجتماع</Label><textarea value={f.summary} onChange={setI('summary')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
