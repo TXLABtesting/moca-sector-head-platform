@@ -843,10 +843,11 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
   const existing = meetingNo && committee ? (committee.meetings || []).find((m) => m.no === meetingNo) : null;
   const memberPool = Array.from(new Set([...(committee?.members || []), ...data.members.map((m) => m.name)]));
 
-  const [f, setF] = useState<Record<string, string>>(() => existing ? {
-    date: existing.date, time: existing.time || '', location: existing.location || '', agenda: existing.agenda || existing.points || '', governance: existing.governance || '',
-  } : {
-    date: '', time: '', location: '', agenda: '', governance: '',
+  const [f, setF] = useState<Record<string, string>>(() => {
+    const [tf, tt] = (existing?.time || '').split(/\s*[-–]\s*/);
+    return existing ? {
+      date: existing.date, timeFrom: tf || '', timeTo: tt || '', location: existing.location || '', agenda: existing.agenda || existing.points || '', governance: existing.governance || '',
+    } : { date: '', timeFrom: '', timeTo: '', location: '', agenda: '', governance: '' };
   });
   const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
   // Attendance is derived: total = committee members, present = total − absentees.
@@ -872,7 +873,7 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
         c.meetings.unshift(m);
       }
       m.date = f.date; m.total = (c.members || []).length; m.present = Math.max(0, m.total - absent.length);
-      m.time = (f.time || '').trim(); m.location = (f.location || '').trim();
+      m.time = [f.timeFrom, f.timeTo].map((s) => (s || '').trim()).filter(Boolean).join(' - '); m.location = (f.location || '').trim();
       m.agenda = (f.agenda || '').trim(); m.governance = (f.governance || '').trim();
       m.points = (f.agenda || '').trim(); m.minutes = !!(m.agenda || m.governance || cleanTasks.length || atts.length);
       m.absent = absent; m.attachments = atts; m.tasks = cleanTasks;
@@ -896,7 +897,13 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
       <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1e4634', margin: '4px 0 10px' }}>{rl('بيانات الاجتماع', 'Meeting details')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
         <div><Label>{rl('تاريخ الاجتماع', 'Date')}</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
-        <div><Label>{rl('توقيت الاجتماع', 'Time')}</Label><input value={f.time} onChange={setI('time')} placeholder={rl('مثال: 10:00 ص - 11:00 ص', 'e.g. 10:00 - 11:00')} style={inputStyle} /></div>
+        <div><Label>{rl('توقيت الاجتماع', 'Time')}</Label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="time" value={f.timeFrom} onChange={setI('timeFrom')} style={{ ...inputStyle, padding: '9px 8px' }} />
+            <span style={{ fontSize: 11, color: '#9aa39b', flex: 'none' }}>{rl('إلى', 'to')}</span>
+            <input type="time" value={f.timeTo} onChange={setI('timeTo')} style={{ ...inputStyle, padding: '9px 8px' }} />
+          </div>
+        </div>
         <div><Label>{rl('مكان انعقاد الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات / رابط', 'Room / link')} style={inputStyle} /></div>
 
         <div style={{ gridColumn: '1 / -1' }}>
