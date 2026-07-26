@@ -6,6 +6,7 @@ import { WORK_ITEMS, type WorkItem } from '../domain/workflow';
 import { SEED_USERS, type SeedUser } from '../domain/permissions';
 import { APP_TODAY, APP_TODAY_AR } from '../shared/today';
 import { verifyCredentials } from '../demo/auth';
+import { backendEnabled } from '../config/env';
 
 export interface ChangeLogEntry {
   id: string;
@@ -103,7 +104,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 21,
+      version: 22,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -125,11 +126,12 @@ export const useStore = create<AppState>()(
         if (s && s.data && !s.data.updateRequests) s.data.updateRequests = [];
         // v17: documents no longer submit for approval — drop the ad-hoc queue.
         if (s && typeof from === 'number' && from < 17) s.work = [];
-        // v19/v20/v21: refresh grants from the seed so Report Center scoping
-        // corrections reach existing installs — هاجر (v19); موزة/فاطمة/سيف
-        // lose the stray reportCenter grant that surfaced the retention report
-        // (v20); راشد likewise (v21). موزة also loses projects/committees.
-        if (s && typeof from === 'number' && from < 21) s.users = clone(SEED_USERS);
+        // Refresh grants from the seed so permission corrections reach existing
+        // installs — ONLY in client-only mode. When the shared backend is on the
+        // Supabase row is authoritative (DemoSync.applyRemote overwrites users on
+        // load); re-seeding here would let a stale local cache clobber an admin's
+        // edit when the whole state row is next saved. So skip it with a backend.
+        if (s && typeof from === 'number' && from < 22 && !backendEnabled) s.users = clone(SEED_USERS);
         return s as AppState;
       },
     }
