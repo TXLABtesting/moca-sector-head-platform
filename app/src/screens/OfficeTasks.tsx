@@ -131,7 +131,11 @@ export function OfficeTasks() {
   const [dlNote, setDlNote] = useState('');
   const [dirNote, setDirNote] = useState('');
 
-  const otasks = data.otasks;
+  // Each user sees only their own tasks (owner name match, or tasks they
+  // created). The Sector Head is the only one who sees the whole office.
+  const otasks = isChair
+    ? data.otasks
+    : data.otasks.filter((tk) => tk.owner === cu.name || (tk as { _mowner?: string })._mowner === cu.id);
 
   // ---- decorate (display + computed) ----
   const decorate = (tk: OfficeTask) => {
