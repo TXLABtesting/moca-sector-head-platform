@@ -50,7 +50,13 @@ export function Dropdown({ value, options, onChange, opt = {} }: DropdownProps) 
       if (t.closest('[data-dd],[data-dd-pop]')) return;
       close();
     };
-    const onScroll = () => close();
+    // Close when the background page scrolls (the fixed popup would detach from
+    // its button), but NOT when the user scrolls inside the popup's own list.
+    const onScroll = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      if (t && typeof t.closest === 'function' && t.closest('[data-dd-pop]')) return;
+      close();
+    };
     document.addEventListener('mousedown', onDown, true);
     window.addEventListener('scroll', onScroll, true);
     return () => {
