@@ -399,7 +399,7 @@ export function ProjectDetail() {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '20px 0 12px' }}>
                   <span style={{ width: 6, height: 20, borderRadius: 4, background: '#2e7d55' }} />
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('تفاصيل التنفيذ والتوريد', 'Delivery & procurement details')}</h3>
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('بيانات التعاقد والتوريد', 'Contracting & procurement details')}</h3>
                 </div>
                 <div className="pfacts" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#e6ebe6', border: '1px solid #e6ebe6', borderRadius: 16, overflow: 'hidden' }}>
                   {[

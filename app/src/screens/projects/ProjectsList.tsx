@@ -11,7 +11,7 @@ import { Icon } from '../../components/Icon';
 import { UNITS } from '../../shared/constants';
 import { triggerDownload } from '../../shared/fileGen';
 import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from '../reportcenter/templateIO';
-import type { Project } from '../../data/types';
+import type { Project, ProjectTask } from '../../data/types';
 import { psColors, prColors, accentOf, unitOf, dueColor } from './projShared';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
@@ -57,9 +57,24 @@ export function ProjectsList() {
     { field: 'poNumber', match: alias('طلب الشراء', 'العقد', 'التوريد', 'رقم الطلب') },
     { field: 'dependencies', match: alias('الاعتماديات', 'الاعتمادية') },
     { field: 'risks', match: alias('المخاطر') },
+    { field: 'stages', match: alias('مراحل الجدول الزمني', 'الجدول الزمني', 'جدول زمني', 'مراحل زمنية') },
   ];
-  const P_HEADERS = ['اسم المشروع', 'المسؤول', 'الوحدة التنظيمية', 'الحالة', 'نسبة الإنجاز', 'الأولوية', 'الميزانية', 'تاريخ البدء', 'تاريخ الاستحقاق', 'الوصف', 'المخرج النهائي', 'الخطوة التالية', 'نطاق المشروع', 'خطة المراحل الرئيسية', 'المستخدم النهائي', 'اسم المورد', 'رقم طلب الشراء / العقد / التوريد', 'الاعتماديات', 'المخاطر'];
-  const P_EXAMPLE = ['توحيد إجراءات المكتب', 'سيف بيضاني', 'قطاع الخدمات المركزية', 'قيد التنفيذ', '40', 'عالية', '500000', '1 يناير 2026', '30 يونيو 2026', 'توحيد وتبسيط إجراءات العمل', 'دليل إجراءات معتمد', 'اعتماد المسودة', 'حصر الإجراءات؛ إعادة التصميم؛ الاعتماد', 'التحليل؛ التصميم؛ التنفيذ؛ الإطلاق', 'إدارة الشؤون الإدارية', 'شركة الحلول الذكية', 'PO-2026-114', 'اعتماد الميزانية', 'ضيق الوقت — صف مثال يُحذف'];
+  const P_HEADERS = ['اسم المشروع', 'المسؤول', 'الوحدة التنظيمية', 'الحالة', 'نسبة الإنجاز', 'الأولوية', 'الميزانية', 'تاريخ البدء', 'تاريخ الاستحقاق', 'الوصف', 'المخرج النهائي', 'الخطوة التالية', 'نطاق المشروع', 'خطة المراحل الرئيسية', 'المستخدم النهائي', 'اسم المورد', 'رقم طلب الشراء / العقد / التوريد', 'الاعتماديات', 'المخاطر', 'مراحل الجدول الزمني (اسم | بدء | انتهاء | حالة | %) ولكل مرحلة سطر'];
+  const P_EXAMPLE = ['توحيد إجراءات المكتب', 'سيف بيضاني', 'قطاع الخدمات المركزية', 'قيد التنفيذ', '40', 'عالية', '500000', '1 يناير 2026', '30 يونيو 2026', 'توحيد وتبسيط إجراءات العمل', 'دليل إجراءات معتمد', 'اعتماد المسودة', 'حصر الإجراءات؛ إعادة التصميم؛ الاعتماد', 'التحليل؛ التصميم؛ التنفيذ؛ الإطلاق', 'إدارة الشؤون الإدارية', 'شركة الحلول الذكية', 'PO-2026-114', 'اعتماد الميزانية', 'ضيق الوقت — صف مثال يُحذف', 'التصميم | 1 يناير 2026 | 15 فبراير 2026 | قيد التنفيذ | 55؛ التنفيذ | 16 فبراير 2026 | 30 مايو 2026 | لم يبدأ | 0'];
+  // Parse the timeline cell: one stage per line/؛, fields split by | →
+  // اسم | تاريخ البدء | تاريخ الانتهاء | الحالة | نسبة الإنجاز
+  const snapStageStatus = pick(['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر'], 'لم يبدأ');
+  const parseStages = (cell?: string): ProjectTask[] =>
+    String(cell || '').split(/[؛\n]+/).map((s) => s.trim()).filter(Boolean).map((seg) => {
+      const [name, start, end, status, prog] = seg.split('|').map((x) => (x || '').trim());
+      if (!name) return null;
+      const tk: ProjectTask = { name, owner: '', status: status ? snapStageStatus(status) : 'لم يبدأ' };
+      if (start) tk.start = excelSerialToDate(start);
+      if (end) tk.end = excelSerialToDate(end);
+      const n = parseInt(String(prog || '').replace(/[^\d]/g, ''), 10);
+      if (!isNaN(n)) tk.progress = Math.max(0, Math.min(100, n));
+      return tk;
+    }).filter((x): x is ProjectTask => x !== null);
   const bulkRef = useRef<HTMLInputElement>(null);
   const dlProjTemplate = () => triggerDownload(makeXlsx([P_HEADERS, P_EXAMPLE.slice(0, P_HEADERS.length)], 'المشاريع'), 'Projects_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
@@ -80,7 +95,7 @@ export function ProjectsList() {
             scope: String(r.scope || '').split(/[؛\n;]+/).map((s) => s.trim()).filter(Boolean),
             milestones: String(r.milestones || '').split(/[؛\n;]+/).map((s) => s.trim()).filter(Boolean),
             endUser: r.endUser || '', supplier: r.supplier || '', poNumber: r.poNumber || '', dependencies: r.dependencies || '',
-            lastDate: 'اليوم', chairmanNotes: '', people: [], attachments: [], timeline: [], tasks: [],
+            lastDate: 'اليوم', chairmanNotes: '', people: [], attachments: [], timeline: [], tasks: parseStages(r.stages),
             _mowner: cu.id, _mstatus: 'مسودة',
           } as unknown as Project;
           d.projects.unshift(p);
