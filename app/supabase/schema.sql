@@ -99,7 +99,18 @@ revoke all on function public.reset_demo(text) from public;
 grant execute on function public.reset_demo(text) to anon, authenticated;
 
 -- ---- Realtime --------------------------------------------------------------
-alter publication supabase_realtime add table public.demo_state;
+-- Idempotent: only add the table if it isn't already in the publication, so
+-- re-running this whole script never errors (42710 "already member").
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public' and tablename = 'demo_state'
+  ) then
+    alter publication supabase_realtime add table public.demo_state;
+  end if;
+end $$;
 
 -- ============================================================================
 --  Storage bucket for demo file uploads (separate from production storage)
