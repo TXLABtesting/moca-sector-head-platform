@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { ChairNotes } from '../../components/ChairNotes';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -634,6 +635,7 @@ export function RegisterWorkspace() {
           <button onClick={clearAll} style={{ background: '#a5342b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>نعم، احذف الكل</button>
         </div>
       </Modal>
+      <ChairNotes noteKey="reportLog" />
     </div>
   );
 }

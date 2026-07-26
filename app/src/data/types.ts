@@ -471,7 +471,11 @@ export interface AppData {
   committees: Committee[];
   retReports: RetReport[];
   updateRequests?: UpdateRequest[];
+  // Sector Head notes per report, keyed by report id (e.g. 'reportLog', 'audit', 'retention').
+  reportNotes?: Record<string, ChairNote[]>;
 }
+
+export interface ChairNote { text: string; date: string; author: string }
 
 /** A "request update" the chair sends to the owner of any item, surfaced to
  *  that person as a real notification. Decoupled from the many record types. */

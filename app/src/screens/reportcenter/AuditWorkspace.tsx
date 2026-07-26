@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { ChairNotes } from '../../components/ChairNotes';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -849,6 +850,7 @@ export function AuditWorkspace() {
       )}
       {repForm && <RepForm repId={repForm.id} onClose={() => setRepForm(null)} />}
       {obsForm && <ObsForm repId={obsForm.repId} obsId={obsForm.obsId} onClose={() => setObsForm(null)} />}
+      <ChairNotes noteKey="audit" />
     </div>
   );
 }

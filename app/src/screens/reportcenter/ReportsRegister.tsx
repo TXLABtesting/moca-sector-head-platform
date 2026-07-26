@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
+import { ChairNotes } from '../../components/ChairNotes';
 import { Dropdown } from '../../components/Dropdown';
 import { Drawer, Modal } from '../../components/ui';
 import type { RegReport } from '../../data/types';
@@ -335,6 +336,7 @@ export function ReportsRegister() {
           <button onClick={saveDirective} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ التوجيه', 'Save directive')}</button>
         </div>
       </Modal>
+      <ChairNotes noteKey="reportLog" />
     </div>
   );
 }
