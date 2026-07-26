@@ -117,7 +117,7 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Field label={rl('اسم المشروع', 'Project name')} k="name" /></div>
         <Field label={rl('الاسم الإنجليزي', 'English name')} k="nameEn" />
-        <div><Label>{rl('المسؤول', 'Owner')}</Label><Dropdown value={f.owner} options={ownerNames.map((n) => ({ v: n, label: tr(n) }))} onChange={set('owner')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('المسؤول', 'Owner')}</Label><input value={f.owner || ''} onChange={(e) => set('owner')(e.target.value)} placeholder={rl('اكتب اسم المسؤول…', 'Type owner name…')} style={inputStyle} /></div>
         <div><Label>{rl('الوحدة التنظيمية', 'Org unit')}</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={set('unit')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUS_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('الأولوية', 'Priority')}</Label><Dropdown value={f.priority} options={PRI_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('priority')} opt={{ block: true, size: 'sm' }} /></div>

@@ -273,7 +273,7 @@ export function MinuteTaskForm({ taskId, onClose }: { taskId: string | null; onC
         <div><Label>الجهة / الإدارة المسؤولة</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>التوصيات والمهام (المطلوب تنفيذه)</Label><textarea value={f.task} onChange={setI('task')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>وصف إضافي (اختياري)</Label><textarea value={f.desc} onChange={setI('desc')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
-        <div><Label>المسؤول عن التنفيذ</Label><Dropdown value={owner} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={setOwner} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>المسؤول عن التنفيذ</Label><input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
         <div><Label>تاريخ الإنجاز المتوقع</Label><DateField value={f.due} onChange={(v) => setF((p) => ({ ...p, due: v }))} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 84px', gap: 10 }}>
           <div><Label>حالة الإنجاز</Label><Dropdown value={f.status} options={MT_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>

@@ -387,7 +387,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
         <div><Label>الفترة</Label><input value={f.period} onChange={setI('period')} placeholder="مثال: النصف الأول 2026" style={inputStyle} /></div>
         <div><Label>الدورية</Label><Dropdown value={f.freq} options={FREQS.map((x) => ({ v: x, label: tr(x) }))} onChange={(v) => setF((p) => ({ ...p, freq: v }))} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>حالة التقرير</Label><div style={{ ...inputStyle, background: '#f2f4f0', color: '#7d867f' }}>{existing ? tr(existing.status) : 'مسودة'} — تُدار من سير العمل</div></div>
-        <div><Label>المسؤول</Label><Dropdown value={f.resp} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setF((p) => ({ ...p, resp: v }))} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>المسؤول</Label><input value={f.resp} onChange={(e) => setF((p) => ({ ...p, resp: e.target.value }))} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
       </div>
 
       {/* first-observation data — same fields as the observation form */}

@@ -368,7 +368,7 @@ function RegForm({ regId, initYear, onClose }: { regId: string | null; initYear:
         <div style={{ gridColumn: '1 / -1' }}><Label>عنوان التقرير</Label><input value={f.title} onChange={setI('title')} style={{ ...inputStyle, ...warnStyle('عنوان التقرير') }} /></div>
         <div><Label>نوع التقرير</Label><input value={f.type} onChange={setI('type')} style={{ ...inputStyle, ...warnStyle('نوع التقرير') }} /></div>
         <div><Label>الإدارة</Label><Dropdown value={f.dept} options={deptOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, dept: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px' }} /></div>
-        <div><Label>المسؤول</Label><Dropdown value={f.resp} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setF((p) => ({ ...p, resp: v }))} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>المسؤول</Label><input value={f.resp} onChange={(e) => setF((p) => ({ ...p, resp: e.target.value }))} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
         <div><Label>الدورية</Label><Dropdown value={f.freq} options={REG_FREQS.map((x) => ({ v: x, label: tr(x) }))} onChange={changeFreq} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>موعد الاستحقاق</Label><input value={f.due} onChange={setI('due')} placeholder="مثال: 7 من كل شهر" style={{ ...inputStyle, ...warnStyle('موعد الاستحقاق') }} /></div>
         <div><Label>تاريخ آخر تسليم</Label><DateField value={f.lastDate} onChange={(v) => setF((p) => ({ ...p, lastDate: v }))} /></div>

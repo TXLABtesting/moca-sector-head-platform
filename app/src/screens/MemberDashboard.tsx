@@ -31,8 +31,8 @@ const SECTION_PAGE: Record<string, Page> = {
   correspondence: 'correspondence',
   projects: 'projects', projPhases: 'projects', projUpdates: 'projects', projRisks: 'projects',
   leaves: 'leaves', myTasks: 'otasks',
-  auditReports: 'reportcenter', reportLog: 'reglog', finReports: 'finDetail',
-  reportCenter: 'reportcenter', recommendations: 'reportcenter',
+  auditReports: 'auditDetail', reportLog: 'reglog', finReports: 'finDetail',
+  reportCenter: 'reportDetail', recommendations: 'reportcenter',
 };
 
 type CardKey = 'open' | 'updating' | 'late' | 'done';
@@ -211,7 +211,7 @@ export function MemberDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
                     <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, background: '#ebf2ec', color: '#2b5c44', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={s ? s.icon : 'note'} size={17} /></span>
                     <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: '#17211c' }}>{g.label}</span>
-                    <button onClick={() => setForm({ section: g.sec, editId: null })} style={{ ...btnPrimary, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <button onClick={() => goto(SECTION_PAGE[g.sec] || 'dashboard')} title={rl('فتح ' + g.label + ' لإضافة بند', 'Open ' + g.label + ' to add')} style={{ ...btnPrimary, display: 'flex', alignItems: 'center', gap: 5 }}>
                       <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة', 'Add')}
                     </button>
                   </div>

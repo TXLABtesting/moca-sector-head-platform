@@ -626,12 +626,12 @@ export function ReqMeetings() {
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: 150 }}>
                         <div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 4 }}>{t('rm_from')}</div>
-                        <Dropdown value={form.time} options={DASH.concat(rmTimeOpts)} onChange={(v) => setForm((f) => ({ ...f, time: v }))} opt={{ block: true, bg: '#f7f8f6' }} />
+                        <input type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit' }} />
                       </div>
                       <span style={{ color: '#9aa39b', fontWeight: 700, marginTop: 16 }}>–</span>
                       <div style={{ flex: 1, minWidth: 150 }}>
                         <div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 4 }}>{t('rm_to')}</div>
-                        <Dropdown value={form.timeEnd} options={DASH.concat(rmTimeOpts)} onChange={(v) => setForm((f) => ({ ...f, timeEnd: v }))} opt={{ block: true, bg: '#f7f8f6' }} />
+                        <input type="time" value={form.timeEnd} onChange={(e) => setForm((f) => ({ ...f, timeEnd: e.target.value }))} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit' }} />
                       </div>
                     </div>
                   </div>
@@ -685,7 +685,7 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
         location: existing.location || '', link: existing.link || '', note: existing.notes || '',
       };
     }
-    return { subject: '', attendees: '', basis: '', date: '', from: '10:00 ص', to: '11:00 ص', location: '', link: '', note: '' };
+    return { subject: '', attendees: '', basis: '', date: '', from: '10:00', to: '11:00', location: '', link: '', note: '' };
   });
   const [agenda, setAgenda] = useState<string[]>(() => (existing?.agenda ? [...existing.agenda] : []));
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -704,7 +704,7 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
     const subject = (f.subject || '').trim();
     if (!subject) { showToast(rl('يرجى إدخال موضوع الاجتماع', 'Please enter the meeting subject')); return; }
     if (!f.date) { showToast(rl('يرجى اختيار تاريخ الاجتماع', 'Please pick the meeting date')); return; }
-    const proposed = f.date + ' - ' + (f.from || '10:00 ص') + (f.to ? ' - ' + f.to : '');
+    const proposed = f.date + ' - ' + (f.from || '10:00') + (f.to ? ' - ' + f.to : '');
     mutate((d) => {
       let m: ReqMeeting & { _mowner?: string };
       if (existing) m = d.reqMeetings.find((r) => r.id === meetingId)! as never;
@@ -745,8 +745,8 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الجهة الطالبة / بناءً على', 'Requesting entity / based on')}</Label><input value={f.basis} onChange={setI('basis')} style={inputStyle} /></div>
         <div><Label>{rl('تاريخ الاجتماع', 'Meeting date')}</Label><DateField value={f.date} onChange={set('date')} /></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}><Label>{rl('من', 'From')}</Label><Dropdown value={f.from} options={timeOpts} onChange={set('from')} opt={{ block: true, size: 'sm' }} /></div>
-          <div style={{ flex: 1 }}><Label>{rl('إلى', 'To')}</Label><Dropdown value={f.to} options={timeOpts} onChange={set('to')} opt={{ block: true, size: 'sm' }} /></div>
+          <div style={{ flex: 1 }}><Label>{rl('من', 'From')}</Label><input type="time" value={f.from} onChange={(e) => set('from')(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><Label>{rl('إلى', 'To')}</Label><input type="time" value={f.to} onChange={(e) => set('to')(e.target.value)} style={inputStyle} /></div>
         </div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مكان الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات - الطابق 12', 'Meeting room — floor 12')} style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}>

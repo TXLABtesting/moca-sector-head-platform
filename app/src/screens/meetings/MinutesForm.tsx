@@ -324,7 +324,7 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
           <div key={i} style={{ border: '1px solid #e6ece7', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.1fr 1fr 1fr 64px 26px', gap: 8, alignItems: 'center' }}>
               <input value={a.text} onChange={(e) => setAct(i, 'text', e.target.value)} placeholder="عنوان المهمة" style={inputStyle} />
-              <Dropdown value={a.owner} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setAct(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: 'المسؤول' }} />
+              <input value={a.owner} onChange={(e) => setAct(i, 'owner', e.target.value)} placeholder="المسؤول" style={inputStyle} />
               <Dropdown value={a.status} options={TASK_STATUSES.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setAct(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
               <DateField value={a.due} onChange={(v) => setAct(i, 'due', v)} />
               <input value={String(a.prog ?? '')} onChange={(e) => setAct(i, 'prog', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} placeholder="0-100" title="نسبة الإنجاز %" style={{ ...inputStyle, textAlign: 'center', padding: '9px 6px' }} />

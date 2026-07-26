@@ -944,7 +944,7 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
             {tasks.map((t, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 28px', gap: 8, alignItems: 'center' }}>
                 <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('نص التوصية أو التكليف', 'Recommendation / assignment text')} style={inputStyle} />
-                <Dropdown value={t.owner} options={memberPool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setTask(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: rl('المسؤول', 'Responsible') }} />
+                <input value={t.owner} onChange={(e) => setTask(i, 'owner', e.target.value)} placeholder={rl('المسؤول', 'Responsible')} style={inputStyle} />
                 <DateField value={t.due} onChange={(v) => setTask(i, 'due', v)} />
                 <Dropdown value={t.status} options={TSTAT.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setTask(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
                 <button type="button" onClick={() => setTasks((p) => p.filter((_, x) => x !== i))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 14 }}>✕</button>
