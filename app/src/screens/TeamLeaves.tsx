@@ -19,6 +19,9 @@ import { AttachmentDownload } from '../components/AttachmentDownload';
 
 const DAY = 86400000;
 const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+// Department managers roster (code-defined so they always appear in the person
+// picker regardless of the shared-DB contents). Treated as the "manager" category.
+const DEPT_MANAGERS = ['علي عيسى', 'محمد الياسي', 'شما المري', 'مريم البلوشي', 'شيماء خماس', 'حصة الحوسني', 'عبدالرحمن البلوشي'];
 const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** status -> [pill bg, pill fg] */
@@ -890,12 +893,15 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
 
-  // people pool: office team + sector directors (cat derives from the pick)
+  // people pool: office team + sector directors + department managers (cat derives from the pick)
   const officeNames = data.members.map((m) => m.name);
-  const managerNames = data.sectorManagers.map((m) => m.name);
+  const sectorNames = data.sectorManagers.map((m) => m.name);
+  const deptMgrNames = DEPT_MANAGERS.filter((n) => !sectorNames.includes(n) && !officeNames.includes(n));
+  const managerNames = [...sectorNames, ...deptMgrNames];
   const personOpts = [
     ...officeNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('فريق المكتب', 'Office team') })),
-    ...managerNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء القطاع', 'Sector directors') })),
+    ...sectorNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء القطاع', 'Sector directors') })),
+    ...deptMgrNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء الإدارات', 'Department managers') })),
   ];
   const catOfPerson = (n: string): LeaveCat => (managerNames.includes(n) ? 'manager' : 'office');
   const backupOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') },
@@ -931,7 +937,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
       lv.cat = catOfPerson(f.person);
       const mem = d.members.find((m) => m.name === f.person);
       const mgr = d.sectorManagers.find((m) => m.name === f.person);
-      lv.role = mem ? mem.role : (mgr ? mgr.role : lv.role);
+      lv.role = mem ? mem.role : (mgr ? mgr.role : (lv.role || (deptMgrNames.includes(f.person) ? 'مدير إدارة' : '')));
       lv.dept = mgr ? mgr.dept : (lv.dept || 'مكتب رئيس القطاع');
       lv.type = f.type; lv.start = f.start; lv.end = f.end; lv.days = days;
       lv.backup = f.backup || '—'; lv.notes = (f.notes || '').trim();
