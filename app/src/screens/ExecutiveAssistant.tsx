@@ -22,10 +22,16 @@ export function ExecutiveAssistant() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Office tasks are personal — each user sees only their own; the Sector Head
+  // sees all. Scope here so the assistant never counts/lists another user's tasks.
+  const myOtasks = cu.type === 'chair'
+    ? data.otasks
+    : data.otasks.filter((t) => t.owner === cu.name || (t as { _mowner?: string })._mowner === cu.id);
+
   const badge = data.reqMeetings.filter((m) => m.status === 'بانتظار الاعتماد').length
     + data.projects.filter((p) => p.status === 'يحتاج قرار' || p.status === 'متأخر').length
     + data.correspondence.filter((c) => c.needsAction).length
-    + data.otasks.filter((t) => t.status === 'متأخر').length;
+    + myOtasks.filter((t) => t.status === 'متأخر').length;
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs, open]);
 
@@ -66,11 +72,11 @@ export function ExecutiveAssistant() {
       reply.cards = ms.slice(0, 4).map((m) => ({ title: m.subject, sub: m.proposed, page: 'reqmeetings' }));
       if (ms.length) reply.confirm = { label: rl(`اعتماد كل الاجتماعات (${ms.length})`, `Approve all meetings (${ms.length})`), run: () => { mutate((d) => { d.reqMeetings.forEach((m) => { if (m.status === 'بانتظار الاعتماد') { m.status = 'معتمد'; m.decision = 'تم الاعتماد'; } }); }); showToast(rl('تم اعتماد جميع الاجتماعات', 'All meetings approved')); } };
     } else if (key === 'nodue') {
-      const ts = data.otasks.filter((t) => (!t.end || !t.end.trim()) && t.status !== 'مكتمل');
+      const ts = myOtasks.filter((t) => (!t.end || !t.end.trim()) && t.status !== 'مكتمل');
       reply.text = rl(`${ts.length} مهمة بدون موعد نهائي:`, `${ts.length} tasks without a deadline:`);
       reply.cards = ts.slice(0, 4).map((t) => ({ title: t.title, sub: t.owner, page: 'otasks' }));
     } else if (key === 'late') {
-      const ts = data.otasks.filter((t) => t.status === 'متأخر');
+      const ts = myOtasks.filter((t) => t.status === 'متأخر');
       const lp = data.projects.filter((p) => p.status === 'متأخر');
       reply.text = rl(`${ts.length} مهمة متأخرة و${lp.length} مشروع متأخر.`, `${ts.length} overdue tasks and ${lp.length} delayed projects.`);
       reply.cards = [...ts.slice(0, 2).map((t) => ({ title: t.title, sub: t.owner, page: 'otasks' as Page })), ...lp.slice(0, 2).map((p) => ({ title: p.name, sub: p.owner, page: 'projectDetail' as Page, extra: { selProject: p.id } }))];
