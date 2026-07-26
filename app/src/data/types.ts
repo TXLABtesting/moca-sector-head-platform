@@ -398,6 +398,10 @@ export interface CommitteeMeeting {
   tasks: CommitteeTask[];
   absent?: string[];
   attachments?: string[];
+  time?: string;        // توقيت الاجتماع
+  location?: string;    // مكان الانعقاد
+  agenda?: string;      // جدول الأعمال
+  governance?: string;  // حوكمة اللجنة
 }
 export interface CommitteeScores {
   outputs: number;

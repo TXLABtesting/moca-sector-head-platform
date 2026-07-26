@@ -26,6 +26,7 @@ const STC: Record<string, [string, string]> = {
   'ملغاة': ['#f0e6e4', '#9a3a2b'],
 };
 const TSK: Record<string, [string, string, string]> = {
+  'تم الإنجاز': ['#e2f0e8', '#2e7d55', '#2e7d55'],
   'مكتمل': ['#e2f0e8', '#2e7d55', '#2e7d55'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f', '#a9791f'],
   'متأخر': ['#f7e6e4', '#b0433b', '#b0433b'],
@@ -49,7 +50,7 @@ const KPI_ICONS: Record<string, string> = {
 
 const openTaskCount = (c: Committee): number => {
   let n = 0;
-  (c.meetings || []).forEach((m) => (m.tasks || []).forEach((t) => { if (t.status !== 'مكتمل') n++; }));
+  (c.meetings || []).forEach((m) => (m.tasks || []).forEach((t) => { if (t.status !== 'مكتمل' && t.status !== 'تم الإنجاز') n++; }));
   return n;
 };
 const lastMeeting = (c: Committee): string => (c.meetings && c.meetings.length ? c.meetings[0].date : '—');
@@ -843,9 +844,9 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
   const memberPool = Array.from(new Set([...(committee?.members || []), ...data.members.map((m) => m.name)]));
 
   const [f, setF] = useState<Record<string, string>>(() => existing ? {
-    date: existing.date, points: existing.points || '',
+    date: existing.date, time: existing.time || '', location: existing.location || '', agenda: existing.agenda || existing.points || '', governance: existing.governance || '',
   } : {
-    date: '', points: '',
+    date: '', time: '', location: '', agenda: '', governance: '',
   });
   const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
   // Attendance is derived: total = committee members, present = total − absentees.
@@ -856,7 +857,7 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
   const setTask = (i: number, k: keyof CommitteeTask, v: string | number) => setTasks((p) => p.map((t, x) => (x === i ? { ...t, [k]: v } : t)));
 
-  const TSTAT = ['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر'];
+  const TSTAT = ['قيد التنفيذ', 'تم الإنجاز', 'متأخر'];
 
   const save = (send: boolean) => {
     if (!f.date) { showToast(rl('يرجى اختيار تاريخ الاجتماع', 'Please pick the meeting date')); return; }
@@ -871,11 +872,13 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
         c.meetings.unshift(m);
       }
       m.date = f.date; m.total = (c.members || []).length; m.present = Math.max(0, m.total - absent.length);
-      m.points = (f.points || '').trim(); m.minutes = !!(m.points || atts.length);
+      m.time = (f.time || '').trim(); m.location = (f.location || '').trim();
+      m.agenda = (f.agenda || '').trim(); m.governance = (f.governance || '').trim();
+      m.points = (f.agenda || '').trim(); m.minutes = !!(m.agenda || m.governance || cleanTasks.length || atts.length);
       m.absent = absent; m.attachments = atts; m.tasks = cleanTasks;
       c.actualMeetings = c.meetings.length;
       if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
-      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.points || '').slice(0, 80), sent: !!send, by: cu.name });
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.agenda || '').slice(0, 80), sent: !!send, by: cu.name });
     });
     showToast(send ? rl('أُرسل محضر الاجتماع لرئيس القطاع للمراجعة', 'Meeting minutes sent for Sector Head review') : rl('تم حفظ الاجتماع والمحضر', 'Meeting & minutes saved'));
     onClose();
@@ -890,58 +893,62 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
         {existing ? rl('محضر الاجتماع رقم ', 'Meeting minutes No. ') + existing.no : rl('اجتماع جديد', 'New meeting')}
       </h3>
       <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{committee ? tr(committee.name) : ''}</p>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1e4634', margin: '4px 0 10px' }}>{rl('بيانات الاجتماع', 'Meeting details')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-        <div><Label>{rl('تاريخ الاجتماع', 'Meeting date')}</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
-        <div style={{ gridColumn: '2 / -1' }}>
-          <Label>{rl('الحضور (يُحسب تلقائياً)', 'Attendance (auto)')}</Label>
-          <div style={{ ...inputStyle, background: '#eef3f0', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <b style={{ color: '#1e4634' }}>{presentCount} {rl('من', 'of')} {totalMembers} {rl('حاضر', 'present')}</b>
-            <span style={{ color: '#9aa39b', fontSize: 11.5 }}>· {absent.length} {rl('غياب', 'absent')}</span>
-          </div>
-        </div>
+        <div><Label>{rl('تاريخ الاجتماع', 'Date')}</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
+        <div><Label>{rl('توقيت الاجتماع', 'Time')}</Label><input value={f.time} onChange={setI('time')} placeholder={rl('مثال: 10:00 ص - 11:00 ص', 'e.g. 10:00 - 11:00')} style={inputStyle} /></div>
+        <div><Label>{rl('مكان انعقاد الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات / رابط', 'Room / link')} style={inputStyle} /></div>
+
         <div style={{ gridColumn: '1 / -1' }}>
-          <Label>{rl('الغياب (اختر من الأعضاء)', 'Absences (pick from members)')}</Label>
+          <Label>{rl('الحضور / الغياب — اختر الغائبين من أعضاء اللجنة', 'Attendance — pick absentees from committee members')}</Label>
           <div style={{ fontSize: 11, color: '#9aa39b', margin: '-3px 0 7px' }}>{rl('إن لم تختر أحداً، يُعدّ جميع الأعضاء حاضرين.', 'If none are picked, all members are counted present.')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
             {(committee?.members || []).map((n) => {
               const on = absent.includes(n);
               return (
                 <button type="button" key={n} onClick={() => setAbsent((p) => (on ? p.filter((x) => x !== n) : [...p, n]))} style={{ border: '1.5px solid ' + (on ? '#b0433b' : '#e2e6df'), background: on ? '#fdf3f2' : '#fff', color: on ? '#b0433b' : '#5b6b62', borderRadius: 20, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                  {tr(n)}{on ? ' ✕' : ''}
+                  {tr(n)}{on ? ' ✕ غائب' : ''}
                 </button>
               );
             })}
             {(committee?.members || []).length === 0 && <span style={{ fontSize: 11.5, color: '#9aa39b' }}>{rl('لا يوجد أعضاء مسجّلون لهذه اللجنة', 'No members recorded for this committee')}</span>}
           </div>
+          <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 10, background: '#eef3f0', borderRadius: 9, padding: '7px 13px', fontSize: 12 }}>
+            <b style={{ color: '#1e4634' }}>{presentCount} {rl('حاضر', 'present')}</b>
+            <span style={{ color: '#b0433b', fontWeight: 700 }}>{absent.length} {rl('غائب', 'absent')}</span>
+            <span style={{ color: '#9aa39b' }}>{rl('من', 'of')} {totalMembers} {rl('عضو', 'members')}</span>
+          </div>
         </div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المحضر / أبرز النقاط والقرارات', 'Minutes / key points & decisions')}</Label><textarea value={f.points} onChange={setI('points')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('جدول الأعمال', 'Agenda')}</Label><textarea value={f.agenda} onChange={setI('agenda')} rows={3} placeholder={rl('بنود جدول أعمال الاجتماع…', 'Agenda items…')} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('حوكمة اللجنة', 'Committee governance')}</Label><textarea value={f.governance} onChange={setI('governance')} rows={2} placeholder={rl('ما يتعلق بحوكمة اللجنة…', 'Governance notes…')} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <Label>{rl('المهام الناتجة عن الاجتماع', 'Tasks resulting from the meeting')}</Label>
+          <Label>{rl('التوصيات / التكليفات', 'Recommendations / assignments')}</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tasks.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 28px', gap: 8, padding: '0 3px', fontSize: 10.5, fontWeight: 700, color: '#9aa39b' }}>
-                <span>{rl('المهمة', 'Task')}</span>
-                <span>{rl('المسؤول', 'Owner')}</span>
+                <span>{rl('التوصية / التكليف', 'Recommendation / assignment')}</span>
+                <span>{rl('مسؤولية التنفيذ', 'Responsible')}</span>
+                <span>{rl('تاريخ الإنجاز', 'Target date')}</span>
                 <span>{rl('الحالة', 'Status')}</span>
-                <span>{rl('تاريخ الاستحقاق', 'Due date')}</span>
                 <span />
               </div>
             )}
             {tasks.map((t, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 28px', gap: 8, alignItems: 'center' }}>
-                <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('عنوان المهمة', 'Task title')} style={inputStyle} />
-                <Dropdown value={t.owner} options={memberPool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setTask(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: rl('المسؤول', 'Owner') }} />
-                <Dropdown value={t.status} options={TSTAT.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setTask(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
+                <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('نص التوصية أو التكليف', 'Recommendation / assignment text')} style={inputStyle} />
+                <Dropdown value={t.owner} options={memberPool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setTask(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: rl('المسؤول', 'Responsible') }} />
                 <DateField value={t.due} onChange={(v) => setTask(i, 'due', v)} />
+                <Dropdown value={t.status} options={TSTAT.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setTask(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
                 <button type="button" onClick={() => setTasks((p) => p.filter((_, x) => x !== i))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 14 }}>✕</button>
               </div>
             ))}
-            <button type="button" onClick={() => setTasks((p) => [...p, { title: '', owner: committee?.rapporteur || cu.name, status: 'قيد التنفيذ', due: '', prog: 0 }])} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة مهمة', 'Add task')}
+            <button type="button" onClick={() => setTasks((p) => [...p, { title: '', owner: committee?.rapporteur || cu.name, status: 'قيد التنفيذ', due: '' }])} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة توصية / تكليف', 'Add recommendation / assignment')}
             </button>
           </div>
         </div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المحضر والمرفقات (رفع ملفات)', 'Minutes & attachments (upload)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المرفقات (رفع ملفات)', 'Attachments (upload)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
