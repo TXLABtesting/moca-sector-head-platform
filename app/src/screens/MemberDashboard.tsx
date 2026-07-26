@@ -9,6 +9,7 @@ import { SECTIONS } from '../domain/permissions';
 import { wfTone } from '../domain/approval';
 import { MEMBER_DIRECTIVES, MEMBER_RECENT } from '../domain/workflow';
 import { mColl, editableCollections, OWNER_OF, ownedBy, FINAL_STATUSES } from './member/workflow';
+import { chairNotesForUser } from '../domain/reportNotes';
 import { MemberForm } from './member/MemberForm';
 import { DemoHint } from '../components/DemoHint';
 
@@ -45,6 +46,7 @@ export function MemberDashboard() {
   const { goto } = useNav();
   const [form, setForm] = useState<{ section: string; editId: string | null } | null>(null);
   const [card, setCard] = useState<CardKey>('open');
+  const [rowLimit, setRowLimit] = useState(10);
 
   /** Navigate to the area that owns this item so the member can act on it there. */
   const openItem = (it: { sec: string; id: string; isWork: boolean }) => {
@@ -105,6 +107,8 @@ export function MemberDashboard() {
       (r.directives || []).forEach((d: any) => { if (d && d.text) liveDirectives.push({ text: d.text, date: d.date || '', on }); });
     });
   });
+  // Sector Head notes on reports this member owns surface as directives too.
+  chairNotesForUser(data, cu).forEach((h) => liveDirectives.push({ text: (lang === 'en' ? h.en : h.ar) + ': ' + h.note.text, date: h.note.date, on: lang === 'en' ? h.en : h.ar }));
   const seedDir = (MEMBER_DIRECTIVES[cu.id] || []).map((d) => ({ text: d.text, date: d.date, on: '' }));
   const dirSeen = new Set<string>();
   const directives = [...liveDirectives, ...seedDir].filter((d) => { const k = d.text.trim(); if (!k || dirSeen.has(k)) return false; dirSeen.add(k); return true; });
@@ -143,7 +147,7 @@ export function MemberDashboard() {
         {CARDS.map((c) => {
           const on = card === c.key;
           return (
-            <div key={c.key} onClick={() => setCard(c.key)} style={{
+            <div key={c.key} onClick={() => { setCard(c.key); setRowLimit(10); }} style={{
               cursor: 'pointer', borderRadius: 15, padding: '13px 14px', transition: 'all .15s',
               background: on ? '#ffffff' : '#f7f9f7', border: '1.5px solid ' + (on ? c.accent : '#e6ece7'),
               boxShadow: on ? '0 10px 26px -16px ' + c.accent : '0 1px 2px rgba(23,40,32,.03)',
@@ -168,7 +172,7 @@ export function MemberDashboard() {
         </div>
         {rows.length === 0 && <div style={{ padding: 22, textAlign: 'center', fontSize: 12.5, color: '#9aa39b', background: '#f7f9f6', borderRadius: 12 }}>{rl('لا توجد بنود في هذه الفئة', 'No items in this category')}</div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {rows.map((it) => {
+          {rows.slice(0, rowLimit).map((it) => {
             const [bg, fg] = wf(it.status);
             return (
               <div key={(it.isWork ? 'w' : 'r') + it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fbfcfb', border: '1px solid #eef1ec', borderRadius: 12, padding: '11px 13px' }}>
@@ -185,6 +189,13 @@ export function MemberDashboard() {
             );
           })}
         </div>
+        {rows.length > rowLimit && (
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <button onClick={() => setRowLimit((n) => n + 10)} style={{ background: '#f0f2ee', color: '#1f4a37', border: '1px solid #e2e6df', borderRadius: 10, padding: '9px 20px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              {rl('عرض المزيد', 'Show more')} ({rows.length - rowLimit})
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="rg2" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16, alignItems: 'start' }}>
