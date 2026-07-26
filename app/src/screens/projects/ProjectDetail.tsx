@@ -13,6 +13,7 @@ import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from '.
 import { APP_TODAY_AR } from '../../shared/today';
 import { ProjectEditModal } from './ProjectEditModal';
 import { DateField } from '../../components/DateField';
+import { Dropdown } from '../../components/Dropdown';
 import { FileUploadField } from '../../components/FileUploadField';
 import { AttachmentDownload } from '../../components/AttachmentDownload';
 
@@ -418,7 +419,7 @@ export function ProjectDetail() {
           </div>
         )}
 
-        {pdTab === 'timeline' && <TimelineTab p={p} en={en} rl={rl} tr={tr} t={t} />}
+        {pdTab === 'timeline' && <TimelineTab p={p} en={en} rl={rl} tr={tr} t={t} canEdit={canEdit} withP={withP} showToast={showToast} />}
 
         {pdTab === 'updates' && (
           <div style={{ animation: 'fadeUp .16s ease' }}>
@@ -619,10 +620,24 @@ export function ProjectDetail() {
   );
 }
 
+const STAGE_STATUS = ['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر'];
+
 /** Timeline / Gantt tab: month axis, dashed today line, overdue highlighting, 5-month min span. */
-function TimelineTab({ p, en, rl, tr, t }: {
+function TimelineTab({ p, en, rl, tr, t, canEdit, withP, showToast }: {
   p: Project; en: boolean; rl: (a: string, b: string) => string; tr: (s: string) => string; t: (k: string) => string;
+  canEdit: boolean; withP: (fn: (proj: Project) => void) => void; showToast: (m: string) => void;
 }) {
+  const [newStage, setNewStage] = useState('');
+  const addStage = () => {
+    const name = newStage.trim();
+    if (!name) { showToast(rl('اكتب اسم المرحلة أولاً', 'Enter a stage name first')); return; }
+    withP((proj) => { (proj.tasks = proj.tasks || []).push({ name, owner: '', status: 'لم يبدأ' }); });
+    setNewStage('');
+    showToast(rl('تمت إضافة المرحلة إلى الجدول الزمني', 'Stage added to the timeline'));
+  };
+  const setStageStatus = (i: number, status: string) => withP((proj) => { if (proj.tasks && proj.tasks[i]) proj.tasks[i].status = status; });
+  const setStageOwner = (i: number, owner: string) => withP((proj) => { if (proj.tasks && proj.tasks[i]) proj.tasks[i].owner = owner; });
+  const delStage = (i: number) => withP((proj) => { if (proj.tasks) proj.tasks.splice(i, 1); });
   const _en = parseAr(p.dueDate || '');
   const _st = p.startDate ? parseAr(p.startDate) : projRange(p).start;
   let me = _en || new Date((_st || APP_TODAY).getTime() + 120 * 86400000);
@@ -707,6 +722,43 @@ function TimelineTab({ p, en, rl, tr, t }: {
               <div style={{ fontSize: 12, color: '#3c4a42', lineHeight: 1.6 }}><strong style={{ color: '#17211c' }}>{m.name}:</strong> {m.note}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Stages editor — the source of the Gantt bars. Each stage becomes one bar,
+          laid out evenly across the project's start→due span and colored by status. */}
+      {canEdit && (
+        <div style={{ marginTop: 26, borderTop: '1px solid #eef0ec', paddingTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+            <span style={{ width: 6, height: 20, borderRadius: 4, background: '#1e4634' }} />
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('مراحل المشروع (تُغذّي الجدول الزمني)', 'Project stages (feed the timeline)')}</h3>
+          </div>
+          <p style={{ margin: '0 0 14px', fontSize: 11.5, color: '#8a938c', lineHeight: 1.7 }}>
+            {rl('أضِف مرحلة لكل شريط في المخطط. تُوزَّع المراحل تلقائيًا على المدة بين تاريخ البدء وتاريخ الانتهاء، ويتحدَّد لون الشريط ونسبة تعبئته حسب الحالة.', 'Add a stage for each bar. Stages spread automatically across the start→due span; each bar’s color and fill come from its status.')}
+          </p>
+
+          {(p.tasks || []).length === 0 && (
+            <div style={{ background: '#f7f8f6', border: '1px dashed #d6ddd4', borderRadius: 11, padding: '14px 16px', fontSize: 12.5, color: '#5b6b62', marginBottom: 12 }}>
+              {rl('لا توجد مراحل بعد — أضِف أول مرحلة ليظهر الجدول الزمني.', 'No stages yet — add the first stage to draw the timeline.')}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+            {(p.tasks || []).map((tk, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '22px 1fr 150px 150px 34px', alignItems: 'center', gap: 8, background: '#fbfcfb', border: '1px solid #eef0ec', borderRadius: 11, padding: '8px 10px' }}>
+                <span style={{ width: 22, height: 22, borderRadius: 7, background: '#eef2ee', color: '#1e4634', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                <input value={tk.name} onChange={(e) => withP((proj) => { if (proj.tasks && proj.tasks[i]) proj.tasks[i].name = e.target.value; })} placeholder={rl('اسم المرحلة', 'Stage name')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
+                <input value={tk.owner || ''} onChange={(e) => setStageOwner(i, e.target.value)} placeholder={rl('المسؤول (اختياري)', 'Owner (optional)')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
+                <Dropdown value={tk.status} options={STAGE_STATUS.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setStageStatus(i, v)} opt={{ block: true, size: 'sm' }} />
+                <button onClick={() => delStage(i)} title={rl('حذف', 'Delete')} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid #f0dcd9', background: '#fdf6f5', color: '#b0433b', fontSize: 15, fontWeight: 700, cursor: 'pointer', lineHeight: 1 }}>×</button>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={newStage} onChange={(e) => setNewStage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addStage(); }} placeholder={rl('اسم مرحلة جديدة…', 'New stage name…')} style={{ flex: 1, boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
+            <button onClick={addStage} style={{ background: '#1e4634', border: '1px solid #1e4634', color: '#fff', borderRadius: 9, padding: '9px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>{rl('إضافة مرحلة', 'Add stage')}</button>
+          </div>
         </div>
       )}
     </div>

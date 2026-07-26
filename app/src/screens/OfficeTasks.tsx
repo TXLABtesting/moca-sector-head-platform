@@ -36,6 +36,8 @@ const PROG: Record<string, number> = {
 };
 
 const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
+// Organizational units for the "الإدارة / الجهة" dropdown.
+const ORG_UNITS = ['مكتب رئيس القطاع', 'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية', 'إدارة العقود والمشتريات', 'إدارة الخدمات والبنية التحتية', 'مركز التجربة المتكاملة'];
 
 /** Prototype "today" from the single source; WEEKEND = end of this week. */
 const TODAY = APP_TODAY;
@@ -761,7 +763,7 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
-        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
+        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><Dropdown value={f.dept} options={[...new Set([...ORG_UNITS, (f.dept || '').trim()])].filter(Boolean).map((u) => ({ v: u, label: tr(u) }))} onChange={set('dept')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الإدارة', 'Select unit') }} /></div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
         <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><DateField value={f.end} onChange={set('end')} /></div>
