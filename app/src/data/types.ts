@@ -350,6 +350,8 @@ export interface FinModel {
   relTotals: { allPeriods: number; settling: number; prior: number; current: number };
   bankInterest: { dailyAccounts: number; fixedDeposits: number; activeDeposits: number };
   aging: AgingBucket[];
+  // Sector Head's notes on this financial report (chair adds; others read).
+  chairNotes?: { text: string; date: string; author: string }[];
 }
 
 export interface ReqMeeting {

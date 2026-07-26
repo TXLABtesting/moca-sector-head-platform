@@ -24,6 +24,7 @@ const finTh: CSSProperties = { padding: '11px 16px', fontSize: 11, color: '#7d86
 export function FinancialSummary({ year: yearProp, onYearChange }: { year?: string; onYearChange?: (y: string) => void } = {}) {
   const { t, tr, lang } = useI18n();
   const finModels = useStore((s) => s.data.finModels);
+  const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const mAED = (v: number) => rl(fmt(v) + ' م.د', fmt(v) + 'M');
@@ -31,6 +32,27 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
   const cu = useCurrentUser();
   // the responsible member gets Edit on inter-entity balance cards; the chair (and viewers) get Details only
   const canEditRel = cu.type !== 'chair' && (can(cu, 'finReports', 'add') || can(cu, 'finReports', 'edit'));
+  const isChair = cu.type === 'chair';
+
+  const [noteText, setNoteText] = useState('');
+  const addNote = () => {
+    const text = noteText.trim();
+    if (!text) return;
+    const date = new Date().toISOString().slice(0, 10);
+    mutate((d) => {
+      const fm = d.finModels.find((m) => m.year === year);
+      if (!fm) return;
+      (fm.chairNotes ||= []).push({ text, date, author: cu.name });
+    });
+    setNoteText('');
+    showToast(rl('تمت إضافة ملاحظة رئيس القطاع', 'Sector Head note added'));
+  };
+  const delNote = (idx: number) => {
+    mutate((d) => {
+      const fm = d.finModels.find((m) => m.year === year);
+      if (fm?.chairNotes) fm.chairNotes.splice(idx, 1);
+    });
+  };
 
   const [selEntity, setSelEntity] = useState<string | null>(null);
   const [selAging, setSelAging] = useState<string | null>(null);
@@ -327,6 +349,34 @@ export function FinancialSummary({ year: yearProp, onYearChange }: { year?: stri
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Sector Head notes on this report */}
+      {sectionHead('#1f4a37', rl('ملاحظات رئيس القطاع', 'Sector Head notes'))}
+      <div style={{ background: '#fff', borderRadius: 16, padding: '18px 20px', boxShadow: cardSh, marginBottom: 4 }}>
+        {FM.chairNotes && FM.chairNotes.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: isChair ? 16 : 0 }}>
+            {FM.chairNotes.map((n, i) => (
+              <div key={i} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', background: '#f5f8f5', borderRadius: 12, padding: '12px 14px', borderInlineStart: '3px solid #1f4a37' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: '#26302a', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{n.text}</div>
+                  <div style={{ fontSize: 11, color: '#9aa39b', marginTop: 6 }}>{tr(n.author)} · {n.date}</div>
+                </div>
+                {isChair && <button onClick={() => delNote(i)} title={rl('حذف', 'Delete')} style={{ flex: 'none', width: 26, height: 26, border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 13 }}>✕</button>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontSize: 12.5, color: '#9aa39b', padding: '4px 2px', marginBottom: isChair ? 14 : 0 }}>{rl('لا توجد ملاحظات على هذا التقرير بعد.', 'No notes on this report yet.')}</div>
+        )}
+        {isChair && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={3} placeholder={rl('اكتب ملاحظتك على هذا التقرير المالي…', 'Write your note on this financial report…')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.6 }} />
+            <button onClick={addNote} disabled={!noteText.trim()} style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 7, background: noteText.trim() ? '#1f4a37' : '#c3cec4', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: noteText.trim() ? 'pointer' : 'default' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة ملاحظة', 'Add note')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* entity panel drawer */}
