@@ -6,7 +6,6 @@ import { Shell } from './layout/Shell';
 import { useStore } from './store/store';
 import { LoginScreen } from './demo/LoginScreen';
 import { DemoSync } from './demo/DemoSync';
-import { DemoBanner } from './demo/DemoBanner';
 
 function DirSync() {
   const { lang, dir } = useI18n();
@@ -30,7 +29,6 @@ export function App() {
           <DirSync />
           <DemoSync />
           <Gate />
-          <DemoBanner />
         </NavProvider>
       </ToastProvider>
     </I18nProvider>
