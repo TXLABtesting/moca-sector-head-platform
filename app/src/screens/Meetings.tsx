@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { Fade, Badge } from '../components/ui';
+import { Fade, Badge, Modal } from '../components/ui';
+import type { Meeting } from '../data/types';
 import { Dropdown } from '../components/Dropdown';
 import { useI18n } from '../i18n/i18n';
 import { useNav } from '../store/nav';
@@ -35,6 +36,7 @@ function MinutesList() {
   const canEditMin = cu.type !== 'chair' && can(cu, 'minutes', 'edit');
   const canAddMin = cu.type !== 'chair' && (can(cu, 'minutes', 'add') || can(cu, 'minutes', 'edit'));
   const [mForm, setMForm] = useState<{ id: string | null } | null>(null);
+  const [attachMin, setAttachMin] = useState<Meeting | null>(null);
   const meetings = data.meetings;
   const mtasks = data.mtasks;
   const mutate = useStore((s) => s.mutate);
@@ -151,8 +153,15 @@ function MinutesList() {
                 {late > 0 && (
                   <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: '#f7e6e4', color: '#b0433b' }}>{late} {t('overdueWord')}</span>
                 )}
-                <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: bg, color: fg }}>{tr(stName)}</span>
-                <button onClick={(e) => { e.stopPropagation(); goto('meetingDetail', { selMeeting: mt.id }); }} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('فتح', 'Open')}</button>
+                {/* status tag shown for every status EXCEPT the draft placeholder */}
+                {stName !== 'مسودة' && (
+                  <span style={{ fontSize: 10.5, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: bg, color: fg }}>{tr(stName)}</span>
+                )}
+                <button onClick={(e) => { e.stopPropagation(); goto('meetingDetail', { selMeeting: mt.id }); }} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('عرض التفاصيل', 'View details')}</button>
+                <button onClick={(e) => { e.stopPropagation(); setAttachMin(mt); }} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                  {rl('عرض المرفقات', 'View attachments')}
+                </button>
                 {canEditMin && (
                   <button onClick={(e) => { e.stopPropagation(); setMForm({ id: mt.id }); }} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تعديل', 'Edit')}</button>
                 )}
@@ -162,6 +171,28 @@ function MinutesList() {
         })}
       </div>
       {mForm && <MinutesForm meetingId={mForm.id} onClose={() => setMForm(null)} />}
+      {attachMin && (() => {
+        const atts = Array.from(new Set([attachMin.attachment, ...(attachMin.attachments || [])].filter((a): a is string => !!a && !!String(a).trim())));
+        return (
+          <Modal open onClose={() => setAttachMin(null)} width={520}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{rl('مرفقات المحضر', 'Minute attachments')}</h3>
+            <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{tr(attachMin.title)}</p>
+            {atts.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {atts.map((a, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f7f8f6', borderRadius: 11, padding: '11px 13px' }}>
+                    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.6} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: '#2a332d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr(a)}</span>
+                    <AttachmentDownload name={a} size={30} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12.5, color: '#9aa39b', background: '#f7f8f6', border: '1px dashed #e2e6df', borderRadius: 11, padding: '18px 16px', textAlign: 'center' }}>{rl('لا توجد مرفقات لهذا المحضر', 'No attachments for this minute')}</div>
+            )}
+          </Modal>
+        );
+      })()}
     </Fade>
   );
 }
