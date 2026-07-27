@@ -143,7 +143,7 @@ export const PENDING_STATUSES = [DONE_PENDING, CLOSED_PENDING];
 export const finalOf = (pending: string) => (pending === CLOSED_PENDING ? CLOSED : DONE);
 
 /** Sections whose records can enter completion review (one per distinct collection). */
-export const COMPLETION_SECTIONS = ['myTasks', 'minuteTasks', 'committees', 'projects', 'auditReports', 'reportLog', 'reportCenter', 'finReports', 'correspondence', 'minutes', 'leaves'];
+export const COMPLETION_SECTIONS = ['myTasks', 'minuteTasks', 'committees', 'projects', 'auditReports', 'reportLog', 'reportCenter', 'finReports', 'correspondence', 'minutes'];
 
 /** Pseudo-collection for audit observations (nested in data.audit, not a top-level MColl). */
 const OBS_COLL: MColl = {

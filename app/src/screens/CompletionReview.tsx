@@ -42,7 +42,6 @@ const GROUPS: GroupDef[] = [
   { key: 'committees', ar: 'مهام اللجان', en: 'Committee tasks', accent: '#2b8a8a', icBg: '#e4f2f2', icFg: '#2b8a8a', icon: IC('M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2|M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11'), secs: ['committees'] },
   { key: 'projects', ar: 'المشاريع ومراحل المشاريع', en: 'Projects & phases', accent: '#3a6ea5', icBg: '#e9f0f6', icFg: '#3a6ea5', icon: IC('M3 8a2 2 0 0 1 2-2h3.3c.5 0 1 .2 1.4.6l1.1 1.2c.4.4.9.6 1.4.6H19a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z'), secs: ['projects'] },
   { key: 'reports', ar: 'التقارير وملاحظات التدقيق', en: 'Reports & audit', accent: '#a9791f', icBg: '#fbf0d6', icFg: '#a9791f', icon: IC('M4 4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z|M14 2v6h6|M8 13h8M8 17h5'), secs: ['auditReports', 'reportLog', 'reportCenter', 'finReports'] },
-  { key: 'leaves', ar: 'تخطيط الإجازات', en: 'Leave planning', accent: '#b0433b', icBg: '#f7e6e4', icFg: '#b0433b', icon: IC('M3.5 5h17v16h-17z|M8 3v4M16 3v4M3.5 10.5h17'), secs: ['leaves'] },
 ];
 
 const SEC2GROUP: Record<string, GroupKey> = (() => {
