@@ -721,7 +721,7 @@ function LeavePanel(p: PanelProps) {
         <div style={{ background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
             <div style={{ fontSize: 10.5, color: '#9aa39b' }}>{rl('الفترة', 'Period')}</div>
-            {!p.editingDates && !p.canManage && (
+            {!p.editingDates && !p.canManage && !p.canApprove && (
               <button onClick={() => { p.setEditStart(lv.start); p.setEditEnd(lv.end); p.setEditingDates(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#ffffff', border: '1px solid #e2e6df', color: '#1f4a37', borderRadius: 8, padding: '4px 9px', fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
                 {rl('طلب تعديل الفترة', 'Edit dates')}
@@ -812,7 +812,7 @@ function LeavePanel(p: PanelProps) {
               <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('إضافة ملاحظة / سبب رفض', 'Add note / rejection reason')}</div>
               <textarea value={p.noteDraft} onChange={(e) => p.setNoteDraft(e.target.value)} placeholder={rl('اكتب ملاحظتك هنا…', 'Write your note…')} style={{ width: '100%', minHeight: 66, resize: 'vertical', boxSizing: 'border-box', border: '1px solid #e2e6df', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', lineHeight: 1.6 }} />
             </div>
-            <div>
+            {!p.canApprove && <div>
               <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('تعيين بديل', 'Assign backup')}</div>
               <input list="lv-bk-panel" defaultValue={lv.backup && lv.backup !== '—' ? lv.backup : ''}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
@@ -820,7 +820,7 @@ function LeavePanel(p: PanelProps) {
                 placeholder={rl('اكتب اسم البديل…', 'Type backup name…')}
                 style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
               <datalist id="lv-bk-panel">{pool.filter((n) => n !== lv.person).map((n, i) => <option key={i} value={n} />)}</datalist>
-            </div>
+            </div>}
           </>
         )}
       </div>
@@ -839,7 +839,7 @@ function LeavePanel(p: PanelProps) {
             </button>
           </>
         )}
-        {p.canNote && !p.canManage && (
+        {p.canNote && !p.canManage && !p.canApprove && (
           <button onClick={p.onNote} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
             {rl('ملاحظة', 'Note')}
@@ -857,7 +857,7 @@ function LeavePanel(p: PanelProps) {
             </span>
           </>
         )}
-        {p.canReview && !p.canManage && (
+        {p.canReview && !p.canManage && !p.canApprove && (
           <>
             <button onClick={p.onReqEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
