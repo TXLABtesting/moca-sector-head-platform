@@ -14,7 +14,7 @@ export interface DemoCredential {
 }
 
 export const DEMO_CREDENTIALS: DemoCredential[] = [
-  { username: 'fawzia.altayer', password: 'Chair@2026', userId: 'chair' },
+  { username: 'fouzia.altayer', password: 'chief@2026', userId: 'chair' },
   { username: 'moza.almarzouqi', password: 'Moza@2026', userId: 'moza' },
   { username: 'samah.abusharkh', password: 'Samah@2026', userId: 'samah' },
   { username: 'fatma.alrashidi', password: 'Fatma@2026', userId: 'fatma' },
