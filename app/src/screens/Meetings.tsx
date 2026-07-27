@@ -213,6 +213,8 @@ function MeetingDetail() {
   });
 
   const absentees = mt.absentees || [];
+  // all minute attachments (primary + extras), de-duplicated
+  const allAtts = Array.from(new Set([mt.attachment, ...(mt.attachments || [])].filter((a): a is string => !!a && !!String(a).trim())));
 
   return (
     <Fade>
@@ -310,6 +312,22 @@ function MeetingDetail() {
                 </div>
               </>
             )}
+            {/* Attachments — view & download, directly under absence */}
+            <div style={{ height: 1, background: '#eef0ec', margin: '14px 0' }} />
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{rl('المرفقات', 'Attachments')}</h3>
+            {allAtts.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {allAtts.map((a, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#f7f8f6', borderRadius: 10, padding: '10px 12px' }}>
+                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.7} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: '#2a332d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr(a)}</span>
+                    <AttachmentDownload name={a} size={26} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: 11.5, color: '#9aa39b' }}>{rl('لا توجد مرفقات', 'No attachments')}</div>
+            )}
           </div>
 
           <div style={{ ...DETAIL_CARD, padding: 20, border: '1.5px solid #e9dcb8' }}>
@@ -345,33 +363,6 @@ function MeetingDetail() {
               </>
             )}
           </div>
-          {!!(mt.attachments && mt.attachments.length > 1) && (
-            <div style={{ ...DETAIL_CARD, padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{rl('مرفقات إضافية', 'More attachments')}</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {mt.attachments.slice(1).map((a, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12, color: '#2a332d' }}>
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
-                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a}</span>
-                    <AttachmentDownload name={a} size={24} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {mt.attachment && (
-            <div style={{ ...DETAIL_CARD, padding: 20 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{t('minutesAttachment')}</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f7f8f6', borderRadius: 11, padding: '13px 14px' }}>
-                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.6} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: '#2a332d' }}>{tr(mt.attachment)}</div>
-                  <div style={{ fontSize: 10.5, color: '#9aa39b' }}>PDF</div>
-                </div>
-                <AttachmentDownload name={mt.attachment} size={30} />
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </Fade>

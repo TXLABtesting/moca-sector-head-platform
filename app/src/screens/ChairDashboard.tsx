@@ -100,7 +100,7 @@ export function ChairDashboard() {
     const lastUpd = p.timeline && p.timeline.length ? p.timeline[0].text : '';
     return { tag: tr(p.status), tagBg: bg, tagFg: fg, title: tr(p.name),
       notes: [lastUpd ? NOTE(rl('آخر تحديث', 'Latest update'), lastUpd, 'blue') : null, p.nextStep ? NOTE(rl('الخطوة القادمة', 'Next step'), p.nextStep, 'gold') : null].filter(Boolean) as Note[],
-      meta: [MI(rl('المسؤول', 'Owner'), tr(p.owner), 'owner')].filter((m) => m.v),
+      meta: [MI(rl('المسؤول', 'Owner'), tr(p.owner), 'owner'), MI(rl('تاريخ آخر تحديث', 'Last update'), dl(p.lastDate || ''), 'date')].filter((m) => m.v),
       hasProgress: true, progW: (p.progress || 0) + '%', progLabel: (p.progress || 0) + '%',
       progColor: p.status === 'متأخر' ? '#b0433b' : ((p.progress || 0) >= 100 ? '#1f8a5b' : '#3a6ea5'),
       actions: [view(openProject(p.id))] };
