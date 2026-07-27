@@ -201,7 +201,7 @@ export function CompletionReview() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {rows.map((row) => (
-              <div key={row.collKey + ':' + row.id} style={{ border: '1px solid #eef1ec', borderRadius: 14, padding: '15px 17px', background: '#fbfcfb' }}>
+              <div key={row.collKey + ':' + row.id} onClick={() => openDetail(row.collKey, row.id)} style={{ border: '1px solid #eef1ec', borderRadius: 14, padding: '15px 17px', background: '#fbfcfb', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 0, flex: '1 1 320px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -219,7 +219,7 @@ export function CompletionReview() {
                     {row.atts.length > 0 && (
                       <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {row.atts.map((a, i) => (
-                          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f7f8f6', border: '1px solid #eef1ec', borderRadius: 8, padding: '4px 9px', fontSize: 10.5, color: '#3c4a42' }}>
+                          <span key={i} onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f7f8f6', border: '1px solid #eef1ec', borderRadius: 8, padding: '4px 9px', fontSize: 10.5, color: '#3c4a42' }}>
                             <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#b0433b" strokeWidth={1.7} style={{ flex: 'none' }}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
                             <span style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr(a)}</span>
                             <AttachmentDownload name={a} size={20} />
@@ -229,11 +229,10 @@ export function CompletionReview() {
                     )}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 'none', minWidth: 150 }}>
-                    <button onClick={() => openDetail(row.collKey, row.id)} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('عرض التفاصيل', 'View details')}</button>
-                    <button onClick={() => approve(row.sec, row.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                    <button onClick={(e) => { e.stopPropagation(); approve(row.sec, row.id); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{row.pendingStatus === CLOSED_PENDING ? rl('اعتماد الإغلاق', 'Approve closure') : rl('اعتماد الاكتمال', 'Approve')}
                     </button>
-                    <button onClick={() => { setReturnFor({ sec: row.sec, id: row.id }); setReason(''); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#f7e6e4', border: '1px solid #f0d3cf', color: '#b0433b', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                    <button onClick={(e) => { e.stopPropagation(); setReturnFor({ sec: row.sec, id: row.id }); setReason(''); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#f7e6e4', border: '1px solid #f0d3cf', color: '#b0433b', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>{rl('إرجاع للتعديل', 'Return')}
                     </button>
                   </div>
