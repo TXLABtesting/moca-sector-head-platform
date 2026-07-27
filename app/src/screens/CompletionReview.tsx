@@ -8,7 +8,7 @@ import { useNav, type Page, type NavParams } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useToast } from '../components/Toast';
 import { useCurrentUser } from '../store/useCurrentUser';
-import { pendingCompletionItems, DONE, OWNER_OF } from './member/workflow';
+import { pendingCompletionItems, finalOf, CLOSED_PENDING, OWNER_OF } from './member/workflow';
 import { SECTIONS } from '../domain/permissions';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -20,6 +20,7 @@ const TARGET: Record<string, (id: string) => { page: Page; params?: NavParams }>
   committees: (id) => ({ page: 'committees', params: { selCommittee: id } }),
   projects: (id) => ({ page: 'projectDetail', params: { selProject: id } }),
   auditReps: () => ({ page: 'auditDetail' }),
+  audit: () => ({ page: 'auditDetail' }),
   regReports: () => ({ page: 'reglog' }),
   retReports: () => ({ page: 'reportDetail' }),
   finModels: () => ({ page: 'finDetail' }),
@@ -92,6 +93,7 @@ export function CompletionReview() {
     const notes = (r.notes || r.desc || r.summary || '').toString().trim();
     return {
       sec, collKey: String(coll.key), id: r.id, group: SEC2GROUP[sec] || 'all',
+      pendingStatus: coll.status(r),
       typeLabel: secName(sec), title: tr(coll.title(r)), requester,
       reqAt: dl(reqAt), lastUpd: dl(lastUpd), progress, atts, notes,
     };
@@ -116,11 +118,12 @@ export function CompletionReview() {
       const coll = pendingCompletionItems(d).find((x) => x.sec === sec && x.r.id === id)?.coll;
       const rec = coll?.get(d).find((x: any) => x.id === id);
       if (coll && rec) {
-        coll.setStatus(rec, DONE);
+        const finalStatus = finalOf(coll.status(rec));
+        coll.setStatus(rec, finalStatus);
         if (typeof rec.progress === 'number') rec.progress = 100;
         rec._mret = ''; rec._mrev = false; rec._mapproved = true;
         rec._mlog = rec._mlog || [];
-        rec._mlog.unshift({ at: lang === 'en' ? 'Just now' : 'الآن', to: DONE, note: rl('اعتمد رئيس القطاع الاكتمال', 'Completion approved by the Sector Head'), chair: true, by: cu.name });
+        rec._mlog.unshift({ at: lang === 'en' ? 'Just now' : 'الآن', to: finalStatus, note: rl('اعتمد رئيس القطاع ', 'Approved by the Sector Head: ') + finalStatus, chair: true, by: cu.name });
       }
     });
     showToast(rl('تم اعتماد الاكتمال', 'Completion approved'));
@@ -204,7 +207,7 @@ export function CompletionReview() {
                   <div style={{ minWidth: 0, flex: '1 1 320px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 7, padding: '4px 9px', background: '#eef4f0', color: '#1f4a37' }}>{row.typeLabel}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, borderRadius: 20, padding: '3px 10px', background: '#fbf0d6', color: '#a9791f' }}>{rl('مكتمل قيد الاعتماد', 'Completion pending')}</span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, borderRadius: 20, padding: '3px 10px', background: '#fbf0d6', color: '#a9791f' }}>{tr(row.pendingStatus)}</span>
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: '#17211c', marginBottom: 10, lineHeight: 1.4 }}>{row.title}</div>
                     <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
@@ -229,7 +232,7 @@ export function CompletionReview() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 'none', minWidth: 150 }}>
                     <button onClick={() => openDetail(row.collKey, row.id)} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('عرض التفاصيل', 'View details')}</button>
                     <button onClick={() => approve(row.sec, row.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{rl('اعتماد الاكتمال', 'Approve')}
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{row.pendingStatus === CLOSED_PENDING ? rl('اعتماد الإغلاق', 'Approve closure') : rl('اعتماد الاكتمال', 'Approve')}
                     </button>
                     <button onClick={() => { setReturnFor({ sec: row.sec, id: row.id }); setReason(''); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#f7e6e4', border: '1px solid #f0d3cf', color: '#b0433b', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                       <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>{rl('إرجاع للتعديل', 'Return')}

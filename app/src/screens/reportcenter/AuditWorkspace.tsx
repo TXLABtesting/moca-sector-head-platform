@@ -13,6 +13,7 @@ import { can } from '../../domain/permissions';
 import { triggerDownload } from '../../shared/fileGen';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, excelSerialToDate, parseBulk, alias, pick } from './templateIO';
 import { audBullets } from './shared';
+import { completionOptions } from '../member/workflow';
 import type { AuditArea, AuditRep, AuditObsLog } from '../../data/types';
 import { APP_TODAY_AR } from '../../shared/today';
 import { wfTone } from '../../domain/approval';
@@ -27,6 +28,7 @@ const AUDIT_UNITS = [
 ];
 const OBSC: Record<string, [string, string]> = {
   'مغلق': ['#e2f0e8', '#2e7d55'],
+  'مغلق قيد الاعتماد': ['#fbf0d6', '#a9791f'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
@@ -398,7 +400,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
             <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={o.title} onChange={setOI('title')} style={{ ...inputStyle, ...(needs('عنوان الملاحظة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
             <div><Label>المسؤول عن المعالجة</Label><input value={o.owner} onChange={setOI('owner')} placeholder="اكتب اسم المسؤول…" style={{ ...inputStyle, ...(needs('المسؤول عن المعالجة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div><Label>الحالة</Label><Dropdown value={o.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setO((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
+              <div><Label>الحالة</Label><Dropdown value={o.status} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setO((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
               <div><Label>تاريخ التنفيذ</Label><DateField value={o.due} onChange={(v) => setO((p) => ({ ...p, due: v }))} /></div>
             </div>
           </div>
@@ -439,7 +441,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
                     <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={od.title} onChange={(e) => setObs(i, 'title', e.target.value)} style={inputStyle} /></div>
                     <div><Label>المسؤول عن المعالجة</Label><input value={od.owner} onChange={(e) => setObs(i, 'owner', e.target.value)} style={inputStyle} /></div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div><Label>الحالة</Label><Dropdown value={od.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setObs(i, 'status', v)} opt={{ block: true, size: 'sm' }} /></div>
+                      <div><Label>الحالة</Label><Dropdown value={od.status} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setObs(i, 'status', v)} opt={{ block: true, size: 'sm' }} /></div>
                       <div><Label>تاريخ التنفيذ</Label><DateField value={od.due} onChange={(v) => setObs(i, 'due', v)} /></div>
                     </div>
                   </div>
@@ -535,7 +537,7 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
         <div><Label>الوحدة التنظيمية المعنية</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, unit: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px', placeholder: 'اختر الوحدة…' }} /></div>
         <div><Label>المسؤول عن المعالجة</Label><input value={f.owner} onChange={setI('owner')} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
-        <div><Label>الحالة</Label><Dropdown value={f.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>الحالة</Label><Dropdown value={f.status} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>تاريخ التنفيذ</Label><DateField value={f.due} onChange={(v) => setF((p) => ({ ...p, due: v }))} /></div>
       </div>
 
@@ -622,7 +624,7 @@ function ObsView({ obsId, onEdit, onClose }: { obsId: string; onEdit: () => void
       <div style={{ background: '#f7f9f6', border: '1px solid #e6ece7', borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 9 }}>
         <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62' }}>الحالة الجديدة:</span>
-          <Dropdown value={newStatus} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={setNewStatus} opt={{ size: 'sm', minWidth: '130px' }} />
+          <Dropdown value={newStatus} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={setNewStatus} opt={{ size: 'sm', minWidth: '130px' }} />
         </div>
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ملاحظة التحديث (اختياري)…" style={inputStyle} />
         <button onClick={applyStatus} style={{ alignSelf: 'flex-start', background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تحديث الحالة</button>

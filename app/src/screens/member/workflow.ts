@@ -134,16 +134,29 @@ export const FINAL_STATUSES = ['معتمد', 'معتمدة', 'مكتمل', 'مل
    "قيد مراجعة الاكتمال" screen. Both use the SAME record — no duplicates. */
 export const DONE = 'مكتمل';
 export const DONE_PENDING = 'مكتمل قيد الاعتماد';
+// Closure variant (audit observations close rather than "complete").
+export const CLOSED = 'مغلق';
+export const CLOSED_PENDING = 'مغلق قيد الاعتماد';
+/** All statuses that place an item in the chair's completion-review queue. */
+export const PENDING_STATUSES = [DONE_PENDING, CLOSED_PENDING];
+/** Map a pending status to the final status the chair applies on approval. */
+export const finalOf = (pending: string) => (pending === CLOSED_PENDING ? CLOSED : DONE);
 
 /** Sections whose records can enter completion review (one per distinct collection). */
 export const COMPLETION_SECTIONS = ['myTasks', 'minuteTasks', 'committees', 'projects', 'auditReports', 'reportLog', 'reportCenter', 'finReports', 'correspondence', 'minutes', 'leaves'];
+
+/** Pseudo-collection for audit observations (nested in data.audit, not a top-level MColl). */
+const OBS_COLL: MColl = {
+  key: 'audit', get: (d) => d.audit || [], title: (r) => r.obs || r.area || r.num || '—', status: (r) => r.status, setStatus: (r, s) => { r.status = s; },
+  make: (f) => f, load: (r) => r,
+};
 
 /** Status options for a picker: members/owners see "مكتمل قيد الاعتماد" instead of
  *  the final "مكتمل" (chair-only). Chair keeps the final "مكتمل" and also sees the
  *  pending state. Preserves order and any already-set value. */
 export function completionOptions(list: string[], isChair: boolean): string[] {
-  if (isChair) return list.includes(DONE_PENDING) ? list : list;
-  return list.map((s) => (s === DONE ? DONE_PENDING : s));
+  if (isChair) return list;
+  return list.map((s) => (s === DONE ? DONE_PENDING : s === CLOSED ? CLOSED_PENDING : s));
 }
 
 /** The status an owner action should apply when "marking done" (pending for members). */
@@ -154,8 +167,10 @@ export function pendingCompletionItems(data: AppData): { sec: string; coll: MCol
   const out: { sec: string; coll: MColl; r: any }[] = [];
   COMPLETION_SECTIONS.forEach((sec) => {
     const coll = mColl(sec); if (!coll) return;
-    coll.get(data).forEach((r) => { if (coll.status(r) === DONE_PENDING) out.push({ sec, coll, r }); });
+    coll.get(data).forEach((r) => { if (PENDING_STATUSES.includes(coll.status(r))) out.push({ sec, coll, r }); });
   });
+  // audit observations (nested in data.audit) that owners flagged closed-pending
+  (data.audit || []).forEach((r) => { if (PENDING_STATUSES.includes(r.status)) out.push({ sec: 'auditReports', coll: OBS_COLL, r }); });
   return out;
 }
 
