@@ -9,7 +9,7 @@ import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
-import { pushUpdateReq } from './member/workflow';
+import { pushUpdateReq, completionOptions, markDoneStatus } from './member/workflow';
 import { APP_TODAY, APP_TODAY_AR, todayPlus } from '../shared/today';
 import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -27,12 +27,13 @@ const OTS: Record<string, [string, string]> = {
   'بانتظار اعتماد': ['#e6eef6', '#3a6ea5'],
   'يحتاج توجيه': ['#f7ece0', '#c26a2b'],
   'مكتمل': ['#e2f0e8', '#2e7d55'],
+  'مكتمل قيد الاعتماد': ['#fbf0d6', '#a9791f'],
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
 
 const PROG: Record<string, number> = {
   'لم يبدأ': 6, 'يحتاج توجيه': 35, 'متأخر': 45,
-  'قيد التنفيذ': 60, 'بانتظار اعتماد': 80, 'مكتمل': 100,
+  'قيد التنفيذ': 60, 'بانتظار اعتماد': 80, 'مكتمل قيد الاعتماد': 100, 'مكتمل': 100,
 };
 
 const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
@@ -216,15 +217,16 @@ export function OfficeTasks() {
 
   // ---- filter dropdown options ----
   const statusOpts = [{ v: '', label: t('allStatuses') }].concat(O_STATUS_LIST.map((s) => ({ v: s, label: tr(s) })));
-  const statusSetOpts = O_STATUS_LIST.map((s) => ({ v: s, label: tr(s) }));
+  const statusSetOpts = completionOptions(O_STATUS_LIST, isChair).map((s) => ({ v: s, label: tr(s) }));
   const ownerOpts = [{ v: '', label: rl('كل المسؤولين', 'All owners') }].concat([...new Set(otasks.map((tk) => tk.owner))].map((o) => ({ v: o, label: tr(o) })));
 
   // ---- mutations ----
   const setStatus = (id: string, v: string) => mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = v; tk.lastUpdate = TODAY_AR; } });
   const reqUpdate = (id: string) => { mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) pushUpdateReq(d, { owner: tk.owner, title: tk.title, section: 'myTasks' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markComplete = (id: string) => {
-    mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = 'مكتمل'; tk.lastUpdate = TODAY_AR; } });
-    showToast(rl('تم وضع علامة الاكتمال', 'Task marked complete'));
+    const done = markDoneStatus(isChair);
+    mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = done; tk.lastUpdate = TODAY_AR; } });
+    showToast(isChair ? rl('تم وضع علامة الاكتمال', 'Task marked complete') : rl('أُرسل طلب اعتماد الاكتمال لرئيس القطاع', 'Completion approval requested from the Sector Head'));
   };
   const openModal = (type: 'deadline' | 'directive', id: string) => {
     const tk = otasks.find((x) => x.id === id);
@@ -729,7 +731,7 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
 
   // creator is automatically the primary owner — no manual selection
   const primaryOwner = existing ? existing.owner : cu.name;
-  const STATUSES = ['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'];
+  const STATUSES = completionOptions(['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'], cu.type === 'chair');
 
   const save = (send: boolean) => {
     const title = (f.title || '').trim();

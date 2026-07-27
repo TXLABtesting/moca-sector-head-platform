@@ -9,6 +9,7 @@ import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import type { MinuteTask } from '../../data/types';
 import { MT_STATUSES } from './mtShared';
+import { completionOptions } from '../member/workflow';
 import { triggerDownload } from '../../shared/fileGen';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, excelSerialToDate } from '../reportcenter/templateIO';
 
@@ -276,7 +277,7 @@ export function MinuteTaskForm({ taskId, onClose }: { taskId: string | null; onC
         <div><Label>المسؤول عن التنفيذ</Label><input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
         <div><Label>تاريخ الإنجاز المتوقع</Label><DateField value={f.due} onChange={(v) => setF((p) => ({ ...p, due: v }))} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 84px', gap: 10 }}>
-          <div><Label>حالة الإنجاز</Label><Dropdown value={f.status} options={MT_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
+          <div><Label>حالة الإنجاز</Label><Dropdown value={f.status} options={completionOptions(MT_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
           <div><Label>الإنجاز %</Label><input value={f.prog} onChange={setI('prog')} placeholder="%" style={{ ...inputStyle, textAlign: 'center' }} /></div>
         </div>
         <div><Label>الميزانية المطلوبة</Label><input value={f.budget} onChange={setI('budget')} placeholder="التكلفة التقديرية إن وجدت" style={inputStyle} /></div>

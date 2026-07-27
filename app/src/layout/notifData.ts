@@ -2,7 +2,7 @@ import type { AppData } from '../data/types';
 import type { Page, NavParams } from '../store/nav';
 import type { SeedUser } from '../domain/permissions';
 import { SECTIONS, SEC_PAGE } from '../domain/permissions';
-import { mColl, OWNER_OF, ownedBy } from '../screens/member/workflow';
+import { mColl, OWNER_OF, ownedBy, pendingCompletionItems } from '../screens/member/workflow';
 import { chairNotesForUser } from '../domain/reportNotes';
 import { todayPlus } from '../shared/today';
 import { AR_MONTHS } from '../shared/constants';
@@ -121,6 +121,10 @@ export function buildNotifications(
     });
     data.leaves.filter((l) => l.status === 'بانتظار الاعتماد').forEach((l) => {
       push({ key: 'lv:' + l.id, kind: 'leave', title: rl('طلب إجازة بانتظار الاعتماد: ', 'Leave request awaiting approval: ') + tr(l.person), sub: tr(l.type) + ' · ' + tr(l.start), meta: rl('الإجازات', 'Leaves'), page: 'leaves', params: { selLeave: l.id } }, isFresh(l));
+    });
+    // Items marked "completion pending" by owners — awaiting the chair's completion approval.
+    pendingCompletionItems(data).forEach(({ sec, coll, r }) => {
+      push({ key: 'comp:' + String(coll.key) + ':' + r.id, kind: 'review', title: rl('بانتظار اعتماد الاكتمال: ', 'Awaiting completion approval: ') + tr(coll.title(r)), sub: rl('من ', 'From ') + userName(r._mowner || ''), meta: secName(sec), page: 'completionReview' }, isFresh(r));
     });
   } else {
     SCAN_SECS.forEach((sec) => {

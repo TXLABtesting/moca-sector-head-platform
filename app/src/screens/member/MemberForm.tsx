@@ -7,7 +7,7 @@ import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
-import { mColl, sectionFormKind, memberDefaultSection } from './workflow';
+import { mColl, sectionFormKind, memberDefaultSection, completionOptions } from './workflow';
 import { SECTIONS } from '../../domain/permissions';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -159,7 +159,7 @@ export function MemberForm({ open, onClose, section, editId }: Props) {
           <Field label={rl('التاريخ', 'Date')} k="fdate" />
         )}
 
-        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.fstatus || ''} options={STATUS_OPTS.map((v) => ({ v, label: tr(v) }))} onChange={set('fstatus')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الحالة', 'Select status') }} /></div>
+        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.fstatus || ''} options={completionOptions(STATUS_OPTS, cu.type === 'chair').map((v) => ({ v, label: tr(v) }))} onChange={set('fstatus')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الحالة', 'Select status') }} /></div>
 
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('ملاحظات', 'Notes')}</Label><textarea onChange={setI('note')} defaultValue={f.note || ''} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>

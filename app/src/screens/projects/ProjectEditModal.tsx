@@ -6,6 +6,7 @@ import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
+import { completionOptions } from '../member/workflow';
 import { UNITS } from '../../shared/constants';
 import type { Project } from '../../data/types';
 
@@ -119,7 +120,7 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
         <Field label={rl('الاسم الإنجليزي', 'English name')} k="nameEn" />
         <div><Label>{rl('المسؤول', 'Owner')}</Label><input value={f.owner || ''} onChange={(e) => set('owner')(e.target.value)} placeholder={rl('اكتب اسم المسؤول…', 'Type owner name…')} style={inputStyle} /></div>
         <div><Label>{rl('الوحدة التنظيمية', 'Org unit')}</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={set('unit')} opt={{ block: true, size: 'sm' }} /></div>
-        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUS_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={completionOptions(STATUS_OPTS, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('الأولوية', 'Priority')}</Label><Dropdown value={f.priority} options={PRI_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('priority')} opt={{ block: true, size: 'sm' }} /></div>
         <Field label={rl('نسبة الإنجاز %', 'Progress %')} k="progress" />
         <Field label={rl('الميزانية (درهم)', 'Budget (AED)')} k="budget" />

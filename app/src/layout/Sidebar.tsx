@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
 import { useCurrentUser } from '../store/useCurrentUser';
 import { canSee } from '../domain/permissions';
+import { pendingCompletionItems } from '../screens/member/workflow';
 import { ACTIVE_MAP, NAV_SECTION, NAV_BASE, NAV_ON, BADGE_STYLE } from './navConfig';
 import { Avatar } from '../components/ui';
 import { asset } from '../shared/helpers';
@@ -26,6 +27,7 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
   const oLateN = data.otasks.filter((tk) => tk.status === 'متأخر').length;
   const otaskBadge = oNeedDir + oLateN;
   const leaveBadge = data.leaves.filter((l) => l.status === 'بانتظار الاعتماد').length;
+  const completionBadge = cu.type === 'chair' ? pendingCompletionItems(data).length : 0;
 
   const activeKey = ACTIVE_MAP[page] || page;
   const see = (key: string) => {
@@ -49,6 +51,7 @@ export function Sidebar({ collapsed, onToggleCollapse, menuOpen, onCloseMenu }: 
     { key: 'committees', labelKey: '', labelAr: 'اللجان وفرق العمل', labelEn: 'Committees', icon: <IcoUsers />, show: see('committees') },
     { key: 'otasks', labelKey: '', labelAr: navTasksLabel, labelEn: navTasksLabel, icon: <IcoClipboard />, badge: otaskBadge, show: see('otasks') },
     { key: 'leaves', labelKey: '', labelAr: 'تخطيط إجازات الفريق', labelEn: 'Team leaves', icon: <IcoLeave />, badge: leaveBadge, show: see('leaves') },
+    { key: 'completionReview', labelKey: '', labelAr: 'قيد مراجعة الاكتمال', labelEn: 'Completion review', icon: <IcoCheckReview />, badge: completionBadge, show: cu.type === 'chair' },
     { key: 'settings', labelKey: '', labelAr: 'الإعدادات والصلاحيات', labelEn: 'Settings & Roles', icon: <IcoSettings />, show: see('settings') },
   ];
 
@@ -125,4 +128,5 @@ const IcoReport = () => <svg {...S}><path d="M4 4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0
 const IcoUsers = () => <svg {...S}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" /></svg>;
 const IcoClipboard = () => <svg {...S}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="m9 13 2 2 4-4" /></svg>;
 const IcoLeave = () => <svg {...S}><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /><path d="M12 14v3M10.5 15.5h3" /></svg>;
+const IcoCheckReview = () => <svg {...S}><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>;
 const IcoSettings = () => <svg {...S}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;

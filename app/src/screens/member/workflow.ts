@@ -124,8 +124,40 @@ export function ownedBy(ownerStr: string, name: string): boolean {
   return first.length >= 3 && ownerStr.includes(first);
 }
 
-/** Statuses considered "closed" for the member's open-items counters. */
+/** Statuses considered "closed" for the member's open-items counters.
+ *  DONE_PENDING is deliberately NOT here — it is not final until the chair approves. */
 export const FINAL_STATUSES = ['معتمد', 'معتمدة', 'مكتمل', 'ملغي', 'ملغاة', 'مغلق', 'مرفوض', 'مرفوضة', 'منتهية'];
+
+/* ---- Completion-approval workflow ----
+   Members/owners can only mark an item "مكتمل قيد الاعتماد" (completion pending
+   approval). The final "مكتمل" is set exclusively by the chair from the unified
+   "قيد مراجعة الاكتمال" screen. Both use the SAME record — no duplicates. */
+export const DONE = 'مكتمل';
+export const DONE_PENDING = 'مكتمل قيد الاعتماد';
+
+/** Sections whose records can enter completion review (one per distinct collection). */
+export const COMPLETION_SECTIONS = ['myTasks', 'minuteTasks', 'committees', 'projects', 'auditReports', 'reportLog', 'reportCenter', 'finReports', 'correspondence', 'minutes', 'leaves'];
+
+/** Status options for a picker: members/owners see "مكتمل قيد الاعتماد" instead of
+ *  the final "مكتمل" (chair-only). Chair keeps the final "مكتمل" and also sees the
+ *  pending state. Preserves order and any already-set value. */
+export function completionOptions(list: string[], isChair: boolean): string[] {
+  if (isChair) return list.includes(DONE_PENDING) ? list : list;
+  return list.map((s) => (s === DONE ? DONE_PENDING : s));
+}
+
+/** The status an owner action should apply when "marking done" (pending for members). */
+export const markDoneStatus = (isChair: boolean) => (isChair ? DONE : DONE_PENDING);
+
+/** Every record across all collections currently awaiting completion approval. */
+export function pendingCompletionItems(data: AppData): { sec: string; coll: MColl; r: any }[] {
+  const out: { sec: string; coll: MColl; r: any }[] = [];
+  COMPLETION_SECTIONS.forEach((sec) => {
+    const coll = mColl(sec); if (!coll) return;
+    coll.get(data).forEach((r) => { if (coll.status(r) === DONE_PENDING) out.push({ sec, coll, r }); });
+  });
+  return out;
+}
 
 const SEC_KIND: Record<string, string> = {
   correspondence: 'correspondence', projects: 'project', projPhases: 'project', projUpdates: 'project', projRisks: 'project',
