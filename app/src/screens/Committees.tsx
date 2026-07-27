@@ -13,6 +13,7 @@ import { ownedBy, pushUpdateReq } from './member/workflow';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
+import { AttachmentDownload } from '../components/AttachmentDownload';
 import { TagInput } from '../components/TagInput';
 import type { Committee, CommitteeMeeting, CommitteeTask, CommitteeDecision } from '../data/types';
 import { SectionAddButton } from '../components/SectionAddButton';
@@ -574,7 +575,8 @@ function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, sho
                 {m.attachments.map((a, ai) => (
                   <span key={ai} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1px solid #e6ece7', borderRadius: 8, padding: '4px 9px', fontSize: 10.5, color: '#3c4a42' }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
-                    {a}
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160, whiteSpace: 'nowrap' }}>{tr(a)}</span>
+                    <AttachmentDownload name={a} size={20} />
                   </span>
                 ))}
               </div>
