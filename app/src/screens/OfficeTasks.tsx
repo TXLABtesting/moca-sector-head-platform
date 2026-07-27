@@ -9,7 +9,7 @@ import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
-import { pushUpdateReq, completionOptions, markDoneStatus } from './member/workflow';
+import { pushUpdateReq, completionOptions, markDoneStatus, DONE_PENDING } from './member/workflow';
 import { APP_TODAY, APP_TODAY_AR, todayPlus } from '../shared/today';
 import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -187,10 +187,11 @@ export function OfficeTasks() {
 
   // ---- board columns (final 5-column set) ----
   const colDefs: { key: string; label: string; dot: string; match: (r: Dec) => boolean }[] = [
-    { key: 'nodue', label: rl('بدون موعد نهائي', 'No deadline'), dot: '#7a4d94', match: (r) => r.status !== 'مكتمل' && r.noDue },
+    { key: 'nodue', label: rl('بدون موعد نهائي', 'No deadline'), dot: '#7a4d94', match: (r) => r.status !== 'مكتمل' && r.status !== DONE_PENDING && r.noDue },
     { key: 'inprogress', label: rl('قيد التنفيذ', 'In progress'), dot: '#a9791f', match: (r) => (r.status === 'قيد التنفيذ' || r.status === 'يحتاج توجيه' || r.status === 'بانتظار اعتماد') && !r.noDue },
     { key: 'late', label: rl('متأخر', 'Overdue'), dot: '#b0433b', match: (r) => r.status === 'متأخر' && !r.noDue },
     { key: 'notstarted', label: rl('لم يبدأ', 'Not started'), dot: '#9aa39b', match: (r) => r.status === 'لم يبدأ' && !r.noDue },
+    { key: 'donepending', label: rl('مكتمل قيد الاعتماد', 'Completion pending'), dot: '#c9a24b', match: (r) => r.status === DONE_PENDING },
     { key: 'done', label: rl('مكتمل', 'Completed'), dot: '#2e7d55', match: (r) => r.status === 'مكتمل' },
   ];
   const columns = colDefs.map((c) => { const list = rows.filter(c.match); return { ...c, count: list.length, tasks: list, isEmpty: list.length === 0 }; });
@@ -363,8 +364,10 @@ export function OfficeTasks() {
                 if (cur && c.match(cur)) return; // dropped on its own column
                 const wasNoDue = noDueOf(tk);
                 mutate((d) => {
-                  const r = d.otasks.find((x) => x.id === tid); if (!r) return;
-                  if (c.key === 'nodue') { r.due = ''; r.end = ''; if (r.status === 'مكتمل') r.status = 'قيد التنفيذ'; }
+                  const r = d.otasks.find((x) => x.id === tid) as typeof d.otasks[number] & { _mowner?: string; _mret?: string }; if (!r) return;
+                  if (c.key === 'nodue') { r.due = ''; r.end = ''; if (r.status === 'مكتمل' || r.status === DONE_PENDING) r.status = 'قيد التنفيذ'; }
+                  // members can't finalize — dropping on "مكتمل" routes to completion review
+                  else if (c.key === 'donepending' || (c.key === 'done' && !isChair)) { r.status = DONE_PENDING; r._mret = ''; r._mowner = r._mowner || cu.id; }
                   else if (c.key === 'done') { r.status = 'مكتمل'; }
                   else { r.status = c.key === 'inprogress' ? 'قيد التنفيذ' : c.key === 'late' ? 'متأخر' : 'لم يبدأ'; }
                   r.lastUpdate = rl('اليوم', 'Today');
