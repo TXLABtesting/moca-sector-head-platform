@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useStore } from '../../store/store';
-import { pushUpdateReq } from '../member/workflow';
+import { pushUpdateReq, DONE_PENDING } from '../member/workflow';
 import { useI18n } from '../../i18n/i18n';
 import { useNav } from '../../store/nav';
 import { useToast } from '../../components/Toast';
@@ -143,10 +143,10 @@ export function ProjectsList() {
 
   // ---- kanban columns -------------------------------------------------------
   const colDefs: { keys: string[]; label: string; dot: string }[] = [
-    { keys: ['لم يبدأ', 'بانتظار الاعتماد'], label: rl('قيد الاعتماد', 'Pending approval'), dot: '#9aa39b' },
+    { keys: ['لم يبدأ', 'بانتظار الاعتماد', 'يحتاج قرار'], label: rl('قيد الاعتماد', 'Pending approval'), dot: '#9aa39b' },
     { keys: ['قيد التنفيذ'], label: rl('قيد التنفيذ', 'In progress'), dot: '#3a6ea5' },
-    { keys: ['يحتاج قرار'], label: rl('بانتظار توجيه', 'Awaiting direction'), dot: '#c9a24b' },
     { keys: ['متأخر'], label: rl('متأخر', 'Delayed'), dot: '#b0433b' },
+    { keys: [DONE_PENDING], label: rl('مكتمل قيد الاعتماد', 'Completion pending'), dot: '#c9a24b' },
     { keys: ['مكتمل'], label: rl('مكتمل', 'Completed'), dot: '#2e7d55' },
   ];
   const columns = colDefs.map((c) => ({
@@ -158,20 +158,21 @@ export function ProjectsList() {
   const reqUpdate = (p: { owner: string; name: string }) => { mutate((d) => pushUpdateReq(d, { owner: p.owner, title: p.name, section: 'projects' })); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
 
   // ---- drag & drop between status columns -----------------------------------
-  const DROP_STATUS = ['بانتظار الاعتماد', 'قيد التنفيذ', 'يحتاج قرار', 'متأخر', 'مكتمل'];
+  const DROP_STATUS = ['بانتظار الاعتماد', 'قيد التنفيذ', 'متأخر', DONE_PENDING, 'مكتمل'];
   const onDropTo = (ci: number) => (e: React.DragEvent) => {
     e.preventDefault(); setDragOverCol(null);
     const pid = e.dataTransfer.getData('text/plain'); if (!pid) return;
     const proj = projects.find((x) => x.id === pid); if (!proj) return;
     if (colDefs[ci].keys.includes(proj.status)) return; // dropped on its own column
-    const target = DROP_STATUS[ci];
-    const memberCompletion = target === 'مكتمل' && !isChair;
+    let target = DROP_STATUS[ci];
+    // Members can't finalize a project — dropping on "مكتمل" routes to completion review.
+    if (target === 'مكتمل' && !isChair) target = DONE_PENDING;
+    const toReview = target === DONE_PENDING;
     mutate((d) => {
       const pr = d.projects.find((x) => x.id === pid) as any; if (!pr) return;
-      if (memberCompletion) {
-        // the team never completes a project directly — it goes to the chief for approval
-        pr.status = 'بانتظار الاعتماد'; pr.progress = 100;
-        pr._mrev = true; pr._mret = ''; pr._mowner = pr._mowner || cu.id;
+      if (toReview) {
+        pr.status = DONE_PENDING; pr.progress = 100;
+        pr._mret = ''; pr._mowner = pr._mowner || cu.id;
         (pr._mlog = pr._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: rl('طلب اعتماد الاكتمال', 'Completion approval requested'), sent: true, by: cu.name });
       } else {
         pr.status = target;
@@ -179,8 +180,8 @@ export function ProjectsList() {
         if (target === 'قيد التنفيذ' && (!pr.progress || pr.progress < 10)) pr.progress = 10;
       }
     });
-    showToast(memberCompletion
-      ? rl('أُرسل طلب اعتماد الاكتمال إلى رئيس القطاع — لا يكتمل المشروع إلا باعتمادها', 'Completion request sent — the project completes only with the Sector Head’s approval')
+    showToast(toReview
+      ? rl('انتقل المشروع إلى «مكتمل قيد الاعتماد» — بانتظار اعتماد رئيس القطاع', 'Moved to “Completion pending” — awaiting the Sector Head’s approval')
       : rl('تم نقل المشروع إلى «' + tr(colDefs[ci].label) + '»', 'Project moved to “' + colDefs[ci].label + '”'));
   };
 
