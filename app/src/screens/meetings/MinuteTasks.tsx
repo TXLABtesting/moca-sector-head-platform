@@ -111,7 +111,6 @@ export function MinuteTasks() {
     { icon: 'timer', label: rl('قيد التنفيذ', 'In progress'), value: cnt('قيد التنفيذ'), bg: '#fbf0d6', fg: '#a9791f', accent: '#a9791f', kind: 'قيد التنفيذ' },
     { icon: 'note', label: rl('لم تبدأ', 'Not started'), value: cnt('لم يبدأ'), bg: '#eceae6', fg: '#8a8078', accent: '#8a8078', kind: 'لم يبدأ' },
     { icon: 'pin', label: rl('المتأخرة', 'Overdue'), value: cnt('متأخر'), bg: '#f7e6e4', fg: '#b0433b', accent: '#b0433b', kind: 'متأخر' },
-    { icon: 'shield', label: rl('تحتاج دعم رئيس القطاع', 'Need your support'), value: supCount, bg: '#fbf3df', fg: '#c9a24b', accent: '#c9a24b', kind: 'support' },
   ];
 
   const kpiClick = (kind: string) => {
