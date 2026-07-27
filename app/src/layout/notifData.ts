@@ -156,7 +156,11 @@ export function buildNotifications(
       if (m.status === 'تم اقتراح موعد آخر') {
         push({ key: 'mtgp:' + m.id, kind: 'meeting', title: rl('اقترح رئيس القطاع موعدًا آخر: ', 'The Sector Head proposed another time: ') + tr(m.subject), sub: (m.newDate ? tr(m.newDate) + (m.newTime ? ' - ' + m.newTime : '') : ''), meta: rl('الاجتماعات', 'Meetings'), page: 'reqmeetings', params: { selMeeting: m.id } }, true);
       } else if (m.status === 'معتمد') {
-        push({ key: 'mtga:' + m.id, kind: 'approved', title: rl('تم اعتماد الاجتماع: ', 'Meeting approved: ') + tr(m.subject), sub: rl('يمكن إضافته إلى تقويم Outlook', 'Can be added to Outlook calendar'), meta: rl('الاجتماعات', 'Meetings'), page: 'reqmeetings', params: { selMeeting: m.id } }, true);
+        const chairReq = !!m._chairReq;
+        push({ key: 'mtga:' + m.id, kind: chairReq ? 'meeting' : 'approved',
+          title: (chairReq ? rl('طلب رئيس القطاع عقد اجتماع: ', 'The Sector Head requested a meeting: ') : rl('تم اعتماد الاجتماع: ', 'Meeting approved: ')) + tr(m.subject),
+          sub: chairReq ? (tr(m.proposed) + ' · ' + rl('أضِفه إلى Outlook', 'Add to Outlook')) : rl('يمكن إضافته إلى تقويم Outlook', 'Can be added to Outlook calendar'),
+          meta: rl('الاجتماعات', 'Meetings'), page: 'reqmeetings', params: { selMeeting: m.id } }, true);
       }
     });
   }
