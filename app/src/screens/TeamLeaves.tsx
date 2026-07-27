@@ -659,7 +659,6 @@ function LeavePanel(p: PanelProps) {
   const add = (n: string) => { if (n && !seen[n]) { seen[n] = true; pool.push(n); } };
   if (lv.cat === 'manager') { p.managerNames.forEach(add); p.sectorManagers.forEach(add); }
   else { p.members.forEach(add); p.officeNames.forEach(add); }
-  const bkOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') }, ...pool.filter((n) => n !== lv.person && !busy[n]).map((n) => ({ v: n, label: n }))];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -815,7 +814,12 @@ function LeavePanel(p: PanelProps) {
             </div>
             <div>
               <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('تعيين بديل', 'Assign backup')}</div>
-              <Dropdown value={lv.backup || '—'} options={bkOpts} onChange={p.onSetBackup} opt={{ size: 'sm', block: true, minWidth: '100%' }} />
+              <input list="lv-bk-panel" defaultValue={lv.backup && lv.backup !== '—' ? lv.backup : ''}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                onBlur={(e) => { const v = e.target.value.trim(); const cur = lv.backup && lv.backup !== '—' ? lv.backup : ''; if (v !== cur) p.onSetBackup(v || '—'); }}
+                placeholder={rl('اكتب اسم البديل…', 'Type backup name…')}
+                style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
+              <datalist id="lv-bk-panel">{pool.filter((n) => n !== lv.person).map((n, i) => <option key={i} value={n} />)}</datalist>
             </div>
           </>
         )}
@@ -885,10 +889,10 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
 
   const existing = leaveId ? data.leaves.find((l) => l.id === leaveId) : null;
   const [f, setF] = useState<Record<string, string>>(() => existing ? {
-    person: existing.person, type: existing.type, start: existing.start, end: existing.end,
+    person: existing.person, cat: existing.cat || 'office', type: existing.type, start: existing.start, end: existing.end,
     backup: existing.backup || '—', notes: existing.notes || '', chairNotes: existing.chairNotes || '',
     fstatus: existing.status,
-  } : { person: '', type: 'سنوية', start: '', end: '', backup: '—', notes: '', chairNotes: '', fstatus: 'مخططة' });
+  } : { person: '', cat: 'office', type: 'سنوية', start: '', end: '', backup: '—', notes: '', chairNotes: '', fstatus: 'مخططة' });
   const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -898,14 +902,10 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   const sectorNames = data.sectorManagers.map((m) => m.name);
   const deptMgrNames = DEPT_MANAGERS.filter((n) => !sectorNames.includes(n) && !officeNames.includes(n));
   const managerNames = [...sectorNames, ...deptMgrNames];
-  const personOpts = [
-    ...officeNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('فريق المكتب', 'Office team') })),
-    ...sectorNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء القطاع', 'Sector directors') })),
-    ...deptMgrNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء الإدارات', 'Department managers') })),
-  ];
   const catOfPerson = (n: string): LeaveCat => (managerNames.includes(n) ? 'manager' : 'office');
-  const backupOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') },
-    ...[...officeNames, ...managerNames].filter((n) => n !== f.person).map((n) => ({ v: n, label: tr(n) }))];
+  const allPeople = [...officeNames, ...managerNames];
+  // free-text name entry: type any name; known names still show as suggestions
+  const onPersonChange = (v: string) => setF((p) => ({ ...p, person: v, cat: managerNames.includes(v) ? 'manager' : (officeNames.includes(v) ? 'office' : p.cat) }));
 
   // auto day count
   const ps = parseAr(f.start), pe = parseAr(f.end);
@@ -914,7 +914,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   // live conflict detection: overlapping active leave in the same category
   const clash = (ps && pe && f.person) ? data.leaves.filter((l) => {
     if (l.id === leaveId || !activeForConflict(l)) return false;
-    if (l.cat !== catOfPerson(f.person)) return false;
+    if (l.cat !== ((f.cat as LeaveCat) || catOfPerson(f.person))) return false;
     const s2 = parseAr(l.start), e2 = parseAr(l.end);
     return !!(s2 && e2 && s2 <= pe && ps <= e2);
   }) : [];
@@ -934,7 +934,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
       }
       if (!lv) return;
       lv.person = f.person;
-      lv.cat = catOfPerson(f.person);
+      lv.cat = (f.cat as LeaveCat) || catOfPerson(f.person);
       const mem = d.members.find((m) => m.name === f.person);
       const mgr = d.sectorManagers.find((m) => m.name === f.person);
       lv.role = mem ? mem.role : (mgr ? mgr.role : (lv.role || (deptMgrNames.includes(f.person) ? 'مدير إدارة' : '')));
@@ -964,8 +964,11 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الموظف / مدير القطاع', 'Employee / sector director')}</Label>
-          <Dropdown value={f.person} options={personOpts} onChange={set('person')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الشخص', 'Pick a person') }} /></div>
+        <div><Label>{rl('الموظف / المدير', 'Employee / manager')}</Label>
+          <input list="lv-people" value={f.person} onChange={(e) => onPersonChange(e.target.value)} placeholder={rl('اكتب الاسم…', 'Type a name…')} style={inputStyle} />
+          <datalist id="lv-people">{allPeople.map((n, i) => <option key={i} value={n} />)}</datalist></div>
+        <div><Label>{rl('الفئة', 'Group')}</Label>
+          <Dropdown value={f.cat} options={[{ v: 'office', label: rl('فريق المكتب', 'Office team') }, { v: 'manager', label: rl('مدراء الوحدات التنظيمية', 'Unit managers') }]} onChange={set('cat')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('نوع الإجازة', 'Leave type')}</Label><Dropdown value={f.type} options={['سنوية', 'طارئة', 'مرضية'].map((v) => ({ v, label: tr(v) }))} onChange={set('type')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('حالة التخطيط', 'Planning status')}</Label>
           {lockedStatus
@@ -987,7 +990,9 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
             </div>
           </div>
         )}
-        <div><Label>{rl('البديل / القائم بالأعمال', 'Backup / acting person')}</Label><Dropdown value={f.backup} options={backupOpts} onChange={set('backup')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('البديل / القائم بالأعمال', 'Backup / acting person')}</Label>
+          <input list="lv-backup" value={f.backup === '—' ? '' : f.backup} onChange={(e) => set('backup')(e.target.value || '—')} placeholder={rl('اكتب اسم البديل… (اختياري)', 'Type backup name… (optional)')} style={inputStyle} />
+          <datalist id="lv-backup">{allPeople.filter((n) => n !== f.person).map((n, i) => <option key={i} value={n} />)}</datalist></div>
         <div><Label>{rl('ملاحظات داخلية', 'Internal notes')}</Label><input value={f.notes} onChange={setI('notes')} style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('ملاحظات وتوجيهات رئيس القطاع', 'Sector Head comments & instructions')}</Label><textarea value={f.chairNotes} onChange={setI('chairNotes')} rows={2} placeholder={rl('تُسجَّل هنا توجيهات رئيس القطاع المتعلقة بهذه الإجازة…', 'Record the Sector Head instructions for this leave…')} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مرفقات داعمة (إن وجدت)', 'Supporting attachments (optional)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>

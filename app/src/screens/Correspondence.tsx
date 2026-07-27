@@ -528,7 +528,9 @@ export function Correspondence() {
           <div><label style={labelStyle}>{rl('تسليم للشخص المعني', 'Delivered to concerned person')}</label><Dropdown value={String(form.deliveredTo ?? '')} onChange={setF('deliveredTo')} options={[{ v: '', label: '—' }, ...opt(DELIVER_OPTS)]} opt={ddOpt} /></div>
           <div><label style={labelStyle}>{rl('تاريخ التسليم للشخص المعني', 'Delivery date to concerned person')}</label><DateField value={String(form.deliverDate ?? '')} onChange={setF('deliverDate')} /></div>
           <div><label style={labelStyle}>{rl('الحالة', 'State')}</label><Dropdown value={String(form.state ?? '')} onChange={setF('state')} options={opt(STATE_OPTS)} opt={ddOpt} /></div>
-          <div><label style={labelStyle}>{t('fFollowup')}</label><Dropdown value={form.followup} onChange={setF('followup')} options={members.map((m) => ({ v: m.name, label: tr(m.name) }))} opt={ddOpt} /></div>
+          <div><label style={labelStyle}>{t('fFollowup')}</label>
+            <input list="corr-followup" value={String(form.followup ?? '')} onChange={(e) => setF('followup')(e.target.value)} placeholder={rl('اكتب اسم المتابع…', 'Type follow-up name…')} style={inputStyle} />
+            <datalist id="corr-followup">{members.map((m, i) => <option key={i} value={m.name} />)}</datalist></div>
           <div><label style={labelStyle}>{t('fPriority')}</label><Dropdown value={form.priority} onChange={setF('priority')} options={opt(PRIORITIES)} opt={ddOpt} /></div>
           <div style={{ gridColumn: '1/3' }}><label style={labelStyle}>{t('fAction')}</label>{txt('action')}</div>
           <div style={{ gridColumn: '1/3' }}>
