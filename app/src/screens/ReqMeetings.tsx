@@ -1,7 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store/store';
-import { APP_TODAY_KEY } from '../shared/today';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -11,6 +10,7 @@ import { Dropdown } from '../components/Dropdown';
 import { Fade, Modal, Avatar } from '../components/ui';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
+import { TagInput } from '../components/TagInput';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import {
   parseProposed, timeRange, timeLabel, ymdKey, outlookUrl,
@@ -24,7 +24,9 @@ const EN_MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const TODAY_KEY = APP_TODAY_KEY;
+// The calendar tracks the REAL current date, so opening Meetings always lands
+// on the actual current week and advances week over week (computed at load).
+const TODAY_KEY = ymdKey(new Date());
 
 /** Pill (rounded status label) colours — [bg, fg]. */
 const PILL: Record<string, [string, string]> = {
@@ -78,10 +80,11 @@ export function ReqMeetings() {
   const [calMode, setCalMode] = useState<CalMode>(() => {
     try { return window.matchMedia('(max-width: 640px)').matches ? 'day' : 'week'; } catch { return 'week'; }
   });
-  const [calAnchor, setCalAnchor] = useState(APP_TODAY_KEY);
+  const [calAnchor, setCalAnchor] = useState(TODAY_KEY);
   const [popupId, setPopupId] = useState<string | null>(null);
   const [popupEdit, setPopupEdit] = useState(false);
   const [mtForm, setMtForm] = useState(false);
+  const [chairReqForm, setChairReqForm] = useState(false);
   const [modal, setModal] = useState<ModalKind>(null);
   const [selId, setSelId] = useState<string | null>(null);
   const [form, setForm] = useState({ date: '', time: '', timeEnd: '', note: '' });
@@ -336,6 +339,13 @@ export function ReqMeetings() {
             </button>
           </div>
         )}
+        {isChair && (
+          <div className="page-head-action" style={{ flex: 'none' }}>
+            <button onClick={() => setChairReqForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('طلب اجتماع', 'Request a meeting')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* toolbar */}
@@ -344,7 +354,7 @@ export function ReqMeetings() {
           <button onClick={() => calShift(-1)} style={{ width: 34, height: 34, border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', color: '#3c4a42', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
           </button>
-          <button onClick={() => setCalAnchor(APP_TODAY_KEY)} style={{ border: 'none', background: '#ffffff', borderRadius: 8, padding: '0 15px', fontSize: 12.5, fontWeight: 600, color: '#1f4a37', cursor: 'pointer' }}>{t('cal_today')}</button>
+          <button onClick={() => setCalAnchor(TODAY_KEY)} style={{ border: 'none', background: '#ffffff', borderRadius: 8, padding: '0 15px', fontSize: 12.5, fontWeight: 600, color: '#1f4a37', cursor: 'pointer' }}>{t('cal_today')}</button>
           <button onClick={() => calShift(1)} style={{ width: 34, height: 34, border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', color: '#3c4a42', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 6-6 6 6 6" /></svg>
           </button>
@@ -528,16 +538,10 @@ export function ReqMeetings() {
                       <Tile icon="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" label={rl('الموعد الجديد المقترح', 'New proposed time')} accent>{pd.newDateDisp}</Tile>
                     )}
 
-                    {/* location / link */}
-                    {(pd.locationDisp || pd.linkDisp) && (
+                    {/* location */}
+                    {pd.locationDisp && (
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        {pd.locationDisp && <Tile icon="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z M12 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" label={rl('مكان الاجتماع', 'Location')}>{pd.locationDisp}</Tile>}
-                        {pd.linkDisp && (
-                          <div style={{ flex: 1, minWidth: 150, background: '#f6f8f4', border: '1px solid #eef1ec', borderRadius: 12, padding: '11px 13px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: '#8a938c', fontWeight: 600, marginBottom: 5 }}>{tileIcon('M9 15l6-6M10.5 6.5 12 5a4 4 0 0 1 6 6l-1.5 1.5M13.5 17.5 12 19a4 4 0 0 1-6-6l1.5-1.5')}{rl('رابط الاجتماع الافتراضي', 'Online meeting link')}</div>
-                            <a href={pd.linkDisp} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 700, color: '#2f6aa8', wordBreak: 'break-all' }}>{pd.linkDisp}</a>
-                          </div>
-                        )}
+                        <Tile icon="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z M12 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" label={rl('مكان الاجتماع', 'Location')}>{pd.locationDisp}</Tile>
                       </div>
                     )}
 
@@ -608,6 +612,15 @@ export function ReqMeetings() {
         </Modal>
       )}
 
+      {/* CHAIR — REQUEST A MEETING (created approved, routed to a responsible member) */}
+      {chairReqForm && (
+        <Modal open onClose={() => setChairReqForm(false)} width={620}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{rl('طلب اجتماع', 'Request a meeting')}</h3>
+          <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{rl('يُنشأ الاجتماع بحالة «معتمد» ويُرسَل مباشرةً إلى عضو فريق المكتب المسؤول، ويظهر في تقويمك وتقويمه.', 'Created as “Approved” and routed straight to the responsible office-team member; appears on both calendars.')}</p>
+          <ChairMeetingRequestForm onDone={() => setChairReqForm(false)} onCancel={() => setChairReqForm(false)} />
+        </Modal>
+      )}
+
       {/* PROPOSE / CANCEL MODAL */}
       {modal && createPortal(
         <div onClick={() => setModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(23,33,28,.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, animation: 'ovBg .2s ease' }}>
@@ -630,12 +643,12 @@ export function ReqMeetings() {
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: 150 }}>
                         <div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 4 }}>{t('rm_from')}</div>
-                        <Dropdown value={form.time} options={DASH.concat(rmTimeOpts)} onChange={(v) => setForm((f) => ({ ...f, time: v }))} opt={{ block: true, bg: '#f7f8f6' }} />
+                        <input type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit' }} />
                       </div>
                       <span style={{ color: '#9aa39b', fontWeight: 700, marginTop: 16 }}>–</span>
                       <div style={{ flex: 1, minWidth: 150 }}>
                         <div style={{ fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 4 }}>{t('rm_to')}</div>
-                        <Dropdown value={form.timeEnd} options={DASH.concat(rmTimeOpts)} onChange={(v) => setForm((f) => ({ ...f, timeEnd: v }))} opt={{ block: true, bg: '#f7f8f6' }} />
+                        <input type="time" value={form.timeEnd} onChange={(e) => setForm((f) => ({ ...f, timeEnd: e.target.value }))} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit' }} />
                       </div>
                     </div>
                   </div>
@@ -678,6 +691,7 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
   const { showToast } = useToast();
 
   const existing = meetingId ? data.reqMeetings.find((r) => r.id === meetingId) : null;
+  const peopleOpts = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]));
   const [f, setF] = useState<Record<string, string>>(() => {
     if (existing) {
       const pp = parseProposed(existing.proposed);
@@ -688,7 +702,7 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
         location: existing.location || '', link: existing.link || '', note: existing.notes || '',
       };
     }
-    return { subject: '', attendees: '', basis: '', date: '', from: '10:00 ص', to: '11:00 ص', location: '', link: '', note: '' };
+    return { subject: '', attendees: '', basis: '', date: '', from: '10:00', to: '11:00', location: '', link: '', note: '' };
   });
   const [agenda, setAgenda] = useState<string[]>(() => (existing?.agenda ? [...existing.agenda] : []));
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -707,7 +721,7 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
     const subject = (f.subject || '').trim();
     if (!subject) { showToast(rl('يرجى إدخال موضوع الاجتماع', 'Please enter the meeting subject')); return; }
     if (!f.date) { showToast(rl('يرجى اختيار تاريخ الاجتماع', 'Please pick the meeting date')); return; }
-    const proposed = f.date + ' - ' + (f.from || '10:00 ص') + (f.to ? ' - ' + f.to : '');
+    const proposed = f.date + ' - ' + (f.from || '10:00') + (f.to ? ' - ' + f.to : '');
     mutate((d) => {
       let m: ReqMeeting & { _mowner?: string };
       if (existing) m = d.reqMeetings.find((r) => r.id === meetingId)! as never;
@@ -736,15 +750,22 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('موضوع الاجتماع', 'Meeting subject')}</Label><input value={f.subject} onChange={setI('subject')} style={inputStyle} /></div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الحضور', 'Attendees')}</Label><input value={f.attendees} onChange={setI('attendees')} placeholder={rl('مثال: محمد الشرهان، وئام، علي', 'e.g. Mohammed, Weam, Ali')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الحضور', 'Attendees')}</Label>
+          <TagInput
+            values={(f.attendees || '').split(/[،,;\n]+/).map((s) => s.trim()).filter(Boolean)}
+            onChange={(arr) => set('attendees')(arr.join('، '))}
+            suggestions={peopleOpts}
+            placeholder={rl('اكتب اسم الحاضر ثم اضغط Enter…', 'Type an attendee then press Enter…')}
+          />
+        </div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الجهة الطالبة / بناءً على', 'Requesting entity / based on')}</Label><input value={f.basis} onChange={setI('basis')} style={inputStyle} /></div>
         <div><Label>{rl('تاريخ الاجتماع', 'Meeting date')}</Label><DateField value={f.date} onChange={set('date')} /></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1 }}><Label>{rl('من', 'From')}</Label><Dropdown value={f.from} options={timeOpts} onChange={set('from')} opt={{ block: true, size: 'sm' }} /></div>
-          <div style={{ flex: 1 }}><Label>{rl('إلى', 'To')}</Label><Dropdown value={f.to} options={timeOpts} onChange={set('to')} opt={{ block: true, size: 'sm' }} /></div>
+          <div style={{ flex: 1 }}><Label>{rl('من', 'From')}</Label><input type="time" value={f.from} onChange={(e) => set('from')(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><Label>{rl('إلى', 'To')}</Label><input type="time" value={f.to} onChange={(e) => set('to')(e.target.value)} style={inputStyle} /></div>
         </div>
-        <div><Label>{rl('مكان الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات - الطابق 12', 'Meeting room — floor 12')} style={inputStyle} /></div>
-        <div><Label>{rl('رابط الاجتماع الافتراضي (اختياري)', 'Online meeting link (optional)')}</Label><input value={f.link} onChange={setI('link')} placeholder="https://teams.microsoft.com/…" dir="ltr" style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مكان الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات - الطابق 12', 'Meeting room — floor 12')} style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('جدول الأعمال والمرفقات', 'Agenda & attachments')}</Label>
           <FileUploadField files={agenda} onChange={setAgenda} />
@@ -755,6 +776,87 @@ function MeetingFormFields({ meetingId, onDone, onCancel }: { meetingId: string 
         <button onClick={onCancel} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
         <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{existing && existing.status !== 'مسودة' ? rl('حفظ', 'Save') : rl('حفظ كمسودة', 'Save as draft')}</button>
         <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع للمراجعة', 'Send to Sector Head for review')}</button>
+      </div>
+    </>
+  );
+}
+
+/* ---- Sector Head "Request a meeting": a simple form that creates the meeting
+   already APPROVED and routes it to a responsible office-team member — it lands
+   on both calendars, notifies the member, and needs no send/approval step. ---- */
+function ChairMeetingRequestForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+  const { lang } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const cu = useCurrentUser();
+  const data = useStore((s) => s.data);
+  const users = useStore((s) => s.users);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+
+  const officeNames = data.members.map((m) => m.name);
+  const peopleOpts = Array.from(new Set([...officeNames, ...data.sectorManagers.map((m) => m.name)]));
+  const [f, setF] = useState<Record<string, string>>({ subject: '', responsible: '', date: '', from: '10:00', to: '11:00', location: '', link: '', note: '' });
+  const [attendees, setAttendees] = useState<string[]>([]);
+  const [files, setFiles] = useState<string[]>([]);
+  const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
+
+  const save = () => {
+    const subject = (f.subject || '').trim();
+    const responsible = (f.responsible || '').trim();
+    if (!subject) { showToast(rl('يرجى إدخال موضوع الاجتماع', 'Please enter the meeting subject')); return; }
+    if (!responsible) { showToast(rl('يرجى تحديد الشخص المسؤول', 'Please set the responsible person')); return; }
+    if (!f.date) { showToast(rl('يرجى اختيار تاريخ الاجتماع', 'Please pick the meeting date')); return; }
+    const proposed = f.date + ' - ' + (f.from || '10:00') + (f.to ? ' - ' + f.to : '');
+    const owner = users.find((u) => u.name === responsible);
+    mutate((d) => {
+      const m: ReqMeeting & { _mowner?: string; _chairReq?: boolean; _assignee?: string } = {
+        id: 'rm' + Math.floor(Math.random() * 1e9),
+        subject, attendees: attendees.join('، ') || responsible,
+        basis: rl('طلب من رئيس القطاع', 'Requested by the Sector Head'),
+        proposed, status: 'معتمد', decision: rl('تم الاعتماد', 'Approved'),
+        notes: (f.note || '').trim(), location: (f.location || '').trim(), link: (f.link || '').trim(),
+        agenda: files,
+        _mowner: owner ? owner.id : cu.id, _chairReq: true, _assignee: responsible,
+      };
+      d.reqMeetings.unshift(m);
+    });
+    showToast(rl('تم إنشاء الاجتماع وإرساله إلى ', 'Meeting created and sent to ') + responsible);
+    onDone();
+  };
+
+  const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+  const Label = ({ children }: { children: React.ReactNode }) => <div style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62', margin: '2px 0 6px' }}>{children}</div>;
+
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('موضوع الاجتماع', 'Meeting subject')}</Label><input value={f.subject} onChange={setI('subject')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الشخص المسؤول (فريق المكتب)', 'Responsible person (office team)')}</Label>
+          <input list="chair-req-owner" value={f.responsible} onChange={setI('responsible')} placeholder={rl('اكتب اسم المسؤول…', 'Type the responsible person…')} style={inputStyle} />
+          <datalist id="chair-req-owner">{officeNames.map((n, i) => <option key={i} value={n} />)}</datalist>
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الحضور', 'Attendees')}</Label>
+          <TagInput values={attendees} onChange={setAttendees} suggestions={peopleOpts} placeholder={rl('اكتب اسم الحاضر ثم اضغط Enter…', 'Type an attendee then press Enter…')} />
+        </div>
+        <div><Label>{rl('التاريخ المقترح', 'Proposed date')}</Label><DateField value={f.date} onChange={set('date')} /></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}><Label>{rl('من', 'From')}</Label><input type="time" value={f.from} onChange={(e) => set('from')(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><Label>{rl('إلى', 'To')}</Label><input type="time" value={f.to} onChange={(e) => set('to')(e.target.value)} style={inputStyle} /></div>
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مكان الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات - الطابق 12', 'Meeting room — floor 12')} style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('رابط الاجتماع (اختياري)', 'Meeting link (optional)')}</Label><input value={f.link} onChange={setI('link')} placeholder="https://teams.microsoft.com/…" style={inputStyle} /></div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('المرفقات', 'Attachments')}</Label>
+          <FileUploadField files={files} onChange={setFiles} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('ملاحظات', 'Notes')}</Label><textarea value={f.note} onChange={setI('note')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button onClick={onCancel} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={save} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إنشاء وإرسال للمسؤول', 'Create & send to owner')}</button>
       </div>
     </>
   );

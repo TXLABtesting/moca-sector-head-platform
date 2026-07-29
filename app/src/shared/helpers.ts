@@ -15,8 +15,10 @@ export function asset(path: string): string {
   if (!path) return '';
   const key = path.replace(/^\//, '');
   if (ASSET_DATA[key]) return ASSET_DATA[key];
-  if (path.startsWith('http') || path.startsWith('/')) return path;
-  return '/' + path;
+  if (path.startsWith('http')) return path;
+  // Respect the deploy base path (e.g. a GitHub Pages project subpath).
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+  return base + '/' + key;
 }
 
 export function memberImg(name: string): string {

@@ -2,6 +2,8 @@ import { Fade } from '../components/ui';
 import { useStore } from '../store/store';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
+import { useCurrentUser } from '../store/useCurrentUser';
+import { can } from '../domain/permissions';
 
 interface Result { kind: string; title: string; sub: string; open: () => void }
 
@@ -10,18 +12,25 @@ export function GlobalSearch() {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const { search, goto } = useNav();
   const data = useStore((s) => s.data);
+  const cu = useCurrentUser();
   const q = search.trim().toLowerCase();
 
   const match = (s: string | undefined) => !!s && (s.toLowerCase().includes(q) || tr(s).toLowerCase().includes(q));
+  // Search must respect the same visibility rules as the screens: only surface
+  // records from sections the user may view, and never leak one user's personal
+  // office tasks to another (the Sector Head sees everything).
+  const isChair = cu.type === 'chair';
+  const mayView = (section: string) => isChair || can(cu, section, 'view');
+  const ownTask = (o: { owner: string; _mowner?: string }) => isChair || o.owner === cu.name || o._mowner === cu.id;
 
   const results: Result[] = [];
-  data.projects.filter((p) => match(p.name)).forEach((p) => results.push({ kind: rl('مشروع', 'Project'), title: tr(p.name), sub: tr(p.owner) + ' · ' + tr(p.status), open: () => goto('projectDetail', { selProject: p.id }) }));
-  data.correspondence.filter((c) => match(c.name) || match(c.entity)).forEach((c) => results.push({ kind: rl('مستند', 'Document'), title: tr(c.name), sub: tr(c.entity) + ' · ' + tr(c.dir), open: () => goto('docDetail', { selDoc: c.id }) }));
-  data.meetings.filter((m) => match(m.title)).forEach((m) => results.push({ kind: rl('محضر', 'Minutes'), title: tr(m.title), sub: tr(m.owner), open: () => goto('meetingDetail', { selMeeting: m.id }) }));
-  data.mtasks.filter((m) => match(m.task)).forEach((m) => results.push({ kind: rl('مهمة محضر', 'Minute task'), title: tr(m.task), sub: tr(m.meeting), open: () => goto('mtasks') }));
-  data.otasks.filter((o) => match(o.title)).forEach((o) => results.push({ kind: rl('مهمة مكتب', 'Office task'), title: tr(o.title), sub: tr(o.owner) + ' · ' + tr(o.dept), open: () => goto('otasks') }));
-  data.committees.filter((c) => match(c.name)).forEach((c) => results.push({ kind: rl('لجنة', 'Committee'), title: tr(c.name), sub: tr(c.rapporteur), open: () => goto('committees') }));
-  data.leaves.filter((l) => match(l.person)).forEach((l) => results.push({ kind: rl('إجازة', 'Leave'), title: tr(l.person), sub: tr(l.type) + ' · ' + tr(l.status), open: () => goto('leaves') }));
+  if (mayView('projects')) data.projects.filter((p) => match(p.name)).forEach((p) => results.push({ kind: rl('مشروع', 'Project'), title: tr(p.name), sub: tr(p.owner) + ' · ' + tr(p.status), open: () => goto('projectDetail', { selProject: p.id }) }));
+  if (mayView('correspondence')) data.correspondence.filter((c) => match(c.name) || match(c.entity)).forEach((c) => results.push({ kind: rl('مستند', 'Document'), title: tr(c.name), sub: tr(c.entity) + ' · ' + tr(c.dir), open: () => goto('docDetail', { selDoc: c.id }) }));
+  if (mayView('minutes')) data.meetings.filter((m) => match(m.title)).forEach((m) => results.push({ kind: rl('محضر', 'Minutes'), title: tr(m.title), sub: tr(m.owner), open: () => goto('meetingDetail', { selMeeting: m.id }) }));
+  if (mayView('minuteTasks')) data.mtasks.filter((m) => match(m.task)).forEach((m) => results.push({ kind: rl('مهمة محضر', 'Minute task'), title: tr(m.task), sub: tr(m.meeting), open: () => goto('mtasks') }));
+  if (mayView('myTasks')) data.otasks.filter((o) => match(o.title) && ownTask(o)).forEach((o) => results.push({ kind: rl('مهمة مكتب', 'Office task'), title: tr(o.title), sub: tr(o.owner) + ' · ' + tr(o.dept), open: () => goto('otasks') }));
+  if (mayView('committees')) data.committees.filter((c) => match(c.name)).forEach((c) => results.push({ kind: rl('لجنة', 'Committee'), title: tr(c.name), sub: tr(c.rapporteur), open: () => goto('committees') }));
+  if (mayView('leaves')) data.leaves.filter((l) => match(l.person)).forEach((l) => results.push({ kind: rl('إجازة', 'Leave'), title: tr(l.person), sub: tr(l.type) + ' · ' + tr(l.status), open: () => goto('leaves') }));
 
   return (
     <Fade>

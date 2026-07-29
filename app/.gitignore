@@ -3,3 +3,8 @@ dist/
 dist-demo/
 *.tsbuildinfo
 .DS_Store
+
+# Local environment / credentials — never commit
+.env
+.env.local
+.env.*.local

@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Fade, Card, Badge, Modal } from '../components/ui';
 import { useStore } from '../store/store';
+import { triggerDownload } from '../shared/fileGen';
+import { makeXlsx, fileToBlocks, parseBulk, alias, pick } from './reportcenter/templateIO';
 import { useNav } from '../store/nav';
 import { useI18n } from '../i18n/i18n';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -11,6 +13,8 @@ import { ownedBy, pushUpdateReq } from './member/workflow';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
+import { AttachmentDownload } from '../components/AttachmentDownload';
+import { TagInput } from '../components/TagInput';
 import type { Committee, CommitteeMeeting, CommitteeTask, CommitteeDecision } from '../data/types';
 import { SectionAddButton } from '../components/SectionAddButton';
 
@@ -23,6 +27,7 @@ const STC: Record<string, [string, string]> = {
   'ملغاة': ['#f0e6e4', '#9a3a2b'],
 };
 const TSK: Record<string, [string, string, string]> = {
+  'تم الإنجاز': ['#e2f0e8', '#2e7d55', '#2e7d55'],
   'مكتمل': ['#e2f0e8', '#2e7d55', '#2e7d55'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f', '#a9791f'],
   'متأخر': ['#f7e6e4', '#b0433b', '#b0433b'],
@@ -46,7 +51,7 @@ const KPI_ICONS: Record<string, string> = {
 
 const openTaskCount = (c: Committee): number => {
   let n = 0;
-  (c.meetings || []).forEach((m) => (m.tasks || []).forEach((t) => { if (t.status !== 'مكتمل') n++; }));
+  (c.meetings || []).forEach((m) => (m.tasks || []).forEach((t) => { if (t.status !== 'مكتمل' && t.status !== 'تم الإنجاز') n++; }));
   return n;
 };
 const lastMeeting = (c: Committee): string => (c.meetings && c.meetings.length ? c.meetings[0].date : '—');
@@ -61,6 +66,59 @@ export function Committees() {
   const cu = useCurrentUser();
   const canApprove = can(cu, 'committees', 'approve');
   const { showToast } = useToast();
+  const mutate = useStore((s) => s.mutate);
+
+  // ---- bulk import (one committee per row) ----
+  const CM_FREQ = ['أسبوعية', 'نصف شهرية', 'شهرية', 'ربع سنوية', 'نصف سنوية', 'سنوية', 'حسب الحاجة'];
+  const CM_STATUS = ['نشطة', 'متوقفة', 'منتهية'];
+  const CM_WORKPLAN = ['نعم', 'لا'];
+  const CM_COLS = [
+    { field: 'name', match: alias('اسم اللجنة', 'اللجنة', 'الاسم') },
+    { field: 'chair', match: alias('الرئيس', 'رئيس اللجنة') },
+    { field: 'rapporteur', match: alias('المقرر', 'مقرر اللجنة') },
+    { field: 'cat', match: alias('الفئة', 'النوع', 'التصنيف') },
+    { field: 'purpose', match: alias('الغرض', 'الهدف', 'المهام') },
+    { field: 'freq', match: alias('الدورية', 'التكرار'), norm: pick(CM_FREQ, 'شهرية') },
+    { field: 'reqMeetings', match: alias('عدد الاجتماعات المطلوبة', 'الاجتماعات المطلوبة', 'عدد الاجتماعات') },
+    { field: 'actualMeetings', match: alias('عدد الاجتماعات الفعلي', 'الاجتماعات الفعلية') },
+    { field: 'created', match: alias('تاريخ الإنشاء') },
+    { field: 'hasWorkPlan', match: alias('خطة عمل محددة مسبقاً', 'خطة عمل'), norm: pick(CM_WORKPLAN, 'لا') },
+    { field: 'status', match: alias('الحالة'), norm: pick(CM_STATUS, 'نشطة') },
+    { field: 'members', match: alias('الأعضاء (يفصل بينهم فاصلة)', 'الأعضاء', 'أعضاء اللجنة') },
+    { field: 'absent', match: alias('الأعضاء غير المشاركين') },
+    { field: 'weaknesses', match: alias('نقاط الضعف') },
+    { field: 'improvements', match: alias('نقاط تطوير وتحسينية', 'نقاط التطوير') },
+    { field: 'recommendation', match: alias('التوصية لرئيس القطاع', 'التوصية') },
+  ];
+  const splitList = (s: string): string[] => String(s || '').split(/[،,;\n]+/).map((x) => x.trim()).filter(Boolean);
+  const CM_HEADERS = ['اسم اللجنة', 'الرئيس', 'المقرر', 'الفئة', 'الغرض', 'الدورية', 'عدد الاجتماعات المطلوبة', 'عدد الاجتماعات الفعلي', 'تاريخ الإنشاء', 'خطة عمل محددة مسبقاً', 'الحالة', 'الأعضاء (يفصل بينهم فاصلة)', 'الأعضاء غير المشاركين', 'نقاط الضعف', 'نقاط تطوير وتحسينية', 'التوصية لرئيس القطاع'];
+  const CM_EXAMPLE = ['اللجنة الإشرافية للأمن السيبراني', 'فوزية الطاير', 'سماح أبو شرخ', 'لجنة إشرافية', 'متابعة أمن المعلومات والمشاريع', 'شهرية', '12', '5', '8 يناير 2025', 'نعم', 'نشطة', 'أحمد المنصوري، فاطمة الحمادي، سعيد النعيمي', 'محمد الياسي', 'تأخر بعض المخرجات، ضعف الحضور', 'تكثيف الاجتماعات، متابعة المهام', 'الاستمرار مع رفع وتيرة المتابعة'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlCommitteeBulk = () => triggerDownload(makeXlsx([CM_HEADERS, CM_EXAMPLE], 'اللجان'), 'Committees_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, CM_COLS, (r) => !!r.name) : [];
+      if (!rows.length) { showToast(rl('لم يُعثر على لجان في الملف — تأكد من مطابقة الأعمدة للقالب', 'No committees found — check the template columns')); return; }
+      mutate((d) => {
+        rows.forEach((r, i) => {
+          const rec = {
+            id: 'cm' + Date.now() + i, name: r.name, chair: r.chair || 'رئيس القطاع', rapporteur: r.rapporteur || cu.name,
+            purpose: r.purpose || '', freq: r.freq || 'شهرية', reqMeetings: parseInt(r.reqMeetings, 10) || 0,
+            actualMeetings: parseInt(r.actualMeetings, 10) || 0, created: (r.created || '').trim() || '2026', reformed: '',
+            status: r.status || 'نشطة', cat: r.cat || '', hasWorkPlan: r.hasWorkPlan === 'نعم',
+            absent: splitList(r.absent), scores: { outputs: 0, minutes: 0, meetings: 0, teamwork: 0 }, statement: '',
+            weaknesses: splitList(r.weaknesses), improvements: splitList(r.improvements),
+            recommendation: (r.recommendation || '').trim(), members: splitList(r.members), decisions: [], meetings: [], _mowner: cu.id,
+          } as unknown as Committee;
+          d.committees.unshift(rec);
+        });
+      });
+      showToast(rl('تم استيراد ', 'Imported ') + rows.length + rl(' لجنة', ' committees'));
+    } catch {
+      showToast(rl('تعذّر استيراد الملف', 'Import failed'));
+    }
+  };
 
   // Committee Management Officer: full list + add/edit/send.
   // Committee Coordinator: only committees assigned as rapporteur, with
@@ -102,7 +160,14 @@ export function Committees() {
               </p>
             </div>
             {manage && (
-              <div className="page-head-action" style={{ flex: 'none' }}>
+              <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={dlCommitteeBulk} title={rl('تنزيل قالب إكسيل بصف لكل لجنة', 'Template: one committee per row')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>{rl('قالب الاستيراد', 'Import template')}
+                </button>
+                <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+                <button onClick={() => bulkRef.current?.click()} title={rl('رفع ملف إكسيل يحتوي عدة لجان دفعة واحدة', 'Upload many committees at once')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>{rl('استيراد دفعة', 'Bulk import')}
+                </button>
                 <button onClick={() => setCForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                   {rl('إضافة لجنة', 'New committee')}
@@ -180,32 +245,56 @@ function ListView({ committees, rl, tr, dl, openC }: {
     decN += (c.decisions || []).length;
   });
 
+  const hasLate = (c: Committee) => (c.meetings || []).some((m) => (m.tasks || []).some((t) => t.status === 'متأخر'));
+  const thisMonth = (c: Committee) => (c.meetings || []).some((m) => /يونيو|July|يوليو/.test(m.date));
   const kpis = [
-    { v: String(committees.length), l: rl('إجمالي اللجان التي أترأسها', 'Committees I chair'), c: '#1f4a37', bg: '#e9f0ec', icon: 'list' },
-    { v: String(withOpen), l: rl('لجان بمهام مفتوحة', 'Committees with open tasks'), c: '#3a6ea5', bg: '#e9f0f6', icon: 'folder' },
-    { v: String(lateN), l: rl('مهام متأخرة', 'Overdue tasks'), c: '#b0433b', bg: '#f7e6e4', icon: 'alert' },
-    { v: String(mThisMonth), l: rl('اجتماعات هذا الشهر', 'Meetings this month'), c: '#a9791f', bg: '#fbf3df', icon: 'cal' },
-    { v: String(decN), l: rl('قرارات مرفقة', 'Attached decisions'), c: '#7a4d94', bg: '#f3ecf6', icon: 'doc' },
+    { key: 'all', v: String(committees.length), l: rl('إجمالي اللجان التي أترأسها', 'Committees I chair'), c: '#1f4a37', bg: '#e9f0ec', icon: 'list' },
+    { key: 'open', v: String(withOpen), l: rl('لجان بمهام مفتوحة', 'Committees with open tasks'), c: '#3a6ea5', bg: '#e9f0f6', icon: 'folder' },
+    { key: 'late', v: String(lateN), l: rl('مهام متأخرة', 'Overdue tasks'), c: '#b0433b', bg: '#f7e6e4', icon: 'alert' },
+    { key: 'meetings', v: String(mThisMonth), l: rl('اجتماعات هذا الشهر', 'Meetings this month'), c: '#a9791f', bg: '#fbf3df', icon: 'cal' },
+    { key: 'decisions', v: String(decN), l: rl('قرارات مرفقة', 'Attached decisions'), c: '#7a4d94', bg: '#f3ecf6', icon: 'doc' },
   ];
+  const [filter, setFilter] = useState('all');
+  const filtered = committees.filter((c) =>
+    filter === 'open' ? openTaskCount(c) > 0
+      : filter === 'late' ? hasLate(c)
+      : filter === 'meetings' ? thisMonth(c)
+      : filter === 'decisions' ? (c.decisions || []).length > 0
+      : true);
+  const activeKpi = kpis.find((k) => k.key === filter);
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
-        {kpis.map((k, i) => (
-          <div key={i} className="glass" style={{ border: '1px solid rgba(255,255,255,.7)', borderRadius: 16, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,.14)', padding: '15px 15px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-            <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: k.bg, color: k.c }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: KPI_ICONS[k.icon] }} />
-            </span>
-            <div>
-              <div style={{ fontSize: 25, fontWeight: 800, color: '#17211c', letterSpacing: '-.5px', lineHeight: 1 }}>{k.v}</div>
-              <div style={{ fontSize: 10.5, color: '#6d7973', marginTop: 5, lineHeight: 1.4 }}>{k.l}</div>
-            </div>
-          </div>
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 14 }}>
+        {kpis.map((k, i) => {
+          const on = filter === k.key;
+          return (
+            <button key={i} type="button" onClick={() => setFilter(on && k.key !== 'all' ? 'all' : k.key)} title={rl('اضغط للتصفية', 'Click to filter')} className="glass" style={{ textAlign: 'start', fontFamily: 'inherit', border: on ? '1.5px solid ' + k.c : '1px solid rgba(255,255,255,.7)', borderRadius: 16, boxShadow: on ? '0 8px 24px -10px ' + k.c + '66' : '0 2px 6px rgba(23,40,32,.04),0 14px 34px -22px rgba(23,40,32,.14)', padding: '15px 15px', display: 'flex', flexDirection: 'column', gap: 11, cursor: 'pointer', transition: 'all .12s', outline: on ? '3px solid ' + k.bg : 'none' }}>
+              <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: k.bg, color: k.c }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: KPI_ICONS[k.icon] }} />
+              </span>
+              <div>
+                <div style={{ fontSize: 25, fontWeight: 800, color: '#17211c', letterSpacing: '-.5px', lineHeight: 1 }}>{k.v}</div>
+                <div style={{ fontSize: 10.5, color: '#6d7973', marginTop: 5, lineHeight: 1.4 }}>{k.l}</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
+      {filter !== 'all' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, background: '#fff', border: '1px solid #eef1ec', borderRadius: 11, padding: '9px 14px', fontSize: 12.5, color: '#3c4a42' }}>
+          <span style={{ fontWeight: 700 }}>{rl('مُصفّى حسب', 'Filtered by')}: {activeKpi?.l}</span>
+          <span style={{ color: '#9aa39b' }}>({filtered.length})</span>
+          <button type="button" onClick={() => setFilter('all')} style={{ marginInlineStart: 'auto', background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 8, padding: '6px 12px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء التصفية', 'Clear filter')}</button>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 13 }}>
-        {committees.map((c) => {
+        {filtered.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', padding: 28, textAlign: 'center', color: '#9aa39b', fontSize: 13, background: '#fff', border: '1px dashed #d8dedb', borderRadius: 14 }}>{rl('لا توجد لجان مطابقة لهذه التصفية', 'No committees match this filter')}</div>
+        )}
+        {filtered.map((c) => {
           const [stBg, stFg] = stc(c.status);
           const open = openTaskCount(c);
           return (
@@ -374,10 +463,16 @@ function SummaryTab({ c, rl, tr, dl }: {
         ))}
       </div>
 
-      {c.statement && (
-        <div style={{ marginTop: 16, background: '#f7f9f7', border: '1px solid #eef1ec', borderRadius: 12, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, color: '#9aa39b', fontWeight: 700, marginBottom: 6 }}>{rl('البيان', 'Statement')}</div>
-          <div style={{ fontSize: 13, color: '#2a332d', lineHeight: 1.7 }}>{tr(c.statement)}</div>
+      {(c.weaknesses || []).length > 0 && (
+        <div style={{ marginTop: 16, background: '#fbf1ef', border: '1px solid #efd9d4', borderRadius: 12, padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: '#b0433b', fontWeight: 700, marginBottom: 8 }}>{rl('نقاط الضعف', 'Weak points')}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {(c.weaknesses || []).map((wp, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: '#8a3a30', lineHeight: 1.6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#b0433b', marginTop: 7, flex: 'none' }} />{tr(wp)}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -480,7 +575,8 @@ function MeetingsTab({ c, canApprove, canCoord, onAddMeeting, onEditMeeting, sho
                 {m.attachments.map((a, ai) => (
                   <span key={ai} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#fff', border: '1px solid #e6ece7', borderRadius: 8, padding: '4px 9px', fontSize: 10.5, color: '#3c4a42' }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7d867f" strokeWidth={1.8}><path d="M14 3v5h5" /><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
-                    {a}
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160, whiteSpace: 'nowrap' }}>{tr(a)}</span>
+                    <AttachmentDownload name={a} size={20} />
                   </span>
                 ))}
               </div>
@@ -616,12 +712,20 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
     name: existing.name, chair: existing.chair, rapporteur: existing.rapporteur,
     purpose: existing.purpose || '', freq: existing.freq || '', status: existing.status || '',
     cat: existing.cat || '', reqMeetings: String(existing.reqMeetings ?? ''),
+    created: existing.created || '', actualMeetings: String(existing.actualMeetings ?? ''),
+    hasWorkPlan: existing.hasWorkPlan ? 'نعم' : 'لا',
+    recommendation: existing.recommendation || '',
     decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
   } : {
     name: '', chair: 'رئيس القطاع', rapporteur: cu.name, purpose: '', freq: 'شهرية',
-    status: 'نشطة', cat: 'لجنة دائمة', reqMeetings: '12', decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
+    status: 'نشطة', cat: 'لجنة دائمة', reqMeetings: '12',
+    created: '', actualMeetings: '0', hasWorkPlan: 'لا', recommendation: '',
+    decNum: '', decYear: '2026', decKind: 'قرار تشكيل',
   });
   const [members, setMembers] = useState<string[]>(() => (existing?.members ? [...existing.members] : []));
+  const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
+  const [weaknesses, setWeaknesses] = useState<string[]>(() => (existing?.weaknesses ? [...existing.weaknesses] : []));
+  const [improvements, setImprovements] = useState<string[]>(() => (existing?.improvements ? [...existing.improvements] : []));
   const [decFiles, setDecFiles] = useState<string[]>([]);
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -648,6 +752,13 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
       c.name = name; c.chair = (f.chair || '').trim() || 'رئيس القطاع'; c.rapporteur = f.rapporteur || cu.name;
       c.purpose = (f.purpose || '').trim(); c.freq = f.freq; c.status = f.status; c.cat = (f.cat || '').trim();
       c.reqMeetings = parseInt(f.reqMeetings, 10) || 0;
+      c.created = (f.created || '').trim() || c.created || '2026';
+      c.actualMeetings = parseInt(f.actualMeetings, 10) || 0;
+      c.hasWorkPlan = f.hasWorkPlan === 'نعم';
+      c.recommendation = (f.recommendation || '').trim();
+      c.absent = absent;
+      c.weaknesses = weaknesses.filter((x) => x.trim());
+      c.improvements = improvements.filter((x) => x.trim());
       c.members = members;
       if ((f.decNum || '').trim() || decFiles.length) {
         c.decisions = [{ num: (f.decNum || '').trim() || String((c.decisions || []).length + 1), year: (f.decYear || '2026').trim(), kind: f.decKind || 'قرار تشكيل', img: decFiles[0] }, ...(c.decisions || [])];
@@ -674,21 +785,32 @@ function CommitteeFormModal({ committeeId, onClose }: { committeeId: string | nu
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={statusOpts.map((v) => ({ v, label: tr(v) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('التصنيف', 'Category')}</Label><input value={f.cat} onChange={setI('cat')} style={inputStyle} /></div>
         <div><Label>{rl('الاجتماعات المطلوبة سنوياً', 'Required meetings / year')}</Label><input value={f.reqMeetings} onChange={setI('reqMeetings')} style={inputStyle} /></div>
+        <div><Label>{rl('عدد الاجتماعات الفعلي', 'Actual meetings held')}</Label><input value={f.actualMeetings} onChange={setI('actualMeetings')} style={inputStyle} /></div>
+        <div><Label>{rl('تاريخ الإنشاء', 'Created date')}</Label><input value={f.created} onChange={setI('created')} placeholder={rl('مثال: 8 يناير 2025', 'e.g. 8 Jan 2025')} style={inputStyle} /></div>
+        <div><Label>{rl('خطة عمل محددة مسبقاً', 'Predefined work plan')}</Label><Dropdown value={f.hasWorkPlan} options={['نعم', 'لا'].map((v) => ({ v, label: tr(v) }))} onChange={set('hasWorkPlan')} opt={{ block: true, size: 'sm' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الغرض / المهام', 'Purpose')}</Label><textarea value={f.purpose} onChange={setI('purpose')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
           <Label>{rl('الأعضاء', 'Members')}</Label>
-          <Dropdown value="" options={peopleOpts.filter((n) => !members.includes(n)).map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => { if (v) setMembers((p) => [...p, v]); }} opt={{ block: true, size: 'sm', placeholder: rl('اختر عضوًا لإضافته…', 'Pick a member to add…') }} />
-          {members.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
-              {members.map((n) => (
-                <span key={n} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #1e4634', background: '#eef5f0', color: '#1e4634', borderRadius: 20, padding: '4px 9px', fontSize: 11.5, fontWeight: 700 }}>
-                  {tr(n)}
-                  <button type="button" onClick={() => setMembers((p) => p.filter((x) => x !== n))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}>✕</button>
-                </span>
-              ))}
-            </div>
-          )}
+          <TagInput
+            values={members}
+            onChange={setMembers}
+            suggestions={peopleOpts}
+            placeholder={rl('اكتب اسم العضو ثم اضغط Enter (يمكن إضافة أسماء خارج القائمة)…', 'Type a member name then press Enter (names outside the list allowed)…')}
+          />
         </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('الأعضاء غير المشاركين', 'Non-participating members')}</Label>
+          <TagInput values={absent} onChange={setAbsent} suggestions={members} placeholder={rl('اكتب اسم عضو غير مشارك ثم اضغط Enter…', 'Type a non-participating member then Enter…')} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('نقاط الضعف', 'Weak points')}</Label>
+          <TagInput values={weaknesses} onChange={setWeaknesses} placeholder={rl('اكتب نقطة ضعف ثم اضغط Enter…', 'Type a weak point then Enter…')} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Label>{rl('نقاط تطوير وتحسينية', 'Development & improvement points')}</Label>
+          <TagInput values={improvements} onChange={setImprovements} placeholder={rl('اكتب نقطة تحسينية ثم اضغط Enter…', 'Type an improvement point then Enter…')} />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('التوصية لرئيس القطاع', 'Recommendation to the Sector Head')}</Label><textarea value={f.recommendation} onChange={setI('recommendation')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1', border: '1px dashed #d8dedb', borderRadius: 12, padding: '12px 14px' }}>
           <Label>{rl('قرار التشكيل / التحديث (اختياري)', 'Formation / update decision (optional)')}</Label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -723,18 +845,22 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
   const existing = meetingNo && committee ? (committee.meetings || []).find((m) => m.no === meetingNo) : null;
   const memberPool = Array.from(new Set([...(committee?.members || []), ...data.members.map((m) => m.name)]));
 
-  const [f, setF] = useState<Record<string, string>>(() => existing ? {
-    date: existing.date, present: String(existing.present), total: String(existing.total), points: existing.points || '',
-  } : {
-    date: '', present: '', total: String((committee?.members || []).length || ''), points: '',
+  const [f, setF] = useState<Record<string, string>>(() => {
+    const [tf, tt] = (existing?.time || '').split(/\s*[-–]\s*/);
+    return existing ? {
+      date: existing.date, timeFrom: tf || '', timeTo: tt || '', location: existing.location || '', agenda: existing.agenda || existing.points || '', governance: existing.governance || '',
+    } : { date: '', timeFrom: '', timeTo: '', location: '', agenda: '', governance: '' };
   });
   const [absent, setAbsent] = useState<string[]>(() => (existing?.absent ? [...existing.absent] : []));
+  // Attendance is derived: total = committee members, present = total − absentees.
+  const totalMembers = (committee?.members || []).length;
+  const presentCount = Math.max(0, totalMembers - absent.length);
   const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
   const [tasks, setTasks] = useState<CommitteeTask[]>(() => (existing?.tasks ? existing.tasks.map((t) => ({ ...t })) : []));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
   const setTask = (i: number, k: keyof CommitteeTask, v: string | number) => setTasks((p) => p.map((t, x) => (x === i ? { ...t, [k]: v } : t)));
 
-  const TSTAT = ['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر'];
+  const TSTAT = ['قيد التنفيذ', 'تم الإنجاز', 'متأخر'];
 
   const save = (send: boolean) => {
     if (!f.date) { showToast(rl('يرجى اختيار تاريخ الاجتماع', 'Please pick the meeting date')); return; }
@@ -748,12 +874,14 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
         m = { no: String(c.meetings.length + 1), date: '', present: 0, total: 0, minutes: false, points: '', tasks: [] };
         c.meetings.unshift(m);
       }
-      m.date = f.date; m.present = parseInt(f.present, 10) || 0; m.total = parseInt(f.total, 10) || (c.members || []).length;
-      m.points = (f.points || '').trim(); m.minutes = !!(m.points || atts.length);
+      m.date = f.date; m.total = (c.members || []).length; m.present = Math.max(0, m.total - absent.length);
+      m.time = [f.timeFrom, f.timeTo].map((s) => (s || '').trim()).filter(Boolean).join(' - '); m.location = (f.location || '').trim();
+      m.agenda = (f.agenda || '').trim(); m.governance = (f.governance || '').trim();
+      m.points = (f.agenda || '').trim(); m.minutes = !!(m.agenda || m.governance || cleanTasks.length || atts.length);
       m.absent = absent; m.attachments = atts; m.tasks = cleanTasks;
       c.actualMeetings = c.meetings.length;
       if (send) { c._mrev = true; c._mret = ''; c._mowner = c._mowner || cu.id; }
-      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.points || '').slice(0, 80), sent: !!send, by: cu.name });
+      (c._mlog = c._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: send ? 'بانتظار اعتماد رئيس القطاع' : rl('تحديث اجتماع اللجنة رقم ', 'Committee meeting updated No. ') + m.no, note: (f.agenda || '').slice(0, 80), sent: !!send, by: cu.name });
     });
     showToast(send ? rl('أُرسل محضر الاجتماع لرئيس القطاع للمراجعة', 'Meeting minutes sent for Sector Head review') : rl('تم حفظ الاجتماع والمحضر', 'Meeting & minutes saved'));
     onClose();
@@ -768,44 +896,68 @@ function CommitteeMeetingModal({ cid, meetingNo, onClose }: { cid: string; meeti
         {existing ? rl('محضر الاجتماع رقم ', 'Meeting minutes No. ') + existing.no : rl('اجتماع جديد', 'New meeting')}
       </h3>
       <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{committee ? tr(committee.name) : ''}</p>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1e4634', margin: '4px 0 10px' }}>{rl('بيانات الاجتماع', 'Meeting details')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-        <div><Label>{rl('تاريخ الاجتماع', 'Meeting date')}</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
-        <div><Label>{rl('عدد الحضور', 'Present')}</Label><input value={f.present} onChange={setI('present')} style={inputStyle} /></div>
-        <div><Label>{rl('إجمالي الأعضاء', 'Total members')}</Label><input value={f.total} onChange={setI('total')} style={inputStyle} /></div>
+        <div><Label>{rl('تاريخ الاجتماع', 'Date')}</Label><DateField value={f.date} onChange={(v) => setF((p) => ({ ...p, date: v }))} /></div>
+        <div><Label>{rl('توقيت الاجتماع', 'Time')}</Label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="time" value={f.timeFrom} onChange={setI('timeFrom')} style={{ ...inputStyle, padding: '9px 8px' }} />
+            <span style={{ fontSize: 11, color: '#9aa39b', flex: 'none' }}>{rl('إلى', 'to')}</span>
+            <input type="time" value={f.timeTo} onChange={setI('timeTo')} style={{ ...inputStyle, padding: '9px 8px' }} />
+          </div>
+        </div>
+        <div><Label>{rl('مكان انعقاد الاجتماع', 'Location')}</Label><input value={f.location} onChange={setI('location')} placeholder={rl('قاعة الاجتماعات / رابط', 'Room / link')} style={inputStyle} /></div>
+
         <div style={{ gridColumn: '1 / -1' }}>
-          <Label>{rl('الغياب (اختر من الأعضاء)', 'Absences (pick from members)')}</Label>
+          <Label>{rl('الحضور / الغياب — اختر الغائبين من أعضاء اللجنة', 'Attendance — pick absentees from committee members')}</Label>
+          <div style={{ fontSize: 11, color: '#9aa39b', margin: '-3px 0 7px' }}>{rl('إن لم تختر أحداً، يُعدّ جميع الأعضاء حاضرين.', 'If none are picked, all members are counted present.')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
             {(committee?.members || []).map((n) => {
               const on = absent.includes(n);
               return (
                 <button type="button" key={n} onClick={() => setAbsent((p) => (on ? p.filter((x) => x !== n) : [...p, n]))} style={{ border: '1.5px solid ' + (on ? '#b0433b' : '#e2e6df'), background: on ? '#fdf3f2' : '#fff', color: on ? '#b0433b' : '#5b6b62', borderRadius: 20, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-                  {tr(n)}{on ? ' ✕' : ''}
+                  {tr(n)}{on ? ' ✕ غائب' : ''}
                 </button>
               );
             })}
             {(committee?.members || []).length === 0 && <span style={{ fontSize: 11.5, color: '#9aa39b' }}>{rl('لا يوجد أعضاء مسجّلون لهذه اللجنة', 'No members recorded for this committee')}</span>}
           </div>
+          <div style={{ marginTop: 9, display: 'inline-flex', alignItems: 'center', gap: 10, background: '#eef3f0', borderRadius: 9, padding: '7px 13px', fontSize: 12 }}>
+            <b style={{ color: '#1e4634' }}>{presentCount} {rl('حاضر', 'present')}</b>
+            <span style={{ color: '#b0433b', fontWeight: 700 }}>{absent.length} {rl('غائب', 'absent')}</span>
+            <span style={{ color: '#9aa39b' }}>{rl('من', 'of')} {totalMembers} {rl('عضو', 'members')}</span>
+          </div>
         </div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المحضر / أبرز النقاط والقرارات', 'Minutes / key points & decisions')}</Label><textarea value={f.points} onChange={setI('points')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('جدول الأعمال', 'Agenda')}</Label><textarea value={f.agenda} onChange={setI('agenda')} rows={3} placeholder={rl('بنود جدول أعمال الاجتماع…', 'Agenda items…')} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('حوكمة اللجنة', 'Committee governance')}</Label><textarea value={f.governance} onChange={setI('governance')} rows={2} placeholder={rl('ما يتعلق بحوكمة اللجنة…', 'Governance notes…')} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}>
-          <Label>{rl('المهام الناتجة عن الاجتماع', 'Tasks resulting from the meeting')}</Label>
+          <Label>{rl('التوصيات / التكليفات', 'Recommendations / assignments')}</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tasks.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 28px', gap: 8, padding: '0 3px', fontSize: 10.5, fontWeight: 700, color: '#9aa39b' }}>
+                <span>{rl('التوصية / التكليف', 'Recommendation / assignment')}</span>
+                <span>{rl('مسؤولية التنفيذ', 'Responsible')}</span>
+                <span>{rl('تاريخ الإنجاز', 'Target date')}</span>
+                <span>{rl('الحالة', 'Status')}</span>
+                <span />
+              </div>
+            )}
             {tasks.map((t, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 64px 28px', gap: 8, alignItems: 'center' }}>
-                <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('المهمة', 'Task')} style={inputStyle} />
-                <Dropdown value={t.owner} options={memberPool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setTask(i, 'owner', v)} opt={{ block: true, size: 'sm', placeholder: rl('المسؤول', 'Owner') }} />
-                <Dropdown value={t.status} options={TSTAT.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setTask(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 28px', gap: 8, alignItems: 'center' }}>
+                <input value={t.title} onChange={(e) => setTask(i, 'title', e.target.value)} placeholder={rl('نص التوصية أو التكليف', 'Recommendation / assignment text')} style={inputStyle} />
+                <input value={t.owner} onChange={(e) => setTask(i, 'owner', e.target.value)} placeholder={rl('المسؤول', 'Responsible')} style={inputStyle} />
                 <DateField value={t.due} onChange={(v) => setTask(i, 'due', v)} />
-                <input value={String(t.prog ?? '')} onChange={(e) => setTask(i, 'prog', Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)))} placeholder="%" style={{ ...inputStyle, textAlign: 'center', padding: '10px 6px' }} />
+                <Dropdown value={t.status} options={TSTAT.map((v) => ({ v, label: tr(v) }))} onChange={(v) => setTask(i, 'status', v)} opt={{ block: true, size: 'sm' }} />
                 <button type="button" onClick={() => setTasks((p) => p.filter((_, x) => x !== i))} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 14 }}>✕</button>
               </div>
             ))}
-            <button type="button" onClick={() => setTasks((p) => [...p, { title: '', owner: committee?.rapporteur || cu.name, status: 'قيد التنفيذ', due: '', prog: 0 }])} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة مهمة', 'Add task')}
+            <button type="button" onClick={() => setTasks((p) => [...p, { title: '', owner: committee?.rapporteur || cu.name, status: 'قيد التنفيذ', due: '' }])} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 9, padding: '8px 13px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة توصية / تكليف', 'Add recommendation / assignment')}
             </button>
           </div>
         </div>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المحضر والمرفقات (رفع ملفات)', 'Minutes & attachments (upload)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
+        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المرفقات (رفع ملفات)', 'Attachments (upload)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>

@@ -20,20 +20,8 @@ export interface RecentMsg { text: string; date: string }
  * that need them (projects, leaves), so this ad-hoc queue is intentionally empty. */
 export const WORK_ITEMS: WorkItem[] = [];
 
-export const MEMBER_DIRECTIVES: Record<string, DirectiveMsg[]> = {
-  samah: [{ text: 'يرجى تسريع رفع محاضر لجنة الأمن السيبراني قبل نهاية الأسبوع.', date: '2 يوليو 2026' }, { text: 'أضيفي ملخصاً تنفيذياً موجزاً لكل محضر قبل الإرسال للمراجعة.', date: '30 يونيو 2026' }],
-  moza: [{ text: 'تابعي الرد على وارد مكتب رئاسة مجلس الوزراء اليوم.', date: '2 يوليو 2026' }],
-  fatma: [{ text: 'قدّمي خطة معالجة واضحة لمخاطر مشروع إعادة الهيكلة.', date: '1 يوليو 2026' }],
-  hagar: [{ text: 'أرفقي مقارنة ربعية في التقرير المالي القادم.', date: '1 يوليو 2026' }],
-  saif: [{ text: 'حدّث نسبة الإنجاز لمشاريعك أسبوعياً.', date: '30 يونيو 2026' }],
-  hasan: [{ text: 'ركّز على إغلاق ملاحظات التدقيق المتأخرة أولاً.', date: '1 يوليو 2026' }],
-};
+/* Blank demo: directives and recent-activity start empty and populate live as the
+ * Sector Head issues directives and members add records during the walkthrough. */
+export const MEMBER_DIRECTIVES: Record<string, DirectiveMsg[]> = {};
 
-export const MEMBER_RECENT: Record<string, RecentMsg[]> = {
-  samah: [{ text: 'رفع محضر اجتماع القطاع الأسبوعي', date: '2 يوليو 2026' }, { text: 'تحديث حالة إجازة محمد الياسي', date: '1 يوليو 2026' }],
-  moza: [{ text: 'إضافة مستند صادر جديد', date: '2 يوليو 2026' }, { text: 'تحديث حالة متابعة ديوان المحاسبة', date: '1 يوليو 2026' }],
-  fatma: [{ text: 'تحديث نسبة إنجاز مشروع توحيد الإجراءات', date: '1 يوليو 2026' }],
-  hagar: [{ text: 'رفع التقرير المالي الشهري', date: '1 يوليو 2026' }],
-  saif: [{ text: 'تحديث مرحلة مشروع الخدمات الذكية', date: '1 يوليو 2026' }],
-  hasan: [{ text: 'إصدار تقرير التدقيق الربعي', date: '1 يوليو 2026' }],
-};
+export const MEMBER_RECENT: Record<string, RecentMsg[]> = {};

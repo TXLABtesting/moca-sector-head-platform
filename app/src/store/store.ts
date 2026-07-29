@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { seedData } from '../data/seed';
+import { demoSeed as seedData } from '../data/seed.demo';
 import type { AppData } from '../data/types';
 import { WORK_ITEMS, type WorkItem } from '../domain/workflow';
 import { SEED_USERS, type SeedUser } from '../domain/permissions';
 import { APP_TODAY, APP_TODAY_AR } from '../shared/today';
+import { verifyCredentials } from '../demo/auth';
+import { backendEnabled } from '../config/env';
 
 export interface ChangeLogEntry {
   id: string;
@@ -25,8 +27,11 @@ interface AppState {
   users: SeedUser[];
   changeLog: ChangeLogEntry[];
   currentUserId: string;
+  authUserId: string | null;   // demo session: who is signed in (null = show login)
   seq: number;
 
+  login: (username: string, password: string) => boolean;
+  logout: () => void;
   setCurrentUser: (id: string) => void;
   mutate: (fn: (d: AppData) => void) => void;
   mutateWork: (fn: (w: WorkItem[]) => void) => void;
@@ -67,8 +72,16 @@ export const useStore = create<AppState>()(
       users: clone(SEED_USERS),
       changeLog: [],
       currentUserId: 'chair',
+      authUserId: null,
       seq: 1,
 
+      login: (username, password) => {
+        const uid = verifyCredentials(username, password);
+        if (!uid) return false;
+        set({ authUserId: uid, currentUserId: uid });
+        return true;
+      },
+      logout: () => set({ authUserId: null }),
       setCurrentUser: (id) => set({ currentUserId: id }),
 
       mutate: (fn) => set((s) => { const data = clone(s.data); fn(data); return { data }; }),
@@ -82,11 +95,16 @@ export const useStore = create<AppState>()(
 
       nextId: (prefix) => { const id = prefix + get().seq; set((s) => ({ seq: s.seq + 1 })); return id; },
 
-      resetAll: () => set({ data: clone(seedData), work: clone(WORK_ITEMS), users: clone(SEED_USERS), changeLog: [], seq: 1 }),
+      resetAll: () => {
+        set({ data: clone(seedData), work: clone(WORK_ITEMS), users: clone(SEED_USERS), changeLog: [], seq: 1 });
+        // When the shared demo database is active, also restore it server-side
+        // (admin-gated RPC) so every client returns to the sample data.
+        import('../demo/demoBackend').then((m) => { if (m.backendEnabled) m.resetDemo(); }).catch(() => {});
+      },
     }),
     {
       name: 'moca.platform',
-      version: 17,
+      version: 22,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -108,6 +126,12 @@ export const useStore = create<AppState>()(
         if (s && s.data && !s.data.updateRequests) s.data.updateRequests = [];
         // v17: documents no longer submit for approval — drop the ad-hoc queue.
         if (s && typeof from === 'number' && from < 17) s.work = [];
+        // Refresh grants from the seed so permission corrections reach existing
+        // installs — ONLY in client-only mode. When the shared backend is on the
+        // Supabase row is authoritative (DemoSync.applyRemote overwrites users on
+        // load); re-seeding here would let a stale local cache clobber an admin's
+        // edit when the whole state row is next saved. So skip it with a backend.
+        if (s && typeof from === 'number' && from < 22 && !backendEnabled) s.users = clone(SEED_USERS);
         return s as AppState;
       },
     }

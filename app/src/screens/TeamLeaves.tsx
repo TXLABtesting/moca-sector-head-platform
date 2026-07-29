@@ -1,4 +1,6 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { triggerDownload } from '../shared/fileGen';
+import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from './reportcenter/templateIO';
 import { Fade, Drawer, Avatar, Badge, Modal } from '../components/ui';
 import { APP_TODAY } from '../shared/today';
 import { Dropdown } from '../components/Dropdown';
@@ -17,6 +19,9 @@ import { AttachmentDownload } from '../components/AttachmentDownload';
 
 const DAY = 86400000;
 const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+// Department managers roster (code-defined so they always appear in the person
+// picker regardless of the shared-DB contents). Treated as the "manager" category.
+const DEPT_MANAGERS = ['علي عيسى', 'محمد الياسي', 'شما المري', 'مريم البلوشي', 'شيماء خماس', 'حصة الحوسني', 'عبدالرحمن البلوشي'];
 const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** status -> [pill bg, pill fg] */
@@ -82,6 +87,54 @@ export function TeamLeaves() {
   const [editEnd, setEditEnd] = useState('');
   const [fPhase, setFPhase] = useState('');
   const [lvForm, setLvForm] = useState(false);
+
+  // ---- bulk import (one leave per row) ----
+  const LV_STATUS = ['بانتظار الاعتماد', 'معتمدة', 'مرفوضة', 'مخططة', 'منتهية'];
+  const LV_COLS = [
+    { field: 'person', match: alias('الموظف', 'الاسم', 'الشخص') },
+    { field: 'cat', match: alias('التصنيف', 'الفئة'), norm: (v: string) => (v.includes('مدير') ? 'manager' : 'office') },
+    { field: 'role', match: alias('الدور', 'الوظيفة', 'المسمى') },
+    { field: 'dept', match: alias('الإدارة', 'القسم') },
+    { field: 'type', match: alias('نوع الإجازة', 'النوع') },
+    { field: 'start', match: alias('تاريخ البداية', 'البداية', 'من'), norm: excelSerialToDate },
+    { field: 'end', match: alias('تاريخ النهاية', 'النهاية', 'إلى'), norm: excelSerialToDate },
+    { field: 'days', match: alias('عدد الأيام', 'الأيام') },
+    { field: 'status', match: alias('الحالة'), norm: pick(LV_STATUS, 'مخططة') },
+    { field: 'backup', match: alias('البديل') },
+    { field: 'notes', match: alias('ملاحظات') },
+  ];
+  const LV_HEADERS = ['الموظف', 'التصنيف', 'الدور', 'الإدارة', 'نوع الإجازة', 'تاريخ البداية', 'تاريخ النهاية', 'عدد الأيام', 'الحالة', 'البديل', 'ملاحظات'];
+  const LV_EXAMPLE = ['محمد الياسي', 'مكتب', 'منسق', 'إدارة الشؤون الإدارية', 'سنوية', '1 أغسطس 2026', '10 أغسطس 2026', '10', 'مخططة', 'موزة المرزوقي', 'صف مثال — احذفه'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlLeaveBulk = () => triggerDownload(makeXlsx([LV_HEADERS, LV_EXAMPLE], 'الإجازات'), 'Team_Leaves_Bulk_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, LV_COLS, (r) => !!r.person) : [];
+      if (!rows.length) { showToast(rl('لم يُعثر على إجازات في الملف — تأكد من مطابقة الأعمدة للقالب', 'No leaves found — check the template columns')); return; }
+      mutate((d) => {
+        rows.forEach((r, i) => {
+          // Auto-calculate leave days from the two dates when the column is
+          // blank (e.g. a template formula that wasn't cached).
+          let days = parseInt(r.days, 10) || 0;
+          if (!days) {
+            const s = parseAr(r.start || ''), e = parseAr(r.end || '');
+            if (s && e && +e >= +s) days = Math.round((+e - +s) / 86400000) + 1;
+          }
+          const rec = {
+            id: 'lv' + Date.now() + i, person: r.person, cat: (r.cat as LeaveCat) || 'office',
+            role: r.role || '', dept: r.dept || '', type: r.type || 'سنوية',
+            start: r.start || '', end: r.end || '', days,
+            status: r.status || 'مخططة', backup: r.backup || '—', notes: r.notes || '', _mowner: cu.id,
+          } as unknown as Leave;
+          d.leaves.unshift(rec);
+        });
+      });
+      showToast(rl('تم استيراد ', 'Imported ') + rows.length + rl(' إجازة', ' leaves'));
+    } catch {
+      showToast(rl('تعذّر استيراد الملف', 'Import failed'));
+    }
+  };
   const [lvEdit, setLvEdit] = useState(false);
 
   const CATL: Record<LeaveCat, string> = {
@@ -337,7 +390,14 @@ export function TeamLeaves() {
           </p>
         </div>
         {canManage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={dlLeaveBulk} title={rl('تنزيل قالب إكسيل بصف لكل إجازة', 'Template: one leave per row')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>{rl('قالب الاستيراد', 'Import template')}
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title={rl('رفع ملف إكسيل يحتوي عدة إجازات دفعة واحدة', 'Upload many leaves at once')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>{rl('استيراد دفعة', 'Bulk import')}
+            </button>
             <button onClick={() => setLvForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               {rl('إضافة إجازة', 'New leave')}
@@ -599,7 +659,6 @@ function LeavePanel(p: PanelProps) {
   const add = (n: string) => { if (n && !seen[n]) { seen[n] = true; pool.push(n); } };
   if (lv.cat === 'manager') { p.managerNames.forEach(add); p.sectorManagers.forEach(add); }
   else { p.members.forEach(add); p.officeNames.forEach(add); }
-  const bkOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') }, ...pool.filter((n) => n !== lv.person && !busy[n]).map((n) => ({ v: n, label: n }))];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -662,7 +721,7 @@ function LeavePanel(p: PanelProps) {
         <div style={{ background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
             <div style={{ fontSize: 10.5, color: '#9aa39b' }}>{rl('الفترة', 'Period')}</div>
-            {!p.editingDates && !p.canManage && (
+            {!p.editingDates && !p.canManage && !p.canApprove && (
               <button onClick={() => { p.setEditStart(lv.start); p.setEditEnd(lv.end); p.setEditingDates(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#ffffff', border: '1px solid #e2e6df', color: '#1f4a37', borderRadius: 8, padding: '4px 9px', fontSize: 10.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
                 {rl('طلب تعديل الفترة', 'Edit dates')}
@@ -753,10 +812,15 @@ function LeavePanel(p: PanelProps) {
               <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('إضافة ملاحظة / سبب رفض', 'Add note / rejection reason')}</div>
               <textarea value={p.noteDraft} onChange={(e) => p.setNoteDraft(e.target.value)} placeholder={rl('اكتب ملاحظتك هنا…', 'Write your note…')} style={{ width: '100%', minHeight: 66, resize: 'vertical', boxSizing: 'border-box', border: '1px solid #e2e6df', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', lineHeight: 1.6 }} />
             </div>
-            <div>
+            {!p.canApprove && <div>
               <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 5 }}>{rl('تعيين بديل', 'Assign backup')}</div>
-              <Dropdown value={lv.backup || '—'} options={bkOpts} onChange={p.onSetBackup} opt={{ size: 'sm', block: true, minWidth: '100%' }} />
-            </div>
+              <input list="lv-bk-panel" defaultValue={lv.backup && lv.backup !== '—' ? lv.backup : ''}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                onBlur={(e) => { const v = e.target.value.trim(); const cur = lv.backup && lv.backup !== '—' ? lv.backup : ''; if (v !== cur) p.onSetBackup(v || '—'); }}
+                placeholder={rl('اكتب اسم البديل…', 'Type backup name…')}
+                style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
+              <datalist id="lv-bk-panel">{pool.filter((n) => n !== lv.person).map((n, i) => <option key={i} value={n} />)}</datalist>
+            </div>}
           </>
         )}
       </div>
@@ -775,7 +839,7 @@ function LeavePanel(p: PanelProps) {
             </button>
           </>
         )}
-        {p.canNote && !p.canManage && (
+        {p.canNote && !p.canManage && !p.canApprove && (
           <button onClick={p.onNote} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
             {rl('ملاحظة', 'Note')}
@@ -793,7 +857,7 @@ function LeavePanel(p: PanelProps) {
             </span>
           </>
         )}
-        {p.canReview && !p.canManage && (
+        {p.canReview && !p.canManage && !p.canApprove && (
           <>
             <button onClick={p.onReqEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, padding: '9px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
@@ -825,24 +889,23 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
 
   const existing = leaveId ? data.leaves.find((l) => l.id === leaveId) : null;
   const [f, setF] = useState<Record<string, string>>(() => existing ? {
-    person: existing.person, type: existing.type, start: existing.start, end: existing.end,
+    person: existing.person, cat: existing.cat || 'office', type: existing.type, start: existing.start, end: existing.end,
     backup: existing.backup || '—', notes: existing.notes || '', chairNotes: existing.chairNotes || '',
     fstatus: existing.status,
-  } : { person: '', type: 'سنوية', start: '', end: '', backup: '—', notes: '', chairNotes: '', fstatus: 'مخططة' });
+  } : { person: '', cat: 'office', type: 'سنوية', start: '', end: '', backup: '—', notes: '', chairNotes: '', fstatus: 'مخططة' });
   const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
 
-  // people pool: office team + sector directors (cat derives from the pick)
+  // people pool: office team + sector directors + department managers (cat derives from the pick)
   const officeNames = data.members.map((m) => m.name);
-  const managerNames = data.sectorManagers.map((m) => m.name);
-  const personOpts = [
-    ...officeNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('فريق المكتب', 'Office team') })),
-    ...managerNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء القطاع', 'Sector directors') })),
-  ];
+  const sectorNames = data.sectorManagers.map((m) => m.name);
+  const deptMgrNames = DEPT_MANAGERS.filter((n) => !sectorNames.includes(n) && !officeNames.includes(n));
+  const managerNames = [...sectorNames, ...deptMgrNames];
   const catOfPerson = (n: string): LeaveCat => (managerNames.includes(n) ? 'manager' : 'office');
-  const backupOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') },
-    ...[...officeNames, ...managerNames].filter((n) => n !== f.person).map((n) => ({ v: n, label: tr(n) }))];
+  const allPeople = [...officeNames, ...managerNames];
+  // free-text name entry: type any name; known names still show as suggestions
+  const onPersonChange = (v: string) => setF((p) => ({ ...p, person: v, cat: managerNames.includes(v) ? 'manager' : (officeNames.includes(v) ? 'office' : p.cat) }));
 
   // auto day count
   const ps = parseAr(f.start), pe = parseAr(f.end);
@@ -851,7 +914,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   // live conflict detection: overlapping active leave in the same category
   const clash = (ps && pe && f.person) ? data.leaves.filter((l) => {
     if (l.id === leaveId || !activeForConflict(l)) return false;
-    if (l.cat !== catOfPerson(f.person)) return false;
+    if (l.cat !== ((f.cat as LeaveCat) || catOfPerson(f.person))) return false;
     const s2 = parseAr(l.start), e2 = parseAr(l.end);
     return !!(s2 && e2 && s2 <= pe && ps <= e2);
   }) : [];
@@ -871,10 +934,10 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
       }
       if (!lv) return;
       lv.person = f.person;
-      lv.cat = catOfPerson(f.person);
+      lv.cat = (f.cat as LeaveCat) || catOfPerson(f.person);
       const mem = d.members.find((m) => m.name === f.person);
       const mgr = d.sectorManagers.find((m) => m.name === f.person);
-      lv.role = mem ? mem.role : (mgr ? mgr.role : lv.role);
+      lv.role = mem ? mem.role : (mgr ? mgr.role : (lv.role || (deptMgrNames.includes(f.person) ? 'مدير إدارة' : '')));
       lv.dept = mgr ? mgr.dept : (lv.dept || 'مكتب رئيس القطاع');
       lv.type = f.type; lv.start = f.start; lv.end = f.end; lv.days = days;
       lv.backup = f.backup || '—'; lv.notes = (f.notes || '').trim();
@@ -901,8 +964,11 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الموظف / مدير القطاع', 'Employee / sector director')}</Label>
-          <Dropdown value={f.person} options={personOpts} onChange={set('person')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الشخص', 'Pick a person') }} /></div>
+        <div><Label>{rl('الموظف / المدير', 'Employee / manager')}</Label>
+          <input list="lv-people" value={f.person} onChange={(e) => onPersonChange(e.target.value)} placeholder={rl('اكتب الاسم…', 'Type a name…')} style={inputStyle} />
+          <datalist id="lv-people">{allPeople.map((n, i) => <option key={i} value={n} />)}</datalist></div>
+        <div><Label>{rl('الفئة', 'Group')}</Label>
+          <Dropdown value={f.cat} options={[{ v: 'office', label: rl('فريق المكتب', 'Office team') }, { v: 'manager', label: rl('مدراء الوحدات التنظيمية', 'Unit managers') }]} onChange={set('cat')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('نوع الإجازة', 'Leave type')}</Label><Dropdown value={f.type} options={['سنوية', 'طارئة', 'مرضية'].map((v) => ({ v, label: tr(v) }))} onChange={set('type')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('حالة التخطيط', 'Planning status')}</Label>
           {lockedStatus
@@ -924,7 +990,9 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
             </div>
           </div>
         )}
-        <div><Label>{rl('البديل / القائم بالأعمال', 'Backup / acting person')}</Label><Dropdown value={f.backup} options={backupOpts} onChange={set('backup')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('البديل / القائم بالأعمال', 'Backup / acting person')}</Label>
+          <input list="lv-backup" value={f.backup === '—' ? '' : f.backup} onChange={(e) => set('backup')(e.target.value || '—')} placeholder={rl('اكتب اسم البديل… (اختياري)', 'Type backup name… (optional)')} style={inputStyle} />
+          <datalist id="lv-backup">{allPeople.filter((n) => n !== f.person).map((n, i) => <option key={i} value={n} />)}</datalist></div>
         <div><Label>{rl('ملاحظات داخلية', 'Internal notes')}</Label><input value={f.notes} onChange={setI('notes')} style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('ملاحظات وتوجيهات رئيس القطاع', 'Sector Head comments & instructions')}</Label><textarea value={f.chairNotes} onChange={setI('chairNotes')} rows={2} placeholder={rl('تُسجَّل هنا توجيهات رئيس القطاع المتعلقة بهذه الإجازة…', 'Record the Sector Head instructions for this leave…')} style={{ ...inputStyle, resize: 'vertical' }} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مرفقات داعمة (إن وجدت)', 'Supporting attachments (optional)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>

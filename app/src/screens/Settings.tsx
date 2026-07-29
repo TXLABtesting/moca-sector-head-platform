@@ -9,6 +9,8 @@ import { useToast } from '../components/Toast';
 import { ACTIONS, SECTIONS, TYPES, SCOPES, SEED_USERS, effectivePerms, type SeedUser, type ActionKey } from '../domain/permissions';
 import { initials, asset } from '../shared/helpers';
 import { AV } from '../shared/constants';
+import { useCurrentUser } from '../store/useCurrentUser';
+import { isDemoEnv, backendEnabled } from '../config/env';
 
 type Tab = 'users' | 'types' | 'sections' | 'extra' | 'log';
 
@@ -27,6 +29,10 @@ export function Settings() {
   const L = lang === 'en';
   const users = useStore((s) => s.users);
   const setUsers = useStore((s) => s.setUsers);
+  const resetAll = useStore((s) => s.resetAll);
+  const cu = useCurrentUser();
+  const isAdmin = cu.type === 'chair' || cu.type === 'sysadmin';
+  const [confirmReset, setConfirmReset] = useState(false);
   const { showToast } = useToast();
   const { params } = useNav();
   const [tab, setTab] = useState<Tab>(() => {
@@ -138,6 +144,45 @@ export function Settings() {
         {tabBtn('extra', rl('الصلاحيات الإضافية', 'Extra permissions'))}
         {tabBtn('log', rl('سجل التغييرات', 'Change log'))}
       </div>
+
+      {isDemoEnv && isAdmin && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', background: '#fff', border: '1px solid #f0e2c9', borderRadius: 16, padding: '14px 18px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, background: '#fbf3df', color: '#a9791f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
+            </span>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: '#17211c' }}>{rl('البيئة التجريبية', 'Demo environment')}</div>
+              <div style={{ fontSize: 11.5, color: '#9aa39b' }}>
+                {backendEnabled
+                  ? rl('إعادة ضبط قاعدة البيانات التجريبية إلى بياناتها الأصلية للجميع', 'Reset the shared demo database to its original sample data for everyone')
+                  : rl('إعادة ضبط بيانات هذا المتصفح إلى العيّنة الأصلية', 'Reset this browser to the original sample data')}
+              </div>
+            </div>
+          </div>
+          <button onClick={() => setConfirmReset(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#fff', color: '#b0433b', border: '1px solid #e7b8b3', borderRadius: 11, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
+            {rl('إعادة ضبط البيانات التجريبية', 'Reset demo data')}
+          </button>
+        </div>
+      )}
+
+      {confirmReset && (
+        <div onClick={() => setConfirmReset(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,30,24,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 18, padding: 24, maxWidth: 420, width: '100%', boxShadow: '0 24px 60px -20px rgba(0,0,0,.4)' }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 16.5, fontWeight: 800, color: '#17211c' }}>{rl('تأكيد إعادة الضبط', 'Confirm reset')}</h3>
+            <p style={{ margin: '0 0 18px', fontSize: 12.5, color: '#6b7671', lineHeight: 1.7 }}>
+              {backendEnabled
+                ? rl('سيؤدي هذا إلى استرجاع البيانات التجريبية الأصلية وحذف كل ما أضافه المستخدمون في البيئة التجريبية — لكل المستخدمين. لا يمكن التراجع.', 'This restores the original sample data and discards everything users added in the demo — for all users. This cannot be undone.')
+                : rl('سيؤدي هذا إلى استرجاع بيانات العيّنة الأصلية في هذا المتصفح. لا يمكن التراجع.', 'This restores the original sample data in this browser. This cannot be undone.')}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmReset(false)} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+              <button onClick={() => { resetAll(); setConfirmReset(false); showToast(rl('تمت إعادة ضبط البيانات التجريبية', 'Demo data has been reset')); }} style={{ background: '#b0433b', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إعادة الضبط', 'Reset')}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {tab === 'users' && (
         <div style={{ background: '#fff', borderRadius: 24, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 18px 40px -14px rgba(23,40,32,.13)', padding: '22px 24px' }}>

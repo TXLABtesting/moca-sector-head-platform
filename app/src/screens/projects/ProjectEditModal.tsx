@@ -6,12 +6,13 @@ import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
+import { completionOptions } from '../member/workflow';
 import { UNITS } from '../../shared/constants';
 import type { Project } from '../../data/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const STATUS_OPTS = ['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل', 'يحتاج قرار', 'بانتظار الاعتماد'];
+const STATUS_OPTS = ['لم يبدأ', 'متأخر', 'بانتظار الاعتماد', 'مكتمل'];
 const PRI_OPTS = ['عالية', 'متوسطة', 'منخفضة'];
 
 /** Full project editor for permitted members: every existing component of the
@@ -33,10 +34,13 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
     startDate: project.startDate || '', dueDate: project.dueDate || '', deadline: project.deadline || '',
     desc: project.desc || '', finalOutput: project.finalOutput || '', nextStep: project.nextStep || '',
     risks: project.risks || '', scope: (project.scope || []).join('\n'), updateNote: '',
+    endUser: project.endUser || '', supplier: project.supplier || '', poNumber: project.poNumber || '',
+    dependencies: project.dependencies || '', milestones: (project.milestones || []).join('\n'),
   } : {
     name: '', nameEn: '', owner: cu.name, unit: 'قطاع الخدمات المركزية', status: 'لم يبدأ', priority: 'متوسطة',
     progress: '0', budget: '', startDate: '', dueDate: '', deadline: '', desc: '', finalOutput: '',
     nextStep: '', risks: '', scope: '', updateNote: '',
+    endUser: '', supplier: '', poNumber: '', dependencies: '', milestones: '',
   });
 
   const set = (k: string) => (v: string) => setF((p: any) => ({ ...p, [k]: v }));
@@ -70,6 +74,11 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
       p.desc = (f.desc || '').trim(); p.finalOutput = (f.finalOutput || '').trim(); p.nextStep = (f.nextStep || '').trim();
       p.risks = (f.risks || '').trim();
       p.scope = String(f.scope || '').split('\n').map((s: string) => s.trim()).filter(Boolean);
+      p.endUser = (f.endUser || '').trim();
+      p.supplier = (f.supplier || '').trim();
+      p.poNumber = (f.poNumber || '').trim();
+      p.dependencies = (f.dependencies || '').trim();
+      p.milestones = String(f.milestones || '').split('\n').map((s: string) => s.trim()).filter(Boolean);
       const note = (f.updateNote || '').trim();
       if (note) (p.timeline = p.timeline || []).unshift({ text: note, by: cu.name, date: 'اليوم' });
       if (send) { p._mrev = true; p._mret = ''; p._mowner = p._mowner || cu.id; }
@@ -109,9 +118,9 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Field label={rl('اسم المشروع', 'Project name')} k="name" /></div>
         <Field label={rl('الاسم الإنجليزي', 'English name')} k="nameEn" />
-        <div><Label>{rl('المسؤول', 'Owner')}</Label><Dropdown value={f.owner} options={ownerNames.map((n) => ({ v: n, label: tr(n) }))} onChange={set('owner')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('المسؤول', 'Owner')}</Label><input value={f.owner || ''} onChange={(e) => set('owner')(e.target.value)} placeholder={rl('اكتب اسم المسؤول…', 'Type owner name…')} style={inputStyle} /></div>
         <div><Label>{rl('الوحدة التنظيمية', 'Org unit')}</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={set('unit')} opt={{ block: true, size: 'sm' }} /></div>
-        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUS_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={[...new Set([...completionOptions(STATUS_OPTS, cu.type === 'chair'), (f.status || '').trim()].filter(Boolean))].map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('الأولوية', 'Priority')}</Label><Dropdown value={f.priority} options={PRI_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('priority')} opt={{ block: true, size: 'sm' }} /></div>
         <Field label={rl('نسبة الإنجاز %', 'Progress %')} k="progress" />
         <Field label={rl('الميزانية (درهم)', 'Budget (AED)')} k="budget" />
@@ -121,7 +130,12 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
         <div><Label>{rl('الخطوة القادمة', 'Next step')}</Label><input value={f.nextStep || ''} onChange={setI('nextStep')} style={inputStyle} /></div>
         <Area label={rl('وصف المشروع', 'Description')} k="desc" />
         <Area label={rl('المخرج النهائي للمشروع', 'Final deliverable')} k="finalOutput" rows={2} />
-        <Area label={rl('نطاق العمل (سطر لكل بند)', 'Scope of work (one line per bullet)')} k="scope" rows={4} />
+        <Area label={rl('نطاق المشروع (سطر لكل بند)', 'Project scope (one line per bullet)')} k="scope" rows={4} />
+        <Area label={rl('خطة المراحل الرئيسية (مرحلة لكل سطر)', 'Key milestones plan (one phase per line)')} k="milestones" rows={4} />
+        <Field label={rl('المستخدم النهائي', 'End user')} k="endUser" />
+        <Field label={rl('اسم المورد', 'Supplier')} k="supplier" />
+        <div style={{ gridColumn: '1 / -1' }}><Field label={rl('رقم طلب الشراء / العقد / طلب التوريد', 'PO / contract / supply-request no.')} k="poNumber" /></div>
+        <Area label={rl('الاعتماديات (ما يعتمد عليه المشروع)', 'Dependencies')} k="dependencies" rows={2} />
         <Area label={rl('المخاطر', 'Risks')} k="risks" rows={2} />
         <Area label={rl('ملاحظة تحديث (اختياري — تُضاف إلى سجل التحديثات)', 'Update note (optional — added to the updates log)')} k="updateNote" rows={2} />
       </div>

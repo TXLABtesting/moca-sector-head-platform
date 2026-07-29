@@ -15,6 +15,7 @@ import type { MinuteTask } from '../../data/types';
 import { MinuteTaskForm } from './MinuteTaskForm';
 import { AttachmentDownload } from '../../components/AttachmentDownload';
 import { MTS, GS, MT_STATUSES, mtNeedsSupport, mtMonKey, mtMonLabel } from './mtShared';
+import { completionOptions, DONE_PENDING } from '../member/workflow';
 
 type MtaskMeta = MinuteTask & { _mrev?: boolean; _mret?: string; _mowner?: string };
 
@@ -110,7 +111,6 @@ export function MinuteTasks() {
     { icon: 'timer', label: rl('قيد التنفيذ', 'In progress'), value: cnt('قيد التنفيذ'), bg: '#fbf0d6', fg: '#a9791f', accent: '#a9791f', kind: 'قيد التنفيذ' },
     { icon: 'note', label: rl('لم تبدأ', 'Not started'), value: cnt('لم يبدأ'), bg: '#eceae6', fg: '#8a8078', accent: '#8a8078', kind: 'لم يبدأ' },
     { icon: 'pin', label: rl('المتأخرة', 'Overdue'), value: cnt('متأخر'), bg: '#f7e6e4', fg: '#b0433b', accent: '#b0433b', kind: 'متأخر' },
-    { icon: 'shield', label: rl('تحتاج دعم رئيس القطاع', 'Need your support'), value: supCount, bg: '#fbf3df', fg: '#c9a24b', accent: '#c9a24b', kind: 'support' },
   ];
 
   const kpiClick = (kind: string) => {
@@ -169,7 +169,7 @@ export function MinuteTasks() {
   // ---- mutations ----
   const setTaskStatus = (id: string, val: string) => mutate((d) => {
     const tk = d.mtasks.find((x) => x.id === id);
-    if (tk) { tk.status = val; tk.lastUpdate = 'الآن — ' + cu.name; if (val === 'مكتمل') tk.prog = 100; }
+    if (tk) { tk.status = val; tk.lastUpdate = 'الآن — ' + cu.name; if (val === 'مكتمل' || val === DONE_PENDING) tk.prog = 100; }
   });
   const openDirective = (id: string) => { setDirModalId(id); setDirDraft(''); };
   const saveDirective = () => {
@@ -326,7 +326,7 @@ export function MinuteTasks() {
               {groups.map((g) => (
                 <GroupRows key={g.key} g={g} tr={tr} dl={dl} rl={rl}
                   detailed={mtDetailed}
-                  canDirect={canDirect} canReview={canReview} canStatus={canStatus} canEdit={canAddEdit}
+                  canDirect={canDirect} canReview={canReview} canStatus={canStatus} canEdit={canAddEdit} isChair={isChair}
                   disp={disp} dueColorOf={dueColorOf}
                   onOpen={setSelMtask} onEdit={(id) => setMtForm({ id })} onDirective={openDirective} onReviewed={markReviewed} onStatus={setTaskStatus}
                   tDir={t('mt_dirCount')} tAdd={t('mt_addDirective')} tRev={t('mt_markReviewed')} />
@@ -359,7 +359,7 @@ export function MinuteTasks() {
                 </div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #f2f4f0', paddingTop: 9 }}>
                   {canStatus
-                    ? <Dropdown value={a.status} options={MT_STATUSES.map((st) => ({ v: st, label: tr(st) }))} onChange={(v) => setTaskStatus(a.id, v)} opt={{ size: 'sm', bg: sb, color: sf, weight: 700, borderColor: 'transparent' }} />
+                    ? <Dropdown value={a.status} options={completionOptions(MT_STATUSES, isChair).map((st) => ({ v: st, label: tr(st) }))} onChange={(v) => setTaskStatus(a.id, v)} opt={{ size: 'sm', bg: sb, color: sf, weight: 700, borderColor: 'transparent' }} />
                     : <Badge bg={sb} fg={sf}>{tr(a.status)}</Badge>}
                   <button onClick={() => setSelMtask(a.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{rl('فتح', 'Open')}</button>
                   {canAddEdit && <button onClick={() => setMtForm({ id: a.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 9, padding: '9px 15px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{rl('تعديل', 'Edit')}</button>}
@@ -482,7 +482,7 @@ interface GroupRowsProps {
   g: { key: string; meeting: string; dept: string; mDate: string; span: number; status: string; stBg: string; stFg: string; count: number; tasks: MinuteTask[] };
   tr: (s: string) => string; dl: (s: string) => string; rl: (a: string, b: string) => string;
   detailed: boolean;
-  canDirect: boolean; canReview: boolean; canStatus: boolean; canEdit: boolean;
+  canDirect: boolean; canReview: boolean; canStatus: boolean; canEdit: boolean; isChair: boolean;
   disp: (v: string | undefined) => string; dueColorOf: (tk: MinuteTask) => string;
   onOpen: (id: string) => void; onEdit: (id: string) => void; onDirective: (id: string) => void; onReviewed: (id: string) => void; onStatus: (id: string, v: string) => void;
   tDir: string; tAdd: string; tRev: string;
@@ -547,7 +547,7 @@ function GroupRows(p: GroupRowsProps) {
             <td style={{ ...tdBase, whiteSpace: 'nowrap' }}><span style={{ fontSize: 12, color: dueColorOf(a) }}>{dl(a.due)}</span></td>
             <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>
               {p.canStatus
-                ? <Dropdown value={a.status} options={MT_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => p.onStatus(a.id, v)} opt={{ size: 'sm', bg: sb, color: sf, weight: 700, borderColor: 'transparent', block: true }} />
+                ? <Dropdown value={a.status} options={completionOptions(MT_STATUSES, p.isChair).map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => p.onStatus(a.id, v)} opt={{ size: 'sm', bg: sb, color: sf, weight: 700, borderColor: 'transparent', block: true }} />
                 : <Badge bg={sb} fg={sf}>{tr(a.status)}</Badge>}
             </td>
             {detailed && <td style={{ ...tdBase, maxWidth: 190, lineHeight: 1.5 }}>{disp(a.dependencies)}</td>}

@@ -14,6 +14,7 @@ import { OfficeTasks } from '../screens/OfficeTasks';
 import { TeamLeaves } from '../screens/TeamLeaves';
 import { Settings } from '../screens/Settings';
 import { NotificationsCenter } from '../screens/NotificationsCenter';
+import { CompletionReview } from '../screens/CompletionReview';
 
 export function Router() {
   const { page } = useNav();
@@ -51,6 +52,8 @@ export function Router() {
       return <TeamLeaves />;
     case 'settings':
       return <Settings />;
+    case 'completionReview':
+      return <CompletionReview />;
     case 'notifications':
       return <NotificationsCenter />;
     default:

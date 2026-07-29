@@ -7,6 +7,7 @@ import type { Member } from '../../data/types';
 /** Minute-task status colours [bg, fg] (distinct from PS/AS — قيد التنفيذ is amber here). */
 export const MTS: Record<string, readonly [string, string]> = {
   'مكتمل': ['#e2f0e8', '#2e7d55'],
+  'مكتمل قيد الاعتماد': ['#fbf0d6', '#a9791f'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
   'لم يبدأ': ['#eceae6', '#8a8078'],
   'متأخر': ['#f7e6e4', '#b0433b'],

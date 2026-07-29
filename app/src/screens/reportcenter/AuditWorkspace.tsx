@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { ChairNotes } from '../../components/ChairNotes';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -10,9 +11,11 @@ import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import { triggerDownload } from '../../shared/fileGen';
-import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, excelSerialToDate } from './templateIO';
+import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, PLACEHOLDER, excelSerialToDate, parseBulk, alias, pick } from './templateIO';
 import { audBullets } from './shared';
+import { completionOptions } from '../member/workflow';
 import type { AuditArea, AuditRep, AuditObsLog } from '../../data/types';
+import { APP_TODAY_AR } from '../../shared/today';
 import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -25,6 +28,7 @@ const AUDIT_UNITS = [
 ];
 const OBSC: Record<string, [string, string]> = {
   'مغلق': ['#e2f0e8', '#2e7d55'],
+  'مغلق قيد الاعتماد': ['#fbf0d6', '#a9791f'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
@@ -385,7 +389,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
         <div><Label>الفترة</Label><input value={f.period} onChange={setI('period')} placeholder="مثال: النصف الأول 2026" style={inputStyle} /></div>
         <div><Label>الدورية</Label><Dropdown value={f.freq} options={FREQS.map((x) => ({ v: x, label: tr(x) }))} onChange={(v) => setF((p) => ({ ...p, freq: v }))} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>حالة التقرير</Label><div style={{ ...inputStyle, background: '#f2f4f0', color: '#7d867f' }}>{existing ? tr(existing.status) : 'مسودة'} — تُدار من سير العمل</div></div>
-        <div><Label>المسؤول</Label><Dropdown value={f.resp} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setF((p) => ({ ...p, resp: v }))} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>المسؤول</Label><input value={f.resp} onChange={(e) => setF((p) => ({ ...p, resp: e.target.value }))} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
       </div>
 
       {/* first-observation data — same fields as the observation form */}
@@ -396,7 +400,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
             <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={o.title} onChange={setOI('title')} style={{ ...inputStyle, ...(needs('عنوان الملاحظة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
             <div><Label>المسؤول عن المعالجة</Label><input value={o.owner} onChange={setOI('owner')} placeholder="اكتب اسم المسؤول…" style={{ ...inputStyle, ...(needs('المسؤول عن المعالجة') ? { borderColor: '#e9c877', background: '#fdf9ee' } : {}) }} /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div><Label>الحالة</Label><Dropdown value={o.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setO((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
+              <div><Label>الحالة</Label><Dropdown value={o.status} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setO((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
               <div><Label>تاريخ التنفيذ</Label><DateField value={o.due} onChange={(v) => setO((p) => ({ ...p, due: v }))} /></div>
             </div>
           </div>
@@ -437,7 +441,7 @@ function RepForm({ repId, onClose }: { repId: string | null; onClose: () => void
                     <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={od.title} onChange={(e) => setObs(i, 'title', e.target.value)} style={inputStyle} /></div>
                     <div><Label>المسؤول عن المعالجة</Label><input value={od.owner} onChange={(e) => setObs(i, 'owner', e.target.value)} style={inputStyle} /></div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div><Label>الحالة</Label><Dropdown value={od.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setObs(i, 'status', v)} opt={{ block: true, size: 'sm' }} /></div>
+                      <div><Label>الحالة</Label><Dropdown value={od.status} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setObs(i, 'status', v)} opt={{ block: true, size: 'sm' }} /></div>
                       <div><Label>تاريخ التنفيذ</Label><DateField value={od.due} onChange={(v) => setObs(i, 'due', v)} /></div>
                     </div>
                   </div>
@@ -533,7 +537,7 @@ function ObsForm({ repId, obsId, onClose }: { repId: string; obsId: string | nul
         <div><Label>الوحدة التنظيمية المعنية</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, unit: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px', placeholder: 'اختر الوحدة…' }} /></div>
         <div><Label>المسؤول عن المعالجة</Label><input value={f.owner} onChange={setI('owner')} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>عنوان الملاحظة</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
-        <div><Label>الحالة</Label><Dropdown value={f.status} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>الحالة</Label><Dropdown value={f.status} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setF((p) => ({ ...p, status: v }))} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>تاريخ التنفيذ</Label><DateField value={f.due} onChange={(v) => setF((p) => ({ ...p, due: v }))} /></div>
       </div>
 
@@ -620,7 +624,7 @@ function ObsView({ obsId, onEdit, onClose }: { obsId: string; onEdit: () => void
       <div style={{ background: '#f7f9f6', border: '1px solid #e6ece7', borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 9 }}>
         <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: '#5b6b62' }}>الحالة الجديدة:</span>
-          <Dropdown value={newStatus} options={OBS_STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={setNewStatus} opt={{ size: 'sm', minWidth: '130px' }} />
+          <Dropdown value={newStatus} options={completionOptions(OBS_STATUSES, cu.type === 'chair').map((s) => ({ v: s, label: tr(s) }))} onChange={setNewStatus} opt={{ size: 'sm', minWidth: '130px' }} />
         </div>
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ملاحظة التحديث (اختياري)…" style={inputStyle} />
         <button onClick={applyStatus} style={{ alignSelf: 'flex-start', background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تحديث الحالة</button>
@@ -723,6 +727,8 @@ export function AuditWorkspace() {
   const { tr, dl } = useI18n();
   const cu = useCurrentUser();
   const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
   const reports = (data.auditReps || []).slice().sort((a, b) => (b.year || '').localeCompare(a.year || ''));
   const manage = cu.type !== 'chair' && (can(cu, 'auditReports', 'add') || can(cu, 'auditReports', 'edit'));
 
@@ -730,8 +736,61 @@ export function AuditWorkspace() {
   const [repForm, setRepForm] = useState<{ id: string | null } | null>(null);
   const [obsForm, setObsForm] = useState<{ repId: string; obsId: string | null } | null>(null);
   const [openObs, setOpenObs] = useState<string | null>(null);
+  const [askDel, setAskDel] = useState<string | null>(null);
 
   const obsCount = (repId: string) => data.audit.filter((a) => (a.rep || 'admin2025') === repId);
+  const deleteRep = (id: string) => {
+    mutate((d) => {
+      d.auditReps = (d.auditReps || []).filter((r) => r.id !== id);
+      d.audit = (d.audit || []).filter((a) => (a.rep || 'admin2025') !== id);
+    });
+    setAskDel(null);
+    setOpenRep(null);
+    showToast('تم حذف التقرير وملاحظاته');
+  };
+
+  // ---- bulk import (one OBSERVATION per row — matches the audit-office sheet) ----
+  const AR_COLS = [
+    { field: 'num', match: alias('رقم الملاحظة', 'رقم') },
+    { field: 'area', match: alias('اسم الملاحظة', 'عنوان الملاحظة') },
+    { field: 'obs', match: alias('الملاحظة حسب تقرير التدقيق الداخلي', 'الملاحظة حسب', 'حسب تقرير التدقيق') },
+    { field: 'action', match: alias('ملاحظات وشرح آلية اغلاق الملاحظة', 'آلية اغلاق', 'آلية إغلاق', 'شرح آلية') },
+    { field: 'due', match: alias('تاريخ التنفيذ', 'تاريخ الإنجاز') },
+    { field: 'owner', match: alias('المسؤول') },
+    { field: 'status', match: alias('الحالة', 'المنجز'), norm: pick(OBS_STATUSES, 'قيد التنفيذ') },
+    { field: 'notes', match: (h: string) => h.trim() === 'ملاحظات' }, // exact — avoids the «ملاحظات وشرح…» column
+  ];
+  const AR_HEADERS = ['رقم الملاحظة', 'اسم الملاحظة', 'الملاحظة حسب تقرير التدقيق الداخلي', 'ملاحظات وشرح آلية اغلاق الملاحظة', 'تاريخ التنفيذ', 'المسؤول', 'الحالة', 'ملاحظات'];
+  const AR_EXAMPLE = ['م1', 'ضعف في ضوابط الصلاحيات', 'لوحظ عدم مراجعة صلاحيات المستخدمين دورياً', 'تم تفعيل مراجعة ربع سنوية وإغلاق الصلاحيات غير المستخدمة', '30 يوليو 2026', 'حسن همام', 'قيد التنفيذ', 'صف مثال — احذفه قبل الرفع'];
+  const bulkRef = useRef<HTMLInputElement>(null);
+  const dlAuditBulk = () => triggerDownload(makeXlsx([AR_HEADERS, AR_EXAMPLE], 'ملاحظات التدقيق'), 'Audit_Observations_Template.xlsx');
+  const onBulk = async (file: File) => {
+    try {
+      const blocks = await fileToBlocks(file);
+      const rows = blocks ? parseBulk(blocks.tables, AR_COLS, (r) => !!(r.area || r.obs || r.num)) : [];
+      if (!rows.length) { showToast('لم يُعثر على ملاحظات في الملف — تأكد من مطابقة الأعمدة للقالب'); return; }
+      mutate((d) => {
+        d.auditReps = d.auditReps || [];
+        // The imported observations land in one new follow-up report container.
+        const repId = 'aur' + Date.now();
+        d.auditReps.unshift({
+          id: repId, title: 'تقرير المتابعة - مكتب التدقيق (' + APP_TODAY_AR + ')', unit: '', year: '2026',
+          period: '', freq: 'دوري', status: 'مسودة', resp: cu.name, attachments: [], notes: '', _mowner: cu.id,
+        } as unknown as (typeof d.auditReps)[number]);
+        rows.forEach((r, i) => {
+          d.audit.push({
+            id: 'au' + Date.now() + i, num: (r.num || '').trim() || 'م' + (i + 1), area: (r.area || '').trim(),
+            obs: (r.obs || '').trim(), action: (r.action || '').trim(), owner: (r.owner || '').trim() || cu.name,
+            status: r.status || 'قيد التنفيذ', imp: 'متوسطة', due: excelSerialToDate((r.due || '').trim()) || '—',
+            updated: 'الآن', notes: (r.notes || '').trim(), rep: repId, log: [],
+          } as AuditArea);
+        });
+      });
+      showToast('تم استيراد ' + rows.length + ' ملاحظة ضمن تقرير جديد');
+    } catch {
+      showToast('تعذّر استيراد الملف');
+    }
+  };
 
   return (
     <div>
@@ -741,7 +800,14 @@ export function AuditWorkspace() {
           <p style={{ margin: 0, fontSize: 12.5, color: '#7d867f' }}>إدارة التقارير الدورية وتقارير الحاجة وملاحظاتها — سجل مشترك واحد يظهر لرئيس القطاع فوراً.</p>
         </div>
         {manage && (
-          <div className="page-head-action" style={{ flex: 'none' }}>
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={dlAuditBulk} title="تنزيل قالب إكسيل بصف لكل ملاحظة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>قالب الاستيراد
+            </button>
+            <input ref={bulkRef} type="file" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onBulk(f); e.target.value = ''; }} />
+            <button onClick={() => bulkRef.current?.click()} title="رفع ملف إكسيل يحتوي عدة ملاحظات دفعة واحدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eef4ef', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>استيراد دفعة
+            </button>
             <button onClick={() => setRepForm({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               إضافة تقرير جديد
@@ -773,7 +839,7 @@ export function AuditWorkspace() {
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <button onClick={() => setOpenRep(r.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>فتح</button>
                 {manage && <button onClick={() => setRepForm({ id: r.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>}
-                {manage && <button onClick={() => setObsForm({ repId: r.id, obsId: null })} style={{ background: '#fbf3df', color: '#8a6a1f', border: '1px solid #ecdcae', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إضافة ملاحظة جديدة</button>}
+                {manage && <button onClick={() => setAskDel(r.id)} title="حذف التقرير وكل ملاحظاته" style={{ background: '#fbf1ef', color: '#a5342b', border: '1px solid #eccbc6', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حذف</button>}
               </div>
             </div>
           );
@@ -796,6 +862,26 @@ export function AuditWorkspace() {
       )}
       {repForm && <RepForm repId={repForm.id} onClose={() => setRepForm(null)} />}
       {obsForm && <ObsForm repId={obsForm.repId} obsId={obsForm.obsId} onClose={() => setObsForm(null)} />}
+      <Modal open={askDel !== null} onClose={() => setAskDel(null)} width={440}>
+        {(() => { const rep = reports.find((r) => r.id === askDel); const n = askDel ? obsCount(askDel).length : 0; return (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 'none', width: 42, height: 42, borderRadius: 12, background: '#fbece9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5342b' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" /></svg>
+              </div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#17211c' }}>حذف التقرير؟</h3>
+            </div>
+            <p style={{ margin: '0 0 20px', fontSize: 13, lineHeight: 1.7, color: '#5c665e' }}>
+              سيتم حذف <strong>{rep ? tr(rep.title) : 'هذا التقرير'}</strong> مع <strong>{n}</strong> ملاحظة مرتبطة به نهائياً. لا يمكن التراجع عن هذا الإجراء.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setAskDel(null)} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
+              <button onClick={() => askDel && deleteRep(askDel)} style={{ background: '#a5342b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>نعم، احذف التقرير</button>
+            </div>
+          </>
+        ); })()}
+      </Modal>
+      <ChairNotes noteKey="audit" />
     </div>
   );
 }

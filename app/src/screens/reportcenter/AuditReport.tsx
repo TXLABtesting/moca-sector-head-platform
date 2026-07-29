@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { pushUpdateReq } from '../member/workflow';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
+import { ChairNotes } from '../../components/ChairNotes';
 import { Dropdown } from '../../components/Dropdown';
 import { Drawer, Avatar } from '../../components/ui';
 import { Icon } from '../../components/Icon';
@@ -312,6 +313,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
       <Drawer open={!!selDetail} onClose={() => setSel(null)} width={460}>
         {selDetail && <ObsDrawer d={selDetail} canApprove={canApprove} onClose={() => setSel(null)} t={t} reqUpdate={reqUpdate} markReviewed={markReviewed} addDirective={addDirective} />}
       </Drawer>
+      <ChairNotes noteKey="audit" />
     </div>
   );
 }

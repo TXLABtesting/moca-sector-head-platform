@@ -7,7 +7,9 @@ import { Header } from './Header';
 import { NAV_SECTION } from './navConfig';
 
 const REPORT_PAGES = new Set(['reportcenter', 'reportDetail', 'finDetail', 'reglog', 'auditDetail']);
-const REPORT_SECTIONS = ['reportCenter', 'reportLog', 'finReports', 'auditReports', 'recommendations'];
+// Keep in sync with the sidebar's Report Center gate. `recommendations` is excluded:
+// it has no page/card in the hub yet, so it must not keep the Report Center reachable.
+const REPORT_SECTIONS = ['reportCenter', 'reportLog', 'finReports', 'auditReports'];
 import { Router } from './Router';
 import { GlobalSearch } from '../screens/GlobalSearch';
 import { ExecutiveAssistant } from '../screens/ExecutiveAssistant';

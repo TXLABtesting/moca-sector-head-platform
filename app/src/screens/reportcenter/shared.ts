@@ -21,13 +21,19 @@ export const AUS: Record<string, Pair> = {
 
 /** register status → [bg,fg] */
 export const REGST: Record<string, Pair> = {
+  // current report-log vocabulary
+  'غير مطلوب': ['#f0f2ee', '#8a8078'],
+  'لم يستلم': ['#f7e6e4', '#b0433b'],
+  'قيد الاعتماد': ['#fbf0d6', '#a9791f'],
+  'مستلم - في الموعد': ['#e2f0e8', '#2e7d55'],
+  'مستلم - متأخر': ['#fbf0d6', '#a9791f'],
+  'مستلم - متأخر جدا': ['#f7e6e4', '#b0433b'],
+  // legacy values kept so older records still render
   'معتمد': ['#e2f0e8', '#2e7d55'],
   'تم التسليم': ['#e0f0ea', '#1f8a5b'],
   'بانتظار الاعتماد': ['#fbf0d6', '#a9791f'],
-  'لم يستلم': ['#f7e6e4', '#b0433b'],
   'قيد المراجعة': ['#e6eef6', '#3a6ea5'],
   'مدمج': ['#efeaf4', '#7a4d94'],
-  'غير مطلوب': ['#f0f2ee', '#8a8078'],
   'متأخر': ['#f7e6e4', '#b0433b'],
   '—': ['#f4f6f2', '#b8bfb6'],
 };

@@ -51,6 +51,9 @@ export interface ProjectTask {
   name: string;
   owner: string;
   status: string;
+  start?: string;    // تاريخ بدء المرحلة (اختياري — يرجع للتوزيع التلقائي إن تُرك فارغًا)
+  end?: string;      // تاريخ انتهاء المرحلة
+  progress?: number; // نسبة الإنجاز اليدوية 0–100 (تتجاوز المشتقّة من الحالة)
 }
 
 export interface ProjectDirective {
@@ -87,6 +90,12 @@ export interface Project {
   lastDate?: string;
   risks?: string;
   chairmanNotes?: string;
+  // ── procurement / delivery details (visible to the Sector Head too) ──
+  endUser?: string;        // المستخدم النهائي
+  supplier?: string;       // اسم المورد
+  poNumber?: string;       // رقم طلب الشراء / العقد / طلب التوريد
+  dependencies?: string;   // الاعتماديات
+  milestones?: string[];   // خطة المراحل الرئيسية (بند لكل سطر)
   people?: string[];
   attachments?: string[];
   timeline?: TimelineEntry[];
@@ -184,6 +193,7 @@ export interface AuditRep {
 
 export interface MinuteTask {
   id: string;
+  meetingId?: string;   // links a task synced from a meeting's minutes
   mDate: string;
   meeting: string;
   dept: string;
@@ -222,6 +232,13 @@ export interface Correspondence {
   followup: string;
   attachment?: string;
   notes: string;
+  // Full outgoing/incoming register fields.
+  concerned?: string;    // الشخص المعني لهذا المستند
+  count?: string;        // العدد
+  replyDate?: string;    // تاريخ رد المستند من المستلم
+  deliveredTo?: string;  // تسليم للشخص المعني (تم / لم يُسلّم)
+  deliverDate?: string;  // تاريخ التسليم للشخص المعني
+  state?: string;        // الحالة (مفتوح / منجز / مغلق …)
 }
 
 export interface OfficeTask {
@@ -267,7 +284,16 @@ export interface RegReport {
 }
 
 export interface FinFlow { expected: number; paid: number; due?: number }
-export interface FinBigProject { name: string; entity?: string; alloc: number; paid: number }
+export interface FinBigProject {
+  name: string;
+  entity?: string;
+  alloc?: number;          // legacy
+  paid?: number;           // legacy
+  // ── current model (biggest projects by allocation) ──
+  approvedBudget?: number; // الميزانية المعتمدة للعام الحالي
+  allocations?: number;    // مخصصات الميزانية
+  remaining?: number;      // الميزانية المتبقية
+}
 export interface FinEntity {
   code: string;
   name: string;
@@ -280,6 +306,11 @@ export interface FinEntity {
   capex: FinFlow;
   projects: FinBigProject[];
   overdue: number;
+  // ── current model (budget distribution by entity) ──
+  govSupport?: number;     // الدعم الحكومي للعام
+  totalAvailable?: number; // اجمالي الميزانية المتاحة
+  allocations?: number;    // مخصصات الميزانية
+  remaining?: number;      // الميزانية المتبقية
 }
 export interface RelatedItem { n: string; v: number }
 /** A single line in a related-party breakdown section; v null = blank/unfilled. */
@@ -322,6 +353,8 @@ export interface FinModel {
   relTotals: { allPeriods: number; settling: number; prior: number; current: number };
   bankInterest: { dailyAccounts: number; fixedDeposits: number; activeDeposits: number };
   aging: AgingBucket[];
+  // Sector Head's notes on this financial report (chair adds; others read).
+  chairNotes?: { text: string; date: string; author: string }[];
 }
 
 export interface ReqMeeting {
@@ -368,6 +401,10 @@ export interface CommitteeMeeting {
   tasks: CommitteeTask[];
   absent?: string[];
   attachments?: string[];
+  time?: string;        // توقيت الاجتماع
+  location?: string;    // مكان الانعقاد
+  agenda?: string;      // جدول الأعمال
+  governance?: string;  // حوكمة اللجنة
 }
 export interface CommitteeScores {
   outputs: number;
@@ -392,6 +429,7 @@ export interface Committee {
   absent: string[];
   scores: CommitteeScores;
   statement: string;
+  weaknesses?: string[];
   improvements: string[];
   recommendation: string;
   members: string[];
@@ -440,7 +478,11 @@ export interface AppData {
   committees: Committee[];
   retReports: RetReport[];
   updateRequests?: UpdateRequest[];
+  // Sector Head notes per report, keyed by report id (e.g. 'reportLog', 'audit', 'retention').
+  reportNotes?: Record<string, ChairNote[]>;
 }
+
+export interface ChairNote { text: string; date: string; author: string }
 
 /** A "request update" the chair sends to the owner of any item, surfaced to
  *  that person as a real notification. Decoupled from the many record types. */
