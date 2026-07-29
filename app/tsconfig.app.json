@@ -19,5 +19,7 @@
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "// exclude note": "src/api is the production REST/Entra seam (see docs/02-data-flow.md). It is not wired into the running SPA yet and needs @azure/msal-browser; excluded from the typecheck until it is wired.",
+  "exclude": ["src/api"]
 }
