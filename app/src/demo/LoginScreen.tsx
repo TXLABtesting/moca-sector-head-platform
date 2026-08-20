@@ -41,10 +41,10 @@ export function LoginScreen() {
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#5b6b62', marginBottom: 6 }}>{rl('اسم المستخدم', 'Username')}</label>
-            <input value={username} onChange={(e) => { setUsername(e.target.value); setError(false); }} autoFocus autoComplete="username"
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#5b6b62', marginBottom: 6 }}>{rl('البريد الإلكتروني', 'Email')}</label>
+            <input type="email" dir="ltr" value={username} onChange={(e) => { setUsername(e.target.value); setError(false); }} autoFocus autoComplete="email"
               autoCapitalize="none" autoCorrect="off" spellCheck={false}
-              placeholder={rl('مثال: samah.abusharkh', 'e.g. samah.abusharkh')} style={field} />
+              placeholder={rl('مثال: samah.abusharkh@moca.gov.ae', 'e.g. samah.abusharkh@moca.gov.ae')} style={{ ...field, textAlign: 'left' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#5b6b62', marginBottom: 6 }}>{rl('كلمة المرور', 'Password')}</label>
@@ -53,7 +53,7 @@ export function LoginScreen() {
           </div>
           {error && (
             <div style={{ fontSize: 12.5, color: '#b0433b', background: '#fdf3f2', border: '1px solid #f3d9d6', borderRadius: 10, padding: '9px 12px' }}>
-              {rl('اسم المستخدم أو كلمة المرور غير صحيحة.', 'Incorrect username or password.')}
+              {rl('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'Incorrect email or password.')}
             </div>
           )}
           <button type="submit" style={{ marginTop: 4, background: '#1f4a37', color: '#fff', border: 'none', borderRadius: 12, padding: '13px', fontSize: 14, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }}>
