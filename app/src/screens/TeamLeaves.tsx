@@ -969,7 +969,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
           <datalist id="lv-people">{allPeople.map((n, i) => <option key={i} value={n} />)}</datalist></div>
         <div><Label>{rl('الفئة', 'Group')}</Label>
           <Dropdown value={f.cat} options={[{ v: 'office', label: rl('فريق المكتب', 'Office team') }, { v: 'manager', label: rl('مدراء الوحدات التنظيمية', 'Unit managers') }]} onChange={set('cat')} opt={{ block: true, size: 'sm' }} /></div>
-        <div><Label>{rl('نوع الإجازة', 'Leave type')}</Label><Dropdown value={f.type} options={['سنوية', 'طارئة', 'مرضية'].map((v) => ({ v, label: tr(v) }))} onChange={set('type')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('نوع الإجازة', 'Leave type')}</Label><Dropdown value={f.type || 'سنوية'} options={['سنوية'].map((v) => ({ v, label: tr(v) }))} onChange={set('type')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('حالة التخطيط', 'Planning status')}</Label>
           {lockedStatus
             ? <div style={{ ...inputStyle, background: '#f2f4f0', color: '#7d867f' }}>{tr(existing!.status)} — {rl('تُدار من رئيس القطاع', 'managed by the Sector Head')}</div>
