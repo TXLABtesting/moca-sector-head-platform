@@ -78,19 +78,22 @@ export function OfficeTasks() {
   const [taskForm, setTaskForm] = useState<{ id: string | null } | null>(null);
 
   // ---- bulk import (one office task per row) ----
+  // Columns mirror the "مهمة جديدة" input form: العنوان · التصنيف · الإدارة/الجهة ·
+  // الحالة · تاريخ البدء · الموعد النهائي · الوصف. The parser also tolerates legacy
+  // columns (المسؤول / ملاحظات / تاريخ الاستحقاق) so older files still import.
   const OT_COLS = [
     { field: 'title', match: alias('عنوان المهمة', 'المهمة', 'العنوان') },
-    { field: 'dept', match: alias('الإدارة', 'القسم') },
-    { field: 'owner', match: alias('المسؤول', 'المكلّف') },
+    { field: 'label', match: alias('التصنيف', 'النوع') },
+    { field: 'dept', match: alias('الإدارة / الجهة', 'الإدارة', 'الجهة', 'القسم') },
     { field: 'status', match: alias('الحالة'), norm: pick(O_STATUS_LIST, 'لم يبدأ') },
-    { field: 'desc', match: alias('الوصف') },
-    { field: 'due', match: alias('تاريخ الاستحقاق', 'الاستحقاق', 'الموعد'), norm: excelSerialToDate },
     { field: 'start', match: alias('تاريخ البدء', 'البدء'), norm: excelSerialToDate },
-    { field: 'end', match: alias('تاريخ الانتهاء', 'الانتهاء'), norm: excelSerialToDate },
+    { field: 'end', match: alias('الموعد النهائي', 'تاريخ الانتهاء', 'الانتهاء', 'تاريخ الاستحقاق', 'الاستحقاق'), norm: excelSerialToDate },
+    { field: 'desc', match: alias('الوصف') },
+    { field: 'owner', match: alias('المسؤول', 'المكلّف') },
     { field: 'notes', match: alias('ملاحظات') },
   ];
-  const OT_HEADERS = ['عنوان المهمة', 'الإدارة', 'المسؤول', 'الحالة', 'الوصف', 'تاريخ الاستحقاق', 'تاريخ البدء', 'تاريخ الانتهاء', 'ملاحظات'];
-  const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'إدارة الشؤون الإدارية', 'موزة المرزوقي', 'قيد التنفيذ', 'تجميع مؤشرات الأداء', '25 يوليو 2026', '1 يوليو 2026', '', 'صف مثال — احذفه'];
+  const OT_HEADERS = ['عنوان المهمة', 'التصنيف', 'الإدارة / الجهة', 'الحالة', 'تاريخ البدء', 'الموعد النهائي', 'الوصف'];
+  const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'تقرير', 'إدارة الشؤون الإدارية', 'قيد التنفيذ', '1 يوليو 2026', '25 يوليو 2026', 'تجميع مؤشرات الأداء — صف مثال يُحذف'];
   const bulkRef = useRef<HTMLInputElement>(null);
   const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب'), 'Office_Tasks_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
@@ -101,9 +104,9 @@ export function OfficeTasks() {
       mutate((d) => {
         rows.forEach((r, i) => {
           const rec = {
-            id: 'ot' + Date.now() + i, start: r.start || '', end: r.end || '', label: '',
-            title: r.title, dept: r.dept || '', owner: r.owner || cu.name, status: r.status || 'لم يبدأ',
-            desc: r.desc || '', lastUpdate: TODAY_AR, due: r.due || '', notes: r.notes || '',
+            id: 'ot' + Date.now() + i, start: r.start || '', end: r.end || '', label: r.label || 'مهمة',
+            title: r.title, dept: r.dept || 'مكتب رئيس القطاع', owner: r.owner || cu.name, status: r.status || 'لم يبدأ',
+            desc: r.desc || '', lastUpdate: TODAY_AR, due: r.end || r.due || '', notes: r.notes || '',
             directives: [], reviewed: false, attachments: [], participants: [], _mowner: cu.id,
           } as unknown as OfficeTask;
           d.otasks.unshift(rec);
