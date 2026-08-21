@@ -15,18 +15,18 @@ export interface DemoCredential {
 
 export const DEMO_CREDENTIALS: DemoCredential[] = [
   { email: 'fouzia.altayer@moca.gov.ae', password: 'chief@2026', userId: 'chair' },
-  { email: 'moza.almarzouqi@moca.gov.ae', password: 'Moza@2026', userId: 'moza' },
-  { email: 'samah.abusharkh@moca.gov.ae', password: 'Samah@2026', userId: 'samah' },
+  { email: 'moza.almarzooqi@moca.gov.ae', password: 'Moza@2026', userId: 'moza' },
+  { email: 'samah.abusharekh@moca.gov.ae', password: 'Samah@2026', userId: 'samah' },
   { email: 'fatma.alrashidi@moca.gov.ae', password: 'Fatma@2026', userId: 'fatma' },
-  { email: 'hagar.helal@moca.gov.ae', password: 'Hagar@2026', userId: 'hagar' },
-  { email: 'saif.baydani@moca.gov.ae', password: 'Saif@2026', userId: 'saif' },
+  { email: 'hager.halloul@moca.gov.ae', password: 'Hager@2026', userId: 'hagar' },
+  { email: 'saif.baidhani@moca.gov.ae', password: 'Saif@2026', userId: 'saif' },
   { email: 'hasan.hammam@moca.gov.ae', password: 'Hasan@2026', userId: 'hasan' },
   { email: 'rashed.alnuaimi@moca.gov.ae', password: 'Rashed@2026', userId: 'rashed' },
   { email: 'admin@moca.gov.ae', password: 'Admin@2026', userId: 'sysadmin' },
 ];
 
 /** Returns the matching userId, or null if the credentials are wrong. Accepts the
- *  full email, or just the local part before "@" (so "samah.abusharkh" also works).
+ *  full email, or just the local part before "@" (so "samah.abusharekh" also works).
  *  Both fields are trimmed — pasted values often carry a trailing space/newline. */
 export function verifyCredentials(login: string, password: string): string | null {
   const raw = login.trim().toLowerCase();

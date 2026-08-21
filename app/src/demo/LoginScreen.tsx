@@ -44,7 +44,7 @@ export function LoginScreen() {
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#5b6b62', marginBottom: 6 }}>{rl('البريد الإلكتروني', 'Email')}</label>
             <input type="email" dir="ltr" value={username} onChange={(e) => { setUsername(e.target.value); setError(false); }} autoFocus autoComplete="email"
               autoCapitalize="none" autoCorrect="off" spellCheck={false}
-              placeholder={rl('مثال: samah.abusharkh@moca.gov.ae', 'e.g. samah.abusharkh@moca.gov.ae')} style={{ ...field, textAlign: 'left' }} />
+              placeholder={rl('مثال: samah.abusharekh@moca.gov.ae', 'e.g. samah.abusharekh@moca.gov.ae')} style={{ ...field, textAlign: 'left' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#5b6b62', marginBottom: 6 }}>{rl('كلمة المرور', 'Password')}</label>
