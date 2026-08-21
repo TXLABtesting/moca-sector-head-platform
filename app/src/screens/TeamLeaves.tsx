@@ -23,7 +23,7 @@ const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي�
 // picker regardless of the shared-DB contents). Treated as the "manager" category.
 const DEPT_MANAGERS = ['علي عيسى', 'محمد الياسي', 'شما المري', 'مريم البلوشي', 'شيماء خماس', 'حصة الحوسني', 'عبدالرحمن البلوشي'];
 // Leave types shown in the New/Edit leave form and the type filter.
-const LEAVE_TYPES = ['سنوية', 'اعتيادية', 'قصيرة', 'مرضية'];
+const LEAVE_TYPES = ['سنوية'];
 const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** status -> [pill bg, pill fg] */
