@@ -141,11 +141,8 @@ function PeoplePicker({ list, onChange, pool, placeholder, accent }: {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <Dropdown value="" options={pool.filter((n) => !list.includes(n)).map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => { if (v) onChange([...list, v]); }} opt={{ block: true, size: 'sm', placeholder }} />
-        </div>
-        <input value={free} onChange={(e) => setFree(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && free.trim()) { onChange([...list, free.trim()]); setFree(''); } }} placeholder="اسم خارجي…" style={{ ...inputStyle, flex: 1 }} />
-        <button type="button" onClick={() => { if (free.trim()) { onChange([...list, free.trim()]); setFree(''); } }} style={{ flex: 'none', background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 10, padding: '9px 13px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إضافة</button>
+        <input value={free} onChange={(e) => setFree(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (free.trim()) { onChange([...list, free.trim()]); setFree(''); } } }} placeholder={placeholder} style={{ ...inputStyle, flex: 1 }} />
+        <button type="button" onClick={() => { if (free.trim()) { onChange([...list, free.trim()]); setFree(''); } }} style={{ flex: 'none', background: '#f4f6f2', border: '1px solid #dfe6dd', color: '#2b5c44', borderRadius: 10, padding: '9px 15px', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إضافة</button>
       </div>
       {list.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
@@ -303,9 +300,9 @@ export function MinutesForm({ meetingId, onClose }: { meetingId: string | null; 
       </div>
 
       {secHead('الحضور')}
-      <PeoplePicker list={attendees} onChange={setAttendees} pool={pool} placeholder="اختر حاضرًا لإضافته…" />
+      <PeoplePicker list={attendees} onChange={setAttendees} pool={pool} placeholder="اكتب اسم الحاضر…" />
       {secHead('الغياب')}
-      <PeoplePicker list={absentees} onChange={setAbsentees} pool={pool} placeholder="اختر غائبًا لإضافته…" accent="red" />
+      <PeoplePicker list={absentees} onChange={setAbsentees} pool={pool} placeholder="اكتب اسم الغائب…" accent="red" />
 
       {secHead('أبرز المواضيع التي نوقشت')}
       <BulletsEditor items={keyPoints} onChange={setKeyPoints} addLabel="إضافة موضوع" />

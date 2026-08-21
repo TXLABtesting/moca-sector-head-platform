@@ -37,6 +37,11 @@ const PROG: Record<string, number> = {
 };
 
 const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
+// Statuses shown in the new-task form for a member (مكتمل → مكتمل قيد الاعتماد).
+// The bulk template dropdown mirrors this exactly; the parser also accepts the
+// legacy values above for older files.
+const OT_FORM_STATUSES = completionOptions(['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'], false);
+const OT_STATUS_ACCEPTED = [...OT_FORM_STATUSES, 'مكتمل', 'بانتظار اعتماد'];
 // Organizational units for the "الإدارة / الجهة" dropdown.
 const ORG_UNITS = ['مكتب رئيس القطاع', 'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية', 'إدارة العقود والمشتريات', 'إدارة الخدمات والبنية التحتية', 'مركز التجربة المتكاملة'];
 
@@ -78,21 +83,24 @@ export function OfficeTasks() {
   const [taskForm, setTaskForm] = useState<{ id: string | null } | null>(null);
 
   // ---- bulk import (one office task per row) ----
+  // Columns mirror the "مهمة جديدة" input form: العنوان · التصنيف · الإدارة/الجهة ·
+  // الحالة · تاريخ البدء · الموعد النهائي · الوصف. The parser also tolerates legacy
+  // columns (المسؤول / ملاحظات / تاريخ الاستحقاق) so older files still import.
   const OT_COLS = [
     { field: 'title', match: alias('عنوان المهمة', 'المهمة', 'العنوان') },
-    { field: 'dept', match: alias('الإدارة', 'القسم') },
-    { field: 'owner', match: alias('المسؤول', 'المكلّف') },
-    { field: 'status', match: alias('الحالة'), norm: pick(O_STATUS_LIST, 'لم يبدأ') },
-    { field: 'desc', match: alias('الوصف') },
-    { field: 'due', match: alias('تاريخ الاستحقاق', 'الاستحقاق', 'الموعد'), norm: excelSerialToDate },
+    { field: 'label', match: alias('التصنيف', 'النوع') },
+    { field: 'dept', match: alias('الإدارة / الجهة', 'الإدارة', 'الجهة', 'القسم') },
+    { field: 'status', match: alias('الحالة'), norm: pick(OT_STATUS_ACCEPTED, 'لم يبدأ') },
     { field: 'start', match: alias('تاريخ البدء', 'البدء'), norm: excelSerialToDate },
-    { field: 'end', match: alias('تاريخ الانتهاء', 'الانتهاء'), norm: excelSerialToDate },
+    { field: 'end', match: alias('الموعد النهائي', 'تاريخ الانتهاء', 'الانتهاء', 'تاريخ الاستحقاق', 'الاستحقاق'), norm: excelSerialToDate },
+    { field: 'desc', match: alias('الوصف') },
+    { field: 'owner', match: alias('المسؤول', 'المكلّف') },
     { field: 'notes', match: alias('ملاحظات') },
   ];
-  const OT_HEADERS = ['عنوان المهمة', 'الإدارة', 'المسؤول', 'الحالة', 'الوصف', 'تاريخ الاستحقاق', 'تاريخ البدء', 'تاريخ الانتهاء', 'ملاحظات'];
-  const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'إدارة الشؤون الإدارية', 'موزة المرزوقي', 'قيد التنفيذ', 'تجميع مؤشرات الأداء', '25 يوليو 2026', '1 يوليو 2026', '', 'صف مثال — احذفه'];
+  const OT_HEADERS = ['عنوان المهمة', 'التصنيف', 'الإدارة / الجهة', 'الحالة', 'تاريخ البدء', 'الموعد النهائي', 'الوصف'];
+  const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'تقرير', 'إدارة الشؤون الإدارية', 'قيد التنفيذ', '1 يوليو 2026', '25 يوليو 2026', 'تجميع مؤشرات الأداء — صف مثال يُحذف'];
   const bulkRef = useRef<HTMLInputElement>(null);
-  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب'), 'Office_Tasks_Bulk_Template.xlsx');
+  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب', [{ col: OT_HEADERS.indexOf('الحالة'), values: OT_FORM_STATUSES }]), 'Office_Tasks_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
     try {
       const blocks = await fileToBlocks(file);
@@ -101,9 +109,9 @@ export function OfficeTasks() {
       mutate((d) => {
         rows.forEach((r, i) => {
           const rec = {
-            id: 'ot' + Date.now() + i, start: r.start || '', end: r.end || '', label: '',
-            title: r.title, dept: r.dept || '', owner: r.owner || cu.name, status: r.status || 'لم يبدأ',
-            desc: r.desc || '', lastUpdate: TODAY_AR, due: r.due || '', notes: r.notes || '',
+            id: 'ot' + Date.now() + i, start: r.start || '', end: r.end || '', label: r.label || 'مهمة',
+            title: r.title, dept: r.dept || 'مكتب رئيس القطاع', owner: r.owner || cu.name, status: r.status || 'لم يبدأ',
+            desc: r.desc || '', lastUpdate: TODAY_AR, due: r.end || r.due || '', notes: r.notes || '',
             directives: [], reviewed: false, attachments: [], participants: [], _mowner: cu.id,
           } as unknown as OfficeTask;
           d.otasks.unshift(rec);
@@ -768,7 +776,7 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
-        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><Dropdown value={f.dept} options={[...new Set([...ORG_UNITS, (f.dept || '').trim()])].filter(Boolean).map((u) => ({ v: u, label: tr(u) }))} onChange={set('dept')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الإدارة', 'Select unit') }} /></div>
+        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} list="ot-dept-suggestions" placeholder={rl('اكتب اسم الإدارة أو الجهة…', 'Type a department or unit…')} style={inputStyle} /><datalist id="ot-dept-suggestions">{ORG_UNITS.map((u) => <option key={u} value={u} />)}</datalist></div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
         <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><DateField value={f.end} onChange={set('end')} /></div>

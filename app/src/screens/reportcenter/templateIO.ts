@@ -35,7 +35,11 @@ export function makeDocx(body: string): Blob {
  * (green, bold, white) frozen header row, thin borders, and auto-sized columns.
  * The first row is treated as the header. Reads back losslessly (inline strings).
  */
-export function makeXlsx(rows: string[][], sheetName = 'قالب'): Blob {
+export function makeXlsx(
+  rows: string[][],
+  sheetName = 'قالب',
+  validations: { col: number; values: string[] }[] = [],
+): Blob {
   const colRef = (j: number) => { let n = j + 1, s = ''; while (n > 0) { s = String.fromCharCode(65 + ((n - 1) % 26)) + s; n = Math.floor((n - 1) / 26); } return s; };
   // s="1" header style, s="2" bordered body cell.
   const cell = (ref: string, v: string, header: boolean) => {
@@ -55,7 +59,13 @@ export function makeXlsx(rows: string[][], sheetName = 'قالب'): Blob {
     const cells = Array.from({ length: nCols }, (_, j) => cell(colRef(j) + (i + 1), r[j] || '', i === 0)).join('');
     return `<row r="${i + 1}"${i === 0 ? ' ht="26" customHeight="1"' : ''}>${cells}</row>`;
   }).join('');
-  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${sheetView}${cols}<sheetData>${body}</sheetData></worksheet>`;
+  // Excel dropdown lists (data validation) so restricted columns can't be mistyped.
+  const dv = validations.filter((v) => v.values.length).map((v) => {
+    const ref = colRef(v.col);
+    return `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${ref}2:${ref}1000"><formula1>"${X(v.values.join(','))}"</formula1></dataValidation>`;
+  }).join('');
+  const dvXml = dv ? `<dataValidations count="${validations.filter((v) => v.values.length).length}">${dv}</dataValidations>` : '';
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${sheetView}${cols}<sheetData>${body}</sheetData>${dvXml}</worksheet>`;
   const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1E4634"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFCBD6CC"/></left><right style="thin"><color rgb="FFCBD6CC"/></right><top style="thin"><color rgb="FFCBD6CC"/></top><bottom style="thin"><color rgb="FFCBD6CC"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${X(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`;
   const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
