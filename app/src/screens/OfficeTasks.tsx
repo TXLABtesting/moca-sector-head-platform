@@ -37,6 +37,11 @@ const PROG: Record<string, number> = {
 };
 
 const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
+// Statuses shown in the new-task form for a member (مكتمل → مكتمل قيد الاعتماد).
+// The bulk template dropdown mirrors this exactly; the parser also accepts the
+// legacy values above for older files.
+const OT_FORM_STATUSES = completionOptions(['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'], false);
+const OT_STATUS_ACCEPTED = [...OT_FORM_STATUSES, 'مكتمل', 'بانتظار اعتماد'];
 // Organizational units for the "الإدارة / الجهة" dropdown.
 const ORG_UNITS = ['مكتب رئيس القطاع', 'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية', 'إدارة العقود والمشتريات', 'إدارة الخدمات والبنية التحتية', 'مركز التجربة المتكاملة'];
 
@@ -85,7 +90,7 @@ export function OfficeTasks() {
     { field: 'title', match: alias('عنوان المهمة', 'المهمة', 'العنوان') },
     { field: 'label', match: alias('التصنيف', 'النوع') },
     { field: 'dept', match: alias('الإدارة / الجهة', 'الإدارة', 'الجهة', 'القسم') },
-    { field: 'status', match: alias('الحالة'), norm: pick(O_STATUS_LIST, 'لم يبدأ') },
+    { field: 'status', match: alias('الحالة'), norm: pick(OT_STATUS_ACCEPTED, 'لم يبدأ') },
     { field: 'start', match: alias('تاريخ البدء', 'البدء'), norm: excelSerialToDate },
     { field: 'end', match: alias('الموعد النهائي', 'تاريخ الانتهاء', 'الانتهاء', 'تاريخ الاستحقاق', 'الاستحقاق'), norm: excelSerialToDate },
     { field: 'desc', match: alias('الوصف') },
@@ -95,7 +100,7 @@ export function OfficeTasks() {
   const OT_HEADERS = ['عنوان المهمة', 'التصنيف', 'الإدارة / الجهة', 'الحالة', 'تاريخ البدء', 'الموعد النهائي', 'الوصف'];
   const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'تقرير', 'إدارة الشؤون الإدارية', 'قيد التنفيذ', '1 يوليو 2026', '25 يوليو 2026', 'تجميع مؤشرات الأداء — صف مثال يُحذف'];
   const bulkRef = useRef<HTMLInputElement>(null);
-  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب', [{ col: OT_HEADERS.indexOf('الحالة'), values: O_STATUS_LIST }]), 'Office_Tasks_Bulk_Template.xlsx');
+  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب', [{ col: OT_HEADERS.indexOf('الحالة'), values: OT_FORM_STATUSES }]), 'Office_Tasks_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
     try {
       const blocks = await fileToBlocks(file);
