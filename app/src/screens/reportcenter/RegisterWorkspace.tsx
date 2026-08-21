@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { ChairNotes } from '../../components/ChairNotes';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -18,7 +19,16 @@ import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const REG_STATUSES = ['—', 'معتمد', 'تم التسليم', 'بانتظار الاعتماد', 'لم يستلم', 'قيد المراجعة', 'مدمج', 'غير مطلوب'];
+const REG_STATUSES = ['—', 'غير مطلوب', 'لم يستلم', 'قيد الاعتماد', 'مستلم - في الموعد', 'مستلم - متأخر', 'مستلم - متأخر جدا'];
+
+/** Classify a receipt by its day of the month:
+ *  ≤7 → في الموعد · 8–14 → متأخر · ≥15 → متأخر جدا. */
+function classifyReceipt(dateStr: string): string {
+  const day = parseInt((dateStr || '').trim(), 10);
+  if (day >= 15) return 'مستلم - متأخر جدا';
+  if (day >= 8) return 'مستلم - متأخر';
+  return 'مستلم - في الموعد';
+}
 const MONTH_FIELDS: { k: 'jan' | 'feb' | 'mar' | 'apr' | 'may'; pk: string; ar: string }[] = [
   { k: 'jan', pk: 'm1', ar: 'يناير' }, { k: 'feb', pk: 'm2', ar: 'فبراير' }, { k: 'mar', pk: 'm3', ar: 'مارس' }, { k: 'apr', pk: 'm4', ar: 'أبريل' }, { k: 'may', pk: 'm5', ar: 'مايو' },
 ];
@@ -54,14 +64,48 @@ const dlRegTemplateDocx = () => triggerDownload(makeDocx(
 ), 'Reports_Register_Template.docx');
 const dlRegTemplateXlsx = () => triggerDownload(makeXlsx(TPL_ROWS, 'قالب السجل'), 'Reports_Register_Template.xlsx');
 
-/* ---------------- bulk template + import (MANY reports, one row each) ---------------- */
+/* ---------------- bulk template + import (MANY reports, one row each) ----------------
+   Matches the ministry's "سجل التقارير" layout: one row per report, and for every
+   month TWO columns — «الحالة» (receipt status) and «التاريخ» (delivery date). The
+   importer also reads the ministry's original two-row header (month name merged over
+   حالة التقرير / تاريخ التسليم) so their existing file uploads as-is. */
 const BULK_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-const BULK_HEADERS = ['عنوان التقرير', 'نوع التقرير', 'الإدارة', 'المسؤول', 'الدورية', 'موعد الاستحقاق', 'السنة', ...BULK_MONTHS, 'ملاحظات'];
+const BULK_FIXED = ['العنوان', 'نوع التقرير', 'تاريخ التسليم', 'دورية التقرير', 'المسؤول', 'الإدارة المعنية', 'السنة'];
+const BULK_HEADERS = [...BULK_FIXED, ...BULK_MONTHS.flatMap((m) => [m + ' - الحالة', m + ' - التاريخ']), 'الملاحظات', 'للأعتماد'];
+// Two example rows filling only the months that apply to each frequency.
+const mCells = (pairs: Record<number, [string, string]>): string[] =>
+  BULK_MONTHS.flatMap((_, i) => pairs[i + 1] || ['—', '']);
 const BULK_EXAMPLE: string[][] = [
-  ['التقرير المالي الشهري', 'الأداء المالي', 'إدارة الشؤون الإدارية', 'هاجر هلول', 'شهري', '7 من كل شهر', '2026', 'معتمد', 'تم التسليم', 'بانتظار الاعتماد', '—', '—', '—', '—', '—', '—', '—', '—', '—', 'صف مثال — احذفه قبل الرفع'],
-  ['تقرير المخاطر الربعي', 'تدقيق', 'مركز التجربة المتكاملة', 'حسن همام', 'ربع سنوي', 'نهاية كل ربع', '2026', 'معتمد', '—', '—', 'معتمد', '—', '—', 'معتمد', '—', '—', 'بانتظار الاعتماد', '—', '—', 'اترك الأشهر غير المعنية = —'],
+  ['تقرير الأداء المالي الشهري', 'الأداء المالي', '7 من كل شهر', 'شهري', 'عبادة شراب', 'إدارة الخدمات المالية', '2026',
+    ...mCells({ 1: ['مستلم - في الموعد', '5 يناير'], 2: ['مستلم - متأخر', '11 فبراير'], 3: ['قيد الاعتماد', ''] }),
+    'يُعقد اجتماع شهري يوم 10 لمناقشة التقرير', 'لاعتماد رئيس القطاع'],
+  ['تقرير المخاطر الربعي', 'تدقيق', 'نهاية كل ربع', 'ربع سنوي', 'حسن همام', 'مركز التجربة المتكاملة', '2026',
+    ...mCells({ 3: ['مستلم - متأخر جدا', '18 مارس'], 6: ['لم يستلم', ''] }),
+    'صف مثال — احذفه قبل الرفع. اترك الأشهر غير المعنية = —', ''],
 ];
 const dlRegBulkTemplateXlsx = () => triggerDownload(makeXlsx([BULK_HEADERS, ...BULK_EXAMPLE], 'سجل التقارير'), 'Reports_Register_Bulk_Template.xlsx');
+
+/* Map the ministry's free-text receipt cells onto the register's status vocabulary.
+   Order matters — negatives («لم يستلم») are checked before positives, and «مراجعة»
+   before the generic «قيد …». Long unrecognized free-text is left blank for review. */
+const REG_STATUS_ALIASES: [RegExp, string][] = [
+  [/عدم اصدار|عدم إصدار|عدم الاصدار|لا يصدر|غير مطلوب|لا ينطبق|لا يوجد|دمج|مدمج/, 'غير مطلوب'],
+  [/لم يستلم|لم يتم|لم يصدر|لم يُستلم/, 'لم يستلم'],
+  // any receipt → a generic «مستلم» which the parser then classifies by day
+  [/في الموعد/, 'مستلم - في الموعد'],
+  [/متأخر جدا|متأخر جدًا/, 'مستلم - متأخر جدا'],
+  [/متأخر/, 'مستلم - متأخر'],
+  [/معتمد|تم التسليم|تم الاستلام|مستلم|تم الإرسال|تم الارسال/, 'مستلم'],
+  [/بانتظار|قيد|مراجعة|لأعتماد|لاعتماد|للأعتماد|للاعتماد|جاهز|تأشير|للتأشير|للعرض/, 'قيد الاعتماد'],
+];
+function normRegStatus(v: string): string | undefined {
+  const s = (v || '').trim();
+  if (!s || s === '—' || s === '-') return undefined;
+  const exact = REG_STATUSES.find((x) => x !== '—' && x === s);
+  if (exact) return exact;
+  for (const [re, st] of REG_STATUS_ALIASES) if (re.test(s)) return st;
+  return s.length <= 12 ? s : undefined; // unknown short → keep; long free-text → review
+}
 
 /** Map a calendar month (1–12) to the period key(s) of a report's frequency it
  *  belongs to, so the 12-month template works for EVERY frequency:
@@ -80,27 +124,59 @@ function monthPeriodKeys(freq: string, m: number): string[] {
   }
 }
 
-/** Parse a multi-row sheet (header + one report per row) into partial reports. */
+/** Parse a multi-row sheet (header + one report per row) into partial reports.
+ *  Handles BOTH layouts:
+ *   • the ministry's original two-row header — month name merged over
+ *     «حالة التقرير» / «تاريخ التسليم» (the month name sits in the status column,
+ *     the delivery-date column is the next one over); and
+ *   • the paired single-row header this app's template emits —
+ *     «يناير - الحالة» / «يناير - التاريخ». */
 function bulkReports(tables: string[][][]): Partial<RegReport>[] {
   const table = tables.slice().sort((a, b) => b.length - a.length)[0] || [];
   if (table.length < 2) return [];
-  let hi = table.findIndex((r) => r.some((c) => /عنوان/.test(c) || c.trim() === 'التقرير'));
+  let hi = table.findIndex((r) => r.some((c) => /العنوان|عنوان التقرير/.test(c)) || r.some((c) => c.trim() === 'التقرير'));
+  if (hi < 0) hi = table.findIndex((r) => r.some((c) => /عنوان/.test(c)));
   if (hi < 0) hi = 0;
-  const header = table[hi].map((c) => c.trim());
-  const idx = (test: (c: string) => boolean) => header.findIndex(test);
+  const H = table[hi].map((c) => (c || '').trim());
+  const isMonth = (c: string) => BULK_MONTHS.some((m) => c === m || c.startsWith(m));
+
+  // Locate each month's status + date columns.
+  const monthStatusCol = new Array(12).fill(-1);
+  const monthDateCol = new Array(12).fill(-1);
+  H.forEach((c, i) => {
+    const mi = BULK_MONTHS.findIndex((m) => c === m || c.startsWith(m));
+    if (mi < 0) return;
+    if (/حالة/.test(c)) { if (monthStatusCol[mi] < 0) monthStatusCol[mi] = i; }        // «يناير - الحالة»
+    else if (/تاريخ|التسليم/.test(c)) { if (monthDateCol[mi] < 0) monthDateCol[mi] = i; } // «يناير - التاريخ»
+    else if (monthStatusCol[mi] < 0) {                                                  // bare «يناير» (two-row header)
+      monthStatusCol[mi] = i;
+      const nxt = (H[i + 1] || '').trim();
+      if (!isMonth(nxt) && (nxt === '' || /تاريخ|التسليم/.test(nxt))) monthDateCol[mi] = i + 1;
+    }
+  });
+  const present = monthStatusCol.filter((c) => c >= 0);
+  const firstMonthCol = present.length ? Math.min(...present) : H.length;
+
+  const find = (test: (c: string, i: number) => boolean) => H.findIndex(test);
   const col = {
-    title: idx((c) => /عنوان/.test(c) || c === 'التقرير'),
-    type: idx((c) => /^نوع/.test(c)),
-    dept: idx((c) => /إدار/.test(c)),
-    resp: idx((c) => /مسؤول/.test(c)),
-    freq: idx((c) => /دوري/.test(c)),
-    due: idx((c) => /استحقاق|موعد/.test(c)),
-    year: idx((c) => c === 'السنة' || c === 'سنة'),
-    notes: idx((c) => /ملاحظ/.test(c)),
+    title: find((c) => /العنوان|عنوان التقرير|^عنوان/.test(c) || c === 'التقرير'),
+    type: find((c) => /^نوع/.test(c)),
+    due: find((c, i) => i < firstMonthCol && /تاريخ التسليم|موعد الاستحقاق|الاستحقاق|موعد التسليم/.test(c)),
+    freq: find((c) => /دورية|الدورية|التكرار/.test(c)),
+    resp: find((c) => /مسؤول/.test(c)),
+    dept: find((c) => /الإدارة المعنية|الإدارة|الجهة المعنية|إدار/.test(c)),
+    year: find((c) => c === 'السنة' || c === 'سنة' || /^السنة/.test(c)),
+    notes: find((c) => /ملاحظ/.test(c)),
+    approval: find((c) => /اعتماد|أعتماد/.test(c) && !/تاريخ/.test(c)),
   };
-  const monthCols = BULK_MONTHS.map((m) => header.findIndex((c) => c === m));
+
+  // Skip a two-row header's sub-row (حالة التقرير / تاريخ التسليم) before the data.
+  const subJoin = (table[hi + 1] || []).join('');
+  const twoRow = /حالة التقرير|تاريخ التسليم/.test(subJoin) && !/عنوان/.test(subJoin);
+  const dataStart = hi + (twoRow ? 2 : 1);
+
   const out: Partial<RegReport>[] = [];
-  for (let i = hi + 1; i < table.length; i++) {
+  for (let i = dataStart; i < table.length; i++) {
     const r = table[i];
     const g = (k: number) => (k >= 0 ? (r[k] || '').trim() : '');
     const title = g(col.title);
@@ -109,23 +185,28 @@ function bulkReports(tables: string[][][]): Partial<RegReport>[] {
     // mistaken for the shorter "أسبوعي" it contains.
     const fr = g(col.freq);
     const freq = REG_FREQS.find((f) => f === fr)
-      || [...REG_FREQS].sort((a, b) => b.length - a.length).find((f) => fr.includes(f))
+      || [...REG_FREQS].sort((a, b) => b.length - a.length).find((f) => fr && fr.includes(f))
       || 'شهري';
     const year = g(col.year) || LEGACY_YEAR;
     const periods: Record<string, string> = {};
-    monthCols.forEach((mc, mi) => {
-      if (mc < 0) return;
-      const v = (r[mc] || '').trim();
-      if (v && v !== '—') {
-        const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s));
-        if (st) monthPeriodKeys(freq, mi + 1).forEach((k) => { periods[k] = st; });
+    let latestDate = '';
+    monthStatusCol.forEach((sc, mi) => {
+      const dv = monthDateCol[mi] >= 0 ? g(monthDateCol[mi]) : '';
+      if (sc >= 0) {
+        let st = normRegStatus(g(sc));
+        // A generic receipt is classified on-time/late/very-late by its day.
+        if (st === 'مستلم') st = classifyReceipt(dv);
+        if (st) monthPeriodKeys(freq, mi + 1).forEach((k) => { periods[k] = st!; });
       }
+      if (dv) latestDate = dv; // scan is Jan→Dec, so the last non-empty is the most recent
     });
     out.push({
       title, type: g(col.type), dept: g(col.dept), resp: g(col.resp),
       freq, due: excelSerialToDate(g(col.due)), notes: g(col.notes),
+      approval: g(col.approval) || undefined,
+      lastDate: excelSerialToDate(latestDate) || undefined,
       periods: Object.keys(periods).length ? { [year]: periods } : {},
-    });
+    } as Partial<RegReport>);
   }
   return out;
 }
@@ -148,7 +229,7 @@ function parseRegFile(tables: string[][][]): RegParsed {
   const months: Record<string, string> = {};
   MONTH_FIELDS.forEach(({ pk, ar }) => {
     const v = kvLookup(tables, new RegExp('^حالة ' + ar));
-    if (v) { const st = REG_STATUSES.find((s) => s !== '—' && v.includes(s)) || (v.trim() === '—' ? '—' : undefined); if (st) months[pk] = st; }
+    if (v) { let st = normRegStatus(v); if (st === 'مستلم') st = 'مستلم - في الموعد'; if (st) months[pk] = st; }
   });
   if (Object.keys(months).length) found.months = months;
   found.notes = kvLookup(tables, /^ملاحظات/);
@@ -287,7 +368,7 @@ function RegForm({ regId, initYear, onClose }: { regId: string | null; initYear:
         <div style={{ gridColumn: '1 / -1' }}><Label>عنوان التقرير</Label><input value={f.title} onChange={setI('title')} style={{ ...inputStyle, ...warnStyle('عنوان التقرير') }} /></div>
         <div><Label>نوع التقرير</Label><input value={f.type} onChange={setI('type')} style={{ ...inputStyle, ...warnStyle('نوع التقرير') }} /></div>
         <div><Label>الإدارة</Label><Dropdown value={f.dept} options={deptOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={(v) => setF((p) => ({ ...p, dept: v }))} opt={{ block: true, size: 'sm', popMaxWidth: '340px' }} /></div>
-        <div><Label>المسؤول</Label><Dropdown value={f.resp} options={pool.map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => setF((p) => ({ ...p, resp: v }))} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>المسؤول</Label><input value={f.resp} onChange={(e) => setF((p) => ({ ...p, resp: e.target.value }))} placeholder="اكتب اسم المسؤول…" style={inputStyle} /></div>
         <div><Label>الدورية</Label><Dropdown value={f.freq} options={REG_FREQS.map((x) => ({ v: x, label: tr(x) }))} onChange={changeFreq} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>موعد الاستحقاق</Label><input value={f.due} onChange={setI('due')} placeholder="مثال: 7 من كل شهر" style={{ ...inputStyle, ...warnStyle('موعد الاستحقاق') }} /></div>
         <div><Label>تاريخ آخر تسليم</Label><DateField value={f.lastDate} onChange={(v) => setF((p) => ({ ...p, lastDate: v }))} /></div>
@@ -418,7 +499,17 @@ export function RegisterWorkspace() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [formId, setFormId] = useState<{ id: string | null } | null>(null);
   const [limit, setLimit] = useState(15);
+  const [askClear, setAskClear] = useState(false);
   const bulkRef = useRef<HTMLInputElement>(null);
+
+  const clearAll = () => {
+    const n = data.regReports.length;
+    mutate((d) => { d.regReports = []; });
+    setAskClear(false);
+    setOpenId(null);
+    setFormId(null);
+    showToast(`تم حذف ${n} تقرير من السجل — يمكنك الآن رفع بيانات جديدة`);
+  };
 
   const onBulk = async (file: File) => {
     try {
@@ -467,6 +558,12 @@ export function RegisterWorkspace() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9m0 0-4 4m4-4 4 4M5 3h14" /></svg>
               استيراد دفعة من إكسيل
             </button>
+            {data.regReports.length > 0 && (
+              <button onClick={() => setAskClear(true)} title="حذف كل تقارير السجل لبدء رفع بيانات جديدة" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fbf1ef', color: '#a5342b', border: '1px solid #eccbc6', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" /></svg>
+                حذف كل السجلات
+              </button>
+            )}
             <button onClick={() => setFormId({ id: null })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               إضافة تقرير جديد للسجل
@@ -522,6 +619,23 @@ export function RegisterWorkspace() {
 
       {openId && !formId && <RegView regId={openId} initYear={year} onEdit={() => setFormId({ id: openId })} onClose={() => setOpenId(null)} />}
       {formId && <RegForm regId={formId.id} initYear={year} onClose={() => setFormId(null)} />}
+
+      <Modal open={askClear} onClose={() => setAskClear(false)} width={440}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <div style={{ flex: 'none', width: 42, height: 42, borderRadius: 12, background: '#fbece9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a5342b' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14" /></svg>
+          </div>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#17211c' }}>حذف كل تقارير السجل؟</h3>
+        </div>
+        <p style={{ margin: '0 0 20px', fontSize: 13, lineHeight: 1.7, color: '#5c665e' }}>
+          سيتم حذف <strong>{data.regReports.length}</strong> تقرير من سجل التقارير نهائياً لتتمكن من رفع بيانات جديدة. لا يمكن التراجع عن هذا الإجراء.
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={() => setAskClear(false)} style={{ background: '#f2f4f0', color: '#3c4a42', border: '1px solid #e2e6df', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إلغاء</button>
+          <button onClick={clearAll} style={{ background: '#a5342b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>نعم، احذف الكل</button>
+        </div>
+      </Modal>
+      <ChairNotes noteKey="reportLog" />
     </div>
   );
 }

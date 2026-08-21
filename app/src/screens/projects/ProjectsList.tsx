@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useStore } from '../../store/store';
-import { pushUpdateReq } from '../member/workflow';
+import { pushUpdateReq, DONE_PENDING } from '../member/workflow';
 import { useI18n } from '../../i18n/i18n';
 import { useNav } from '../../store/nav';
 import { useToast } from '../../components/Toast';
@@ -11,7 +11,7 @@ import { Icon } from '../../components/Icon';
 import { UNITS } from '../../shared/constants';
 import { triggerDownload } from '../../shared/fileGen';
 import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from '../reportcenter/templateIO';
-import type { Project } from '../../data/types';
+import type { Project, ProjectTask } from '../../data/types';
 import { psColors, prColors, accentOf, unitOf, dueColor } from './projShared';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
@@ -57,9 +57,24 @@ export function ProjectsList() {
     { field: 'poNumber', match: alias('طلب الشراء', 'العقد', 'التوريد', 'رقم الطلب') },
     { field: 'dependencies', match: alias('الاعتماديات', 'الاعتمادية') },
     { field: 'risks', match: alias('المخاطر') },
+    { field: 'stages', match: alias('مراحل الجدول الزمني', 'الجدول الزمني', 'جدول زمني', 'مراحل زمنية') },
   ];
-  const P_HEADERS = ['اسم المشروع', 'المسؤول', 'الوحدة التنظيمية', 'الحالة', 'نسبة الإنجاز', 'الأولوية', 'الميزانية', 'تاريخ البدء', 'تاريخ الاستحقاق', 'الوصف', 'المخرج النهائي', 'الخطوة التالية', 'نطاق المشروع', 'خطة المراحل الرئيسية', 'المستخدم النهائي', 'اسم المورد', 'رقم طلب الشراء / العقد / التوريد', 'الاعتماديات', 'المخاطر'];
-  const P_EXAMPLE = ['توحيد إجراءات المكتب', 'سيف بيضاني', 'قطاع الخدمات المركزية', 'قيد التنفيذ', '40', 'عالية', '500000', '1 يناير 2026', '30 يونيو 2026', 'توحيد وتبسيط إجراءات العمل', 'دليل إجراءات معتمد', 'اعتماد المسودة', 'حصر الإجراءات؛ إعادة التصميم؛ الاعتماد', 'التحليل؛ التصميم؛ التنفيذ؛ الإطلاق', 'إدارة الشؤون الإدارية', 'شركة الحلول الذكية', 'PO-2026-114', 'اعتماد الميزانية', 'ضيق الوقت — صف مثال يُحذف'];
+  const P_HEADERS = ['اسم المشروع', 'المسؤول', 'الوحدة التنظيمية', 'الحالة', 'نسبة الإنجاز', 'الأولوية', 'الميزانية', 'تاريخ البدء', 'تاريخ الاستحقاق', 'الوصف', 'المخرج النهائي', 'الخطوة التالية', 'نطاق المشروع', 'خطة المراحل الرئيسية', 'المستخدم النهائي', 'اسم المورد', 'رقم طلب الشراء / العقد / التوريد', 'الاعتماديات', 'المخاطر', 'مراحل الجدول الزمني (اسم | بدء | انتهاء | حالة | %) ولكل مرحلة سطر'];
+  const P_EXAMPLE = ['توحيد إجراءات المكتب', 'سيف بيضاني', 'قطاع الخدمات المركزية', 'قيد التنفيذ', '40', 'عالية', '500000', '1 يناير 2026', '30 يونيو 2026', 'توحيد وتبسيط إجراءات العمل', 'دليل إجراءات معتمد', 'اعتماد المسودة', 'حصر الإجراءات؛ إعادة التصميم؛ الاعتماد', 'التحليل؛ التصميم؛ التنفيذ؛ الإطلاق', 'إدارة الشؤون الإدارية', 'شركة الحلول الذكية', 'PO-2026-114', 'اعتماد الميزانية', 'ضيق الوقت — صف مثال يُحذف', 'التصميم | 1 يناير 2026 | 15 فبراير 2026 | قيد التنفيذ | 55؛ التنفيذ | 16 فبراير 2026 | 30 مايو 2026 | لم يبدأ | 0'];
+  // Parse the timeline cell: one stage per line/؛, fields split by | →
+  // اسم | تاريخ البدء | تاريخ الانتهاء | الحالة | نسبة الإنجاز
+  const snapStageStatus = pick(['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر'], 'لم يبدأ');
+  const parseStages = (cell?: string): ProjectTask[] =>
+    String(cell || '').split(/[؛\n]+/).map((s) => s.trim()).filter(Boolean).map((seg) => {
+      const [name, start, end, status, prog] = seg.split('|').map((x) => (x || '').trim());
+      if (!name) return null;
+      const tk: ProjectTask = { name, owner: '', status: status ? snapStageStatus(status) : 'لم يبدأ' };
+      if (start) tk.start = excelSerialToDate(start);
+      if (end) tk.end = excelSerialToDate(end);
+      const n = parseInt(String(prog || '').replace(/[^\d]/g, ''), 10);
+      if (!isNaN(n)) tk.progress = Math.max(0, Math.min(100, n));
+      return tk;
+    }).filter((x): x is ProjectTask => x !== null);
   const bulkRef = useRef<HTMLInputElement>(null);
   const dlProjTemplate = () => triggerDownload(makeXlsx([P_HEADERS, P_EXAMPLE.slice(0, P_HEADERS.length)], 'المشاريع'), 'Projects_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
@@ -80,7 +95,7 @@ export function ProjectsList() {
             scope: String(r.scope || '').split(/[؛\n;]+/).map((s) => s.trim()).filter(Boolean),
             milestones: String(r.milestones || '').split(/[؛\n;]+/).map((s) => s.trim()).filter(Boolean),
             endUser: r.endUser || '', supplier: r.supplier || '', poNumber: r.poNumber || '', dependencies: r.dependencies || '',
-            lastDate: 'اليوم', chairmanNotes: '', people: [], attachments: [], timeline: [], tasks: [],
+            lastDate: 'اليوم', chairmanNotes: '', people: [], attachments: [], timeline: [], tasks: parseStages(r.stages),
             _mowner: cu.id, _mstatus: 'مسودة',
           } as unknown as Project;
           d.projects.unshift(p);
@@ -128,10 +143,10 @@ export function ProjectsList() {
 
   // ---- kanban columns -------------------------------------------------------
   const colDefs: { keys: string[]; label: string; dot: string }[] = [
-    { keys: ['لم يبدأ', 'بانتظار الاعتماد'], label: rl('قيد الاعتماد', 'Pending approval'), dot: '#9aa39b' },
+    { keys: ['لم يبدأ', 'بانتظار الاعتماد', 'يحتاج قرار'], label: rl('قيد الاعتماد', 'Pending approval'), dot: '#9aa39b' },
     { keys: ['قيد التنفيذ'], label: rl('قيد التنفيذ', 'In progress'), dot: '#3a6ea5' },
-    { keys: ['يحتاج قرار'], label: rl('بانتظار توجيه', 'Awaiting direction'), dot: '#c9a24b' },
     { keys: ['متأخر'], label: rl('متأخر', 'Delayed'), dot: '#b0433b' },
+    { keys: [DONE_PENDING], label: rl('مكتمل قيد الاعتماد', 'Completion pending'), dot: '#c9a24b' },
     { keys: ['مكتمل'], label: rl('مكتمل', 'Completed'), dot: '#2e7d55' },
   ];
   const columns = colDefs.map((c) => ({
@@ -143,20 +158,21 @@ export function ProjectsList() {
   const reqUpdate = (p: { owner: string; name: string }) => { mutate((d) => pushUpdateReq(d, { owner: p.owner, title: p.name, section: 'projects' })); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
 
   // ---- drag & drop between status columns -----------------------------------
-  const DROP_STATUS = ['بانتظار الاعتماد', 'قيد التنفيذ', 'يحتاج قرار', 'متأخر', 'مكتمل'];
+  const DROP_STATUS = ['بانتظار الاعتماد', 'قيد التنفيذ', 'متأخر', DONE_PENDING, 'مكتمل'];
   const onDropTo = (ci: number) => (e: React.DragEvent) => {
     e.preventDefault(); setDragOverCol(null);
     const pid = e.dataTransfer.getData('text/plain'); if (!pid) return;
     const proj = projects.find((x) => x.id === pid); if (!proj) return;
     if (colDefs[ci].keys.includes(proj.status)) return; // dropped on its own column
-    const target = DROP_STATUS[ci];
-    const memberCompletion = target === 'مكتمل' && !isChair;
+    let target = DROP_STATUS[ci];
+    // Members can't finalize a project — dropping on "مكتمل" routes to completion review.
+    if (target === 'مكتمل' && !isChair) target = DONE_PENDING;
+    const toReview = target === DONE_PENDING;
     mutate((d) => {
       const pr = d.projects.find((x) => x.id === pid) as any; if (!pr) return;
-      if (memberCompletion) {
-        // the team never completes a project directly — it goes to the chief for approval
-        pr.status = 'بانتظار الاعتماد'; pr.progress = 100;
-        pr._mrev = true; pr._mret = ''; pr._mowner = pr._mowner || cu.id;
+      if (toReview) {
+        pr.status = DONE_PENDING; pr.progress = 100;
+        pr._mret = ''; pr._mowner = pr._mowner || cu.id;
         (pr._mlog = pr._mlog || []).unshift({ at: rl('الآن', 'Just now'), to: rl('طلب اعتماد الاكتمال', 'Completion approval requested'), sent: true, by: cu.name });
       } else {
         pr.status = target;
@@ -164,8 +180,8 @@ export function ProjectsList() {
         if (target === 'قيد التنفيذ' && (!pr.progress || pr.progress < 10)) pr.progress = 10;
       }
     });
-    showToast(memberCompletion
-      ? rl('أُرسل طلب اعتماد الاكتمال إلى رئيس القطاع — لا يكتمل المشروع إلا باعتمادها', 'Completion request sent — the project completes only with the Sector Head’s approval')
+    showToast(toReview
+      ? rl('انتقل المشروع إلى «مكتمل قيد الاعتماد» — بانتظار اعتماد رئيس القطاع', 'Moved to “Completion pending” — awaiting the Sector Head’s approval')
       : rl('تم نقل المشروع إلى «' + tr(colDefs[ci].label) + '»', 'Project moved to “' + colDefs[ci].label + '”'));
   };
 

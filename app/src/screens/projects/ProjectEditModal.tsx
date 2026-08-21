@@ -6,12 +6,13 @@ import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
 import { useCurrentUser } from '../../store/useCurrentUser';
+import { completionOptions } from '../member/workflow';
 import { UNITS } from '../../shared/constants';
 import type { Project } from '../../data/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const STATUS_OPTS = ['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل', 'يحتاج قرار', 'بانتظار الاعتماد'];
+const STATUS_OPTS = ['لم يبدأ', 'متأخر', 'بانتظار الاعتماد', 'مكتمل'];
 const PRI_OPTS = ['عالية', 'متوسطة', 'منخفضة'];
 
 /** Full project editor for permitted members: every existing component of the
@@ -117,9 +118,9 @@ export function ProjectEditModal({ project, onClose }: { project: Project | null
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Field label={rl('اسم المشروع', 'Project name')} k="name" /></div>
         <Field label={rl('الاسم الإنجليزي', 'English name')} k="nameEn" />
-        <div><Label>{rl('المسؤول', 'Owner')}</Label><Dropdown value={f.owner} options={ownerNames.map((n) => ({ v: n, label: tr(n) }))} onChange={set('owner')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('المسؤول', 'Owner')}</Label><input value={f.owner || ''} onChange={(e) => set('owner')(e.target.value)} placeholder={rl('اكتب اسم المسؤول…', 'Type owner name…')} style={inputStyle} /></div>
         <div><Label>{rl('الوحدة التنظيمية', 'Org unit')}</Label><Dropdown value={f.unit} options={unitOpts.map((u) => ({ v: u, label: tr(u) }))} onChange={set('unit')} opt={{ block: true, size: 'sm' }} /></div>
-        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUS_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={[...new Set([...completionOptions(STATUS_OPTS, cu.type === 'chair'), (f.status || '').trim()].filter(Boolean))].map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('الأولوية', 'Priority')}</Label><Dropdown value={f.priority} options={PRI_OPTS.map((s) => ({ v: s, label: tr(s) }))} onChange={set('priority')} opt={{ block: true, size: 'sm' }} /></div>
         <Field label={rl('نسبة الإنجاز %', 'Progress %')} k="progress" />
         <Field label={rl('الميزانية (درهم)', 'Budget (AED)')} k="budget" />

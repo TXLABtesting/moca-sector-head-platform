@@ -2,7 +2,8 @@ import type { AppData } from '../data/types';
 import type { Page, NavParams } from '../store/nav';
 import type { SeedUser } from '../domain/permissions';
 import { SECTIONS, SEC_PAGE } from '../domain/permissions';
-import { mColl, OWNER_OF, ownedBy } from '../screens/member/workflow';
+import { mColl, OWNER_OF, ownedBy, pendingCompletionItems } from '../screens/member/workflow';
+import { chairNotesForUser } from '../domain/reportNotes';
 import { todayPlus } from '../shared/today';
 import { AR_MONTHS } from '../shared/constants';
 
@@ -121,6 +122,10 @@ export function buildNotifications(
     data.leaves.filter((l) => l.status === 'بانتظار الاعتماد').forEach((l) => {
       push({ key: 'lv:' + l.id, kind: 'leave', title: rl('طلب إجازة بانتظار الاعتماد: ', 'Leave request awaiting approval: ') + tr(l.person), sub: tr(l.type) + ' · ' + tr(l.start), meta: rl('الإجازات', 'Leaves'), page: 'leaves', params: { selLeave: l.id } }, isFresh(l));
     });
+    // Items marked "completion pending" by owners — awaiting the chair's completion approval.
+    pendingCompletionItems(data).forEach(({ sec, coll, r }) => {
+      push({ key: 'comp:' + String(coll.key) + ':' + r.id, kind: 'review', title: rl('بانتظار اعتماد الاكتمال: ', 'Awaiting completion approval: ') + tr(coll.title(r)), sub: rl('من ', 'From ') + userName(r._mowner || ''), meta: secName(sec), page: 'completionReview' }, isFresh(r));
+    });
   } else {
     SCAN_SECS.forEach((sec) => {
       const coll = mColl(sec); if (!coll) return;
@@ -146,12 +151,20 @@ export function buildNotifications(
     (data.updateRequests || []).filter((u) => ownedBy(u.owner, cu.name)).forEach((u) => {
       push({ key: 'upd:' + u.id, kind: 'update', title: rl('طلب تحديث من رئيس القطاع: ', 'Update requested by the Sector Head: ') + tr(u.title), sub: u.note ? tr(u.note) : rl('يرجى تحديث هذا البند وإعادة إرساله.', 'Please update this item and resubmit.'), meta: secName(u.section), page: (SEC_PAGE[u.section] || 'dashboard') as Page }, true);
     });
+    // Sector Head notes on a report the member is responsible for.
+    chairNotesForUser(data, cu).forEach((h) => {
+      push({ key: 'rnote:' + h.key + ':' + h.note.date + ':' + h.note.text.slice(0, 24), kind: 'directive', title: rl('ملاحظة رئيس القطاع على ', 'Sector Head note on ') + (lang === 'en' ? h.en : h.ar), sub: tr(h.note.text), meta: rl('مركز التقارير', 'Report Center'), page: h.page }, true);
+    });
     data.reqMeetings.forEach((m: any) => {
       if (m._mowner !== cu.id) return;
       if (m.status === 'تم اقتراح موعد آخر') {
         push({ key: 'mtgp:' + m.id, kind: 'meeting', title: rl('اقترح رئيس القطاع موعدًا آخر: ', 'The Sector Head proposed another time: ') + tr(m.subject), sub: (m.newDate ? tr(m.newDate) + (m.newTime ? ' - ' + m.newTime : '') : ''), meta: rl('الاجتماعات', 'Meetings'), page: 'reqmeetings', params: { selMeeting: m.id } }, true);
       } else if (m.status === 'معتمد') {
-        push({ key: 'mtga:' + m.id, kind: 'approved', title: rl('تم اعتماد الاجتماع: ', 'Meeting approved: ') + tr(m.subject), sub: rl('يمكن إضافته إلى تقويم Outlook', 'Can be added to Outlook calendar'), meta: rl('الاجتماعات', 'Meetings'), page: 'reqmeetings', params: { selMeeting: m.id } }, true);
+        const chairReq = !!m._chairReq;
+        push({ key: 'mtga:' + m.id, kind: chairReq ? 'meeting' : 'approved',
+          title: (chairReq ? rl('طلب رئيس القطاع عقد اجتماع: ', 'The Sector Head requested a meeting: ') : rl('تم اعتماد الاجتماع: ', 'Meeting approved: ')) + tr(m.subject),
+          sub: chairReq ? (tr(m.proposed) + ' · ' + rl('أضِفه إلى Outlook', 'Add to Outlook')) : rl('يمكن إضافته إلى تقويم Outlook', 'Can be added to Outlook calendar'),
+          meta: rl('الاجتماعات', 'Meetings'), page: 'reqmeetings', params: { selMeeting: m.id } }, true);
       }
     });
   }

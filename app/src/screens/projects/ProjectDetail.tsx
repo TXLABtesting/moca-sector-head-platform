@@ -8,11 +8,12 @@ import { can } from '../../domain/permissions';
 import { Fade, Avatar, Modal } from '../../components/ui';
 import { WorkflowBanner } from '../../components/WorkflowBanner';
 import { parseAr } from '../../shared/helpers';
-import type { Project } from '../../data/types';
+import type { Project, ProjectTask } from '../../data/types';
 import { APP_TODAY, monthName, psColors, prColors, accentOf, projRange } from './projShared';
 import { APP_TODAY_AR } from '../../shared/today';
 import { ProjectEditModal } from './ProjectEditModal';
 import { DateField } from '../../components/DateField';
+import { Dropdown } from '../../components/Dropdown';
 import { FileUploadField } from '../../components/FileUploadField';
 import { AttachmentDownload } from '../../components/AttachmentDownload';
 
@@ -398,7 +399,7 @@ export function ProjectDetail() {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '20px 0 12px' }}>
                   <span style={{ width: 6, height: 20, borderRadius: 4, background: '#2e7d55' }} />
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('تفاصيل التنفيذ والتوريد', 'Delivery & procurement details')}</h3>
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('بيانات التعاقد والتوريد', 'Contracting & procurement details')}</h3>
                 </div>
                 <div className="pfacts" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#e6ebe6', border: '1px solid #e6ebe6', borderRadius: 16, overflow: 'hidden' }}>
                   {[
@@ -418,7 +419,7 @@ export function ProjectDetail() {
           </div>
         )}
 
-        {pdTab === 'timeline' && <TimelineTab p={p} en={en} rl={rl} tr={tr} t={t} />}
+        {pdTab === 'timeline' && <TimelineTab p={p} en={en} rl={rl} tr={tr} t={t} canEdit={canEdit} withP={withP} showToast={showToast} />}
 
         {pdTab === 'updates' && (
           <div style={{ animation: 'fadeUp .16s ease' }}>
@@ -619,10 +620,23 @@ export function ProjectDetail() {
   );
 }
 
+const STAGE_STATUS = ['لم يبدأ', 'قيد التنفيذ', 'مكتمل', 'متأخر'];
+
 /** Timeline / Gantt tab: month axis, dashed today line, overdue highlighting, 5-month min span. */
-function TimelineTab({ p, en, rl, tr, t }: {
+function TimelineTab({ p, en, rl, tr, t, canEdit, withP, showToast }: {
   p: Project; en: boolean; rl: (a: string, b: string) => string; tr: (s: string) => string; t: (k: string) => string;
+  canEdit: boolean; withP: (fn: (proj: Project) => void) => void; showToast: (m: string) => void;
 }) {
+  const [newStage, setNewStage] = useState('');
+  const addStage = () => {
+    const name = newStage.trim();
+    if (!name) { showToast(rl('اكتب اسم المرحلة أولاً', 'Enter a stage name first')); return; }
+    withP((proj) => { (proj.tasks = proj.tasks || []).push({ name, owner: '', status: 'لم يبدأ' }); });
+    setNewStage('');
+    showToast(rl('تمت إضافة المرحلة إلى الجدول الزمني', 'Stage added to the timeline'));
+  };
+  const setStage = (i: number, patch: Partial<ProjectTask>) => withP((proj) => { if (proj.tasks && proj.tasks[i]) Object.assign(proj.tasks[i], patch); });
+  const delStage = (i: number) => withP((proj) => { if (proj.tasks) proj.tasks.splice(i, 1); });
   const _en = parseAr(p.dueDate || '');
   const _st = p.startDate ? parseAr(p.startDate) : projRange(p).start;
   let me = _en || new Date((_st || APP_TODAY).getTime() + 120 * 86400000);
@@ -647,10 +661,15 @@ function TimelineTab({ p, en, rl, tr, t }: {
     wait: ['#eceeeb', '#8a938c', rl('لم تبدأ', 'Not started'), '#eceeeb', '#6d7973', '#f8f9f7', '#e8ebe6'],
   };
   const milestones = (p.tasks || []).map((tk, i) => {
-    const s = new Date(ms.getTime() + span * i / NT);
-    const e = new Date(ms.getTime() + span * (i + 1) / NT);
+    // Per-stage dates when provided; otherwise fall back to an even split of the span.
+    const ps = parseAr(tk.start || '');
+    const pe = parseAr(tk.end || '');
+    const s = ps || new Date(ms.getTime() + span * i / NT);
+    const e = pe || (ps ? new Date(ps.getTime() + span / NT) : new Date(ms.getTime() + span * (i + 1) / NT));
     const kind = tk.status === 'مكتمل' ? 'ok' : tk.status === 'متأخر' ? 'late' : tk.status === 'قيد التنفيذ' ? 'prog' : 'wait';
-    const pct = tk.status === 'مكتمل' ? 100 : tk.status === 'قيد التنفيذ' ? 55 : tk.status === 'متأخر' ? 35 : 0;
+    // Manual progress overrides the status-derived percentage when set.
+    const pct = typeof tk.progress === 'number' && !isNaN(tk.progress) ? Math.max(0, Math.min(100, Math.round(tk.progress)))
+      : tk.status === 'مكتمل' ? 100 : tk.status === 'قيد التنفيذ' ? 55 : tk.status === 'متأخر' ? 35 : 0;
     const c = pal[kind];
     return {
       name: tr(tk.name), start: monthName(s.getMonth(), en), end: monthName(e.getMonth(), en) + ' ' + e.getFullYear(),
@@ -707,6 +726,54 @@ function TimelineTab({ p, en, rl, tr, t }: {
               <div style={{ fontSize: 12, color: '#3c4a42', lineHeight: 1.6 }}><strong style={{ color: '#17211c' }}>{m.name}:</strong> {m.note}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Stages editor — the source of the Gantt bars. Each stage becomes one bar,
+          laid out evenly across the project's start→due span and colored by status. */}
+      {canEdit && (
+        <div style={{ marginTop: 26, borderTop: '1px solid #eef0ec', paddingTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+            <span style={{ width: 6, height: 20, borderRadius: 4, background: '#1e4634' }} />
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#17211c' }}>{rl('مراحل المشروع (تُغذّي الجدول الزمني)', 'Project stages (feed the timeline)')}</h3>
+          </div>
+          <p style={{ margin: '0 0 14px', fontSize: 11.5, color: '#8a938c', lineHeight: 1.7 }}>
+            {rl('أضِف مرحلة لكل شريط في المخطط. حدِّد لكل مرحلة تاريخ بدء وتاريخ انتهاء ونسبة إنجاز — يُرسَم الشريط حسب هذه التواريخ. إن تركت التواريخ فارغة تُوزَّع المرحلة تلقائيًا على مدة المشروع.', 'Add a stage for each bar. Give each stage a start date, end date and progress — the bar is drawn from those dates. Leave dates empty to auto-distribute across the project span.')}
+          </p>
+
+          {(p.tasks || []).length === 0 && (
+            <div style={{ background: '#f7f8f6', border: '1px dashed #d6ddd4', borderRadius: 11, padding: '14px 16px', fontSize: 12.5, color: '#5b6b62', marginBottom: 12 }}>
+              {rl('لا توجد مراحل بعد — أضِف أول مرحلة ليظهر الجدول الزمني.', 'No stages yet — add the first stage to draw the timeline.')}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+            {(p.tasks || []).map((tk, i) => {
+              const fieldCss: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' };
+              const miniLbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: '#8a938c', margin: '0 0 4px' };
+              return (
+                <div key={i} style={{ background: '#fbfcfb', border: '1px solid #eef0ec', borderRadius: 12, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{ flex: 'none', width: 22, height: 22, borderRadius: 7, background: '#eef2ee', color: '#1e4634', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                    <input value={tk.name} onChange={(e) => setStage(i, { name: e.target.value })} placeholder={rl('اسم المرحلة', 'Stage name')} style={{ ...fieldCss, flex: 1, fontWeight: 700 }} />
+                    <button onClick={() => delStage(i)} title={rl('حذف', 'Delete')} style={{ flex: 'none', width: 30, height: 30, borderRadius: 8, border: '1px solid #f0dcd9', background: '#fdf6f5', color: '#b0433b', fontSize: 15, fontWeight: 700, cursor: 'pointer', lineHeight: 1 }}>×</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+                    <div><div style={miniLbl}>{rl('تاريخ البدء', 'Start date')}</div><DateField value={tk.start || ''} onChange={(v) => setStage(i, { start: v })} /></div>
+                    <div><div style={miniLbl}>{rl('تاريخ الانتهاء', 'End date')}</div><DateField value={tk.end || ''} onChange={(v) => setStage(i, { end: v })} /></div>
+                    <div><div style={miniLbl}>{rl('الحالة', 'Status')}</div><Dropdown value={tk.status} options={STAGE_STATUS.map((s) => ({ v: s, label: tr(s) }))} onChange={(v) => setStage(i, { status: v })} opt={{ block: true, size: 'sm' }} /></div>
+                    <div><div style={miniLbl}>{rl('نسبة الإنجاز %', 'Progress %')}</div><input type="number" min={0} max={100} value={typeof tk.progress === 'number' ? tk.progress : ''} onChange={(e) => setStage(i, { progress: e.target.value === '' ? undefined : Math.max(0, Math.min(100, Number(e.target.value))) })} placeholder={rl('تلقائي', 'Auto')} style={fieldCss} /></div>
+                    <div style={{ gridColumn: '1 / -1' }}><div style={miniLbl}>{rl('المسؤول (اختياري)', 'Owner (optional)')}</div><input value={tk.owner || ''} onChange={(e) => setStage(i, { owner: e.target.value })} placeholder={rl('اكتب اسم المسؤول…', 'Type owner name…')} style={fieldCss} /></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={newStage} onChange={(e) => setNewStage(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addStage(); }} placeholder={rl('اسم مرحلة جديدة…', 'New stage name…')} style={{ flex: 1, boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none' }} />
+            <button onClick={addStage} style={{ background: '#1e4634', border: '1px solid #1e4634', color: '#fff', borderRadius: 9, padding: '9px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>{rl('إضافة مرحلة', 'Add stage')}</button>
+          </div>
         </div>
       )}
     </div>

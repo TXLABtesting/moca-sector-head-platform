@@ -51,6 +51,9 @@ export interface ProjectTask {
   name: string;
   owner: string;
   status: string;
+  start?: string;    // تاريخ بدء المرحلة (اختياري — يرجع للتوزيع التلقائي إن تُرك فارغًا)
+  end?: string;      // تاريخ انتهاء المرحلة
+  progress?: number; // نسبة الإنجاز اليدوية 0–100 (تتجاوز المشتقّة من الحالة)
 }
 
 export interface ProjectDirective {
@@ -190,6 +193,7 @@ export interface AuditRep {
 
 export interface MinuteTask {
   id: string;
+  meetingId?: string;   // links a task synced from a meeting's minutes
   mDate: string;
   meeting: string;
   dept: string;
@@ -228,6 +232,13 @@ export interface Correspondence {
   followup: string;
   attachment?: string;
   notes: string;
+  // Full outgoing/incoming register fields.
+  concerned?: string;    // الشخص المعني لهذا المستند
+  count?: string;        // العدد
+  replyDate?: string;    // تاريخ رد المستند من المستلم
+  deliveredTo?: string;  // تسليم للشخص المعني (تم / لم يُسلّم)
+  deliverDate?: string;  // تاريخ التسليم للشخص المعني
+  state?: string;        // الحالة (مفتوح / منجز / مغلق …)
 }
 
 export interface OfficeTask {
@@ -342,6 +353,8 @@ export interface FinModel {
   relTotals: { allPeriods: number; settling: number; prior: number; current: number };
   bankInterest: { dailyAccounts: number; fixedDeposits: number; activeDeposits: number };
   aging: AgingBucket[];
+  // Sector Head's notes on this financial report (chair adds; others read).
+  chairNotes?: { text: string; date: string; author: string }[];
 }
 
 export interface ReqMeeting {
@@ -388,6 +401,10 @@ export interface CommitteeMeeting {
   tasks: CommitteeTask[];
   absent?: string[];
   attachments?: string[];
+  time?: string;        // توقيت الاجتماع
+  location?: string;    // مكان الانعقاد
+  agenda?: string;      // جدول الأعمال
+  governance?: string;  // حوكمة اللجنة
 }
 export interface CommitteeScores {
   outputs: number;
@@ -412,6 +429,7 @@ export interface Committee {
   absent: string[];
   scores: CommitteeScores;
   statement: string;
+  weaknesses?: string[];
   improvements: string[];
   recommendation: string;
   members: string[];
@@ -460,7 +478,11 @@ export interface AppData {
   committees: Committee[];
   retReports: RetReport[];
   updateRequests?: UpdateRequest[];
+  // Sector Head notes per report, keyed by report id (e.g. 'reportLog', 'audit', 'retention').
+  reportNotes?: Record<string, ChairNote[]>;
 }
+
+export interface ChairNote { text: string; date: string; author: string }
 
 /** A "request update" the chair sends to the owner of any item, surfaced to
  *  that person as a real notification. Decoupled from the many record types. */

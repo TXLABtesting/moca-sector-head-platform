@@ -100,7 +100,7 @@ export function ChairDashboard() {
     const lastUpd = p.timeline && p.timeline.length ? p.timeline[0].text : '';
     return { tag: tr(p.status), tagBg: bg, tagFg: fg, title: tr(p.name),
       notes: [lastUpd ? NOTE(rl('آخر تحديث', 'Latest update'), lastUpd, 'blue') : null, p.nextStep ? NOTE(rl('الخطوة القادمة', 'Next step'), p.nextStep, 'gold') : null].filter(Boolean) as Note[],
-      meta: [MI(rl('المسؤول', 'Owner'), tr(p.owner), 'owner')].filter((m) => m.v),
+      meta: [MI(rl('المسؤول', 'Owner'), tr(p.owner), 'owner'), MI(rl('تاريخ آخر تحديث', 'Last update'), dl(p.lastDate || ''), 'date')].filter((m) => m.v),
       hasProgress: true, progW: (p.progress || 0) + '%', progLabel: (p.progress || 0) + '%',
       progColor: p.status === 'متأخر' ? '#b0433b' : ((p.progress || 0) >= 100 ? '#1f8a5b' : '#3a6ea5'),
       actions: [view(openProject(p.id))] };
@@ -140,7 +140,7 @@ export function ChairDashboard() {
     updates: { title: rl('تحديثات المشاريع', 'Project updates'), sub: rl('آخر تحديثات المشاريع النشطة', 'Latest active project updates'), accent: '#3a6ea5', icBg: '#e9f0f6', icFg: '#3a6ea5', count: data.projects.length, rows: updRows, hint: rl('تحديثات كل المشاريع: الحالة ونسبة الإنجاز والخطوة القادمة.', 'All project updates: status, progress and next step.'), icon: <IcoBars /> },
     minutes: { title: rl('محاضر الاجتماعات', 'Meeting minutes'), sub: rl('المهام والقرارات الناتجة', 'Resulting tasks & decisions'), accent: '#7a4d94', icBg: '#f3ecf6', icFg: '#7a4d94', count: data.mtasks.length, rows: minRows, hint: rl('المهام الناتجة عن الاجتماعات والمسؤول عنها وحالتها.', 'Tasks resulting from meetings, their owners and status.'), icon: <IcoDoc /> },
     corr: { title: rl('الصادر والوارد', 'Correspondence'), sub: rl('مراسلات تحتاج إجراء', 'Correspondence needing action'), accent: '#2e7d55', icBg: '#e2f0e8', icFg: '#2e7d55', count: data.correspondence.filter((c) => c.needsAction).length, rows: corrRows, hint: rl('المستندات الصادرة والواردة التي تحتاج متابعة أو إجراء.', 'Outgoing/incoming documents needing follow-up.'), icon: <IcoMail /> },
-    committees: { title: rl('اللجان وفرق العمل', 'Committees & teams'), sub: rl('اللجان ومهامها المفتوحة', 'Committees and their open tasks'), accent: '#2b8a8a', icBg: '#e4f2f2', icFg: '#2b8a8a', count: (data.committees || []).length, rows: commRows, hint: rl('اللجان وفرق العمل: المقرر والدورية والاجتماعات والمهام المفتوحة لكل لجنة.', 'Committees & teams: rapporteur, frequency, meetings and open tasks.'), icon: <IcoTeam /> },
+    committees: { title: rl('لجان القطاع', 'Sector committees'), sub: rl('برئاسة رئيس القطاع', 'Chaired by the Sector Head'), accent: '#2b8a8a', icBg: '#e4f2f2', icFg: '#2b8a8a', count: (data.committees || []).length, rows: commRows, hint: rl('اللجان وفرق العمل: المقرر والدورية والاجتماعات والمهام المفتوحة لكل لجنة.', 'Committees & teams: rapporteur, frequency, meetings and open tasks.'), icon: <IcoTeam /> },
   };
 
   const active = DEF[tab];

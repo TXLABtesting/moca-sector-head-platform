@@ -29,30 +29,45 @@ function dirColors(dir: string): [string, string] {
 
 const GRID = '0.8fr 2.2fr 1.4fr 0.9fr 1.1fr 1.1fr 1fr';
 
+const DELIVER_OPTS = ['تم التسليم', 'لم يُسلّم'];
+const STATE_OPTS = ['مفتوح', 'قيد الإجراء', 'منجز', 'مغلق'];
+
 interface FormState {
   id?: string;
   name: string; entity: string; dir: string; type: string; date: string;
   sender: string; recipient: string; followup: string; status: string;
   priority: string; action: string; notes: string;
+  // full register fields
+  concerned: string; count: string; recvDate: string; replyDate: string;
+  deliveredTo: string; deliverDate: string; state: string;
   [k: string]: unknown;
 }
 
 const emptyForm = (): FormState => ({
   name: '', entity: '', dir: 'صادر', type: 'رسالة', date: '', sender: '', recipient: '',
   followup: 'موزة المرزوقي', status: 'قيد المتابعة', priority: 'متوسطة', action: '', notes: '',
+  concerned: '', count: '', recvDate: '', replyDate: '', deliveredTo: '', deliverDate: '', state: 'مفتوح',
 });
 
-/* ---- template columns (order used by both Word key-value and Excel row headers) ---- */
+/* ---- template columns (order used by both Word key-value and Excel row headers) ----
+   Ordered to match the ministry's outgoing/incoming register exactly. */
 const CORR_COLS: { key: keyof FormState; ar: string; norm?: (v: string) => string }[] = [
-  { key: 'name', ar: 'اسم المستند' },
-  { key: 'entity', ar: 'الجهة المعنية' },
-  { key: 'dir', ar: 'التصنيف', norm: (v) => (v.includes('وارد') ? 'وارد' : 'صادر') },
-  { key: 'type', ar: 'نوع المستند', norm: (v) => DOC_TYPES.find((x) => v.includes(x)) || 'رسالة' },
   { key: 'date', ar: 'التاريخ', norm: (v) => excelSerialToDate(v.trim()) },
+  { key: 'name', ar: 'المستند' },
+  { key: 'dir', ar: 'التصنيف', norm: (v) => (v.includes('وارد') ? 'وارد' : 'صادر') },
+  { key: 'entity', ar: 'الجهة المعنية' },
+  { key: 'concerned', ar: 'الشخص المعني لهذا المستند' },
+  { key: 'type', ar: 'نوع المستند', norm: (v) => DOC_TYPES.find((x) => v.includes(x)) || 'رسالة' },
+  { key: 'count', ar: 'العدد' },
   { key: 'sender', ar: 'المرسل' },
   { key: 'recipient', ar: 'المستلم' },
-  { key: 'followup', ar: 'المسؤول عن المتابعة' },
+  { key: 'recvDate', ar: 'تاريخ استلام المستند', norm: (v) => excelSerialToDate(v.trim()) },
   { key: 'status', ar: 'الوضع الحالي', norm: (v) => CORR_STATUSES.find((x) => v.includes(x)) || 'قيد المتابعة' },
+  { key: 'replyDate', ar: 'تاريخ رد المستند من المستلم', norm: (v) => excelSerialToDate(v.trim()) },
+  { key: 'deliveredTo', ar: 'تسليم للشخص المعني', norm: (v) => DELIVER_OPTS.find((x) => v.includes(x)) || v.trim() },
+  { key: 'deliverDate', ar: 'تاريخ التسليم للشخص المعني', norm: (v) => excelSerialToDate(v.trim()) },
+  { key: 'state', ar: 'الحالة', norm: (v) => STATE_OPTS.find((x) => v.includes(x)) || v.trim() },
+  { key: 'followup', ar: 'المسؤول عن المتابعة' },
   { key: 'priority', ar: 'الأولوية', norm: (v) => PRIORITIES.find((x) => v.includes(x)) || 'متوسطة' },
   { key: 'action', ar: 'الإجراء' },
   { key: 'notes', ar: 'ملاحظات' },
@@ -79,7 +94,14 @@ function parseCorrFile(tables: string[][][]): Partial<FormState>[] {
     const hi = t.findIndex((r) => r.filter((c) => CORR_COLS.some((col) => (c || '').includes(col.ar))).length >= 3);
     if (hi < 0) continue;
     const header = t[hi].map((c) => (c || '').trim());
-    const colOf = (col: { ar: string }) => header.findIndex((h) => h.includes(col.ar) || col.ar.includes(h));
+    // Exact match first, then "header contains the full label". We deliberately
+    // do NOT match when the header is merely a fragment of the label — «المستند»
+    // is a substring of «الشخص المعني لهذا المستند» / «نوع المستند» etc., which
+    // would collapse several columns onto one.
+    const colOf = (col: { ar: string }) => {
+      const exact = header.findIndex((h) => h === col.ar);
+      return exact >= 0 ? exact : header.findIndex((h) => h.includes(col.ar));
+    };
     const map = CORR_COLS.map((col) => ({ col, ci: colOf(col) }));
     const docs: Partial<FormState>[] = [];
     for (let i = hi + 1; i < t.length; i++) {
@@ -102,7 +124,8 @@ export function Correspondence() {
   const data = useStore((s) => s.data);
   const mutate = useStore((s) => s.mutate);
   const cu = useCurrentUser();
-  const { t, tr, dl } = useI18n();
+  const { t, tr, dl, lang } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const { showToast } = useToast();
 
   const corr = data.correspondence;
@@ -145,7 +168,7 @@ export function Correspondence() {
     return {
       ...(m as unknown as Corr),
       id: 'c' + Math.floor(Math.random() * 1e9),
-      recvDate: m.date || '—',
+      recvDate: m.recvDate || m.date || '—',
       needsAction: m.status !== 'مكتمل' && m.status !== 'مغلق',
       attachment: (m as Record<string, string>).attachment || 'مرفق.pdf',
       action: m.action || '—',
@@ -211,7 +234,7 @@ export function Correspondence() {
       mutate((d) => {
         const rec = { ...(f as unknown as Corr) };
         rec.id = id;
-        rec.recvDate = f.date || '—';
+        rec.recvDate = f.recvDate || f.date || '—';
         rec.needsAction = f.status !== 'مكتمل' && f.status !== 'مغلق';
         rec.attachment = (f as Record<string, string>).attachment || 'مرفق.pdf';
         rec.action = f.action || '—';
@@ -250,8 +273,11 @@ export function Correspondence() {
     const [dbg, dfg] = dirColors(doc.dir);
     const [prBg, prFg] = (PR as Record<string, readonly string[]>)[doc.priority] || ['#eceeeb', '#6d7973'];
 
-    const fieldLabel: CSSProperties = { fontSize: 11, color: '#9aa39b', marginBottom: 4 };
-    const fieldVal: CSSProperties = { fontSize: 13.5, color: '#2a332d' };
+    // Each label/value pair sits in its own light cell so the two read as one
+    // unit — clearer than free-floating text spread across a wide grid.
+    const cellBox: CSSProperties = { background: '#f7f9f7', border: '1px solid #eef1ec', borderRadius: 12, padding: '10px 13px' };
+    const fieldLabel: CSSProperties = { fontSize: 10.5, color: '#9aa39b', fontWeight: 600, marginBottom: 4 };
+    const fieldVal: CSSProperties = { fontSize: 13.5, color: '#17211c', fontWeight: 600, lineHeight: 1.5 };
 
     return (
       <Fade>
@@ -273,19 +299,25 @@ export function Correspondence() {
                 </button>
               </div>
             )}
-            <div className="rg2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 24px' }}>
-              <div><div style={fieldLabel}>{t('thEntity')}</div><div style={fieldVal}>{tr(doc.entity)}</div></div>
-              <div><div style={fieldLabel}>{t('dDocType')}</div><div style={fieldVal}>{tr(doc.type)}</div></div>
-              <div><div style={fieldLabel}>{t('dSender')}</div><div style={fieldVal}>{tr(doc.sender)}</div></div>
-              <div><div style={fieldLabel}>{t('dRecipient')}</div><div style={fieldVal}>{tr(doc.recipient)}</div></div>
-              <div><div style={fieldLabel}>{t('thDate')}</div><div style={fieldVal}>{dl(doc.date)}</div></div>
-              <div><div style={fieldLabel}>{t('dRecvDate')}</div><div style={fieldVal}>{dl(doc.recvDate)}</div></div>
+            <div className="rg2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10 }}>
+              <div style={cellBox}><div style={fieldLabel}>{t('thEntity')}</div><div style={fieldVal}>{tr(doc.entity)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('الشخص المعني لهذا المستند', 'Concerned person')}</div><div style={fieldVal}>{doc.concerned ? tr(doc.concerned) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dDocType')}</div><div style={fieldVal}>{tr(doc.type)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('العدد', 'Count')}</div><div style={fieldVal}>{doc.count ? tr(doc.count) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dSender')}</div><div style={fieldVal}>{tr(doc.sender)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dRecipient')}</div><div style={fieldVal}>{tr(doc.recipient)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('thDate')}</div><div style={fieldVal}>{dl(doc.date)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{t('dRecvDate')}</div><div style={fieldVal}>{dl(doc.recvDate)}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('تاريخ رد المستند من المستلم', 'Reply date from recipient')}</div><div style={fieldVal}>{doc.replyDate ? dl(doc.replyDate) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('تسليم للشخص المعني', 'Delivered to concerned person')}</div><div style={fieldVal}>{doc.deliveredTo ? tr(doc.deliveredTo) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('تاريخ التسليم للشخص المعني', 'Delivery date to concerned person')}</div><div style={fieldVal}>{doc.deliverDate ? dl(doc.deliverDate) : '—'}</div></div>
+              <div style={cellBox}><div style={fieldLabel}>{rl('الحالة', 'State')}</div><div style={fieldVal}>{doc.state ? tr(doc.state) : '—'}</div></div>
             </div>
             <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1px solid #eef0ec' }}>
               <div style={{ fontSize: 11, color: '#9aa39b', marginBottom: 5 }}>{t('requiredAction')}</div>
               <div style={{ fontSize: 13.5, color: '#2a332d', lineHeight: 1.6, marginBottom: 16 }}>{tr(doc.action)}</div>
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                <div><div style={fieldLabel}>{t('followupOwner')}</div><div style={{ fontSize: 13, fontWeight: 600, color: '#2a332d' }}>{tr(doc.followup)}</div></div>
+                <div style={cellBox}><div style={fieldLabel}>{t('followupOwner')}</div><div style={{ fontSize: 13, fontWeight: 600, color: '#2a332d' }}>{tr(doc.followup)}</div></div>
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <div style={{ fontSize: 11, color: '#9aa39b', marginBottom: 6 }}>{t('thCurStatus')}</div>
                   <span style={{ display: 'inline-block', fontSize: 11.5, fontWeight: 600, borderRadius: 20, padding: '6px 14px', background: sbg, color: sfg }}>{tr(doc.status)}</span>
@@ -397,7 +429,6 @@ export function Correspondence() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
                   <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 5, padding: '2px 7px', background: dbg, color: dfg }}>{tr(c.dir)}</span>
-                  {c.needsAction && <span style={{ fontSize: 9.5, fontWeight: 600, color: '#b0433b' }}>● {t('needsActionTag')}</span>}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#2a332d', lineHeight: 1.4 }}>{tr(c.name)}</div>
               </div>
@@ -484,13 +515,22 @@ export function Correspondence() {
           )}
           <div style={{ gridColumn: '1/3' }}><label style={labelStyle}>{t('fName')}</label>{txt('name')}</div>
           <div><label style={labelStyle}>{t('fEntity')}</label>{txt('entity')}</div>
+          <div><label style={labelStyle}>{rl('الشخص المعني لهذا المستند', 'Concerned person')}</label>{txt('concerned')}</div>
           <div><label style={labelStyle}>{t('fCat')}</label><Dropdown value={form.dir} onChange={setF('dir')} options={[{ v: '', label: t('allDir') }, ...opt(['صادر', 'وارد'])]} opt={ddOpt} /></div>
           <div><label style={labelStyle}>{t('fType')}</label><Dropdown value={form.type} onChange={setF('type')} options={opt(DOC_TYPES)} opt={ddOpt} /></div>
+          <div><label style={labelStyle}>{rl('العدد', 'Count')}</label>{txt('count')}</div>
           <div><label style={labelStyle}>{t('fDate')}</label><DateField value={String(form.date ?? '')} onChange={setF('date')} /></div>
           <div><label style={labelStyle}>{t('fSender')}</label>{txt('sender')}</div>
           <div><label style={labelStyle}>{t('fRecipient')}</label>{txt('recipient')}</div>
-          <div><label style={labelStyle}>{t('fFollowup')}</label><Dropdown value={form.followup} onChange={setF('followup')} options={members.map((m) => ({ v: m.name, label: tr(m.name) }))} opt={ddOpt} /></div>
+          <div><label style={labelStyle}>{rl('تاريخ استلام المستند', 'Document receipt date')}</label><DateField value={String(form.recvDate ?? '')} onChange={setF('recvDate')} /></div>
           <div><label style={labelStyle}>{t('fStatus')}</label><Dropdown value={form.status} onChange={setF('status')} options={opt(CORR_STATUSES)} opt={ddOpt} /></div>
+          <div><label style={labelStyle}>{rl('تاريخ رد المستند من المستلم', 'Reply date from recipient')}</label><DateField value={String(form.replyDate ?? '')} onChange={setF('replyDate')} /></div>
+          <div><label style={labelStyle}>{rl('تسليم للشخص المعني', 'Delivered to concerned person')}</label><Dropdown value={String(form.deliveredTo ?? '')} onChange={setF('deliveredTo')} options={[{ v: '', label: '—' }, ...opt(DELIVER_OPTS)]} opt={ddOpt} /></div>
+          <div><label style={labelStyle}>{rl('تاريخ التسليم للشخص المعني', 'Delivery date to concerned person')}</label><DateField value={String(form.deliverDate ?? '')} onChange={setF('deliverDate')} /></div>
+          <div><label style={labelStyle}>{rl('الحالة', 'State')}</label><Dropdown value={String(form.state ?? '')} onChange={setF('state')} options={opt(STATE_OPTS)} opt={ddOpt} /></div>
+          <div><label style={labelStyle}>{t('fFollowup')}</label>
+            <input list="corr-followup" value={String(form.followup ?? '')} onChange={(e) => setF('followup')(e.target.value)} placeholder={rl('اكتب اسم المتابع…', 'Type follow-up name…')} style={inputStyle} />
+            <datalist id="corr-followup">{members.map((m, i) => <option key={i} value={m.name} />)}</datalist></div>
           <div><label style={labelStyle}>{t('fPriority')}</label><Dropdown value={form.priority} onChange={setF('priority')} options={opt(PRIORITIES)} opt={ddOpt} /></div>
           <div style={{ gridColumn: '1/3' }}><label style={labelStyle}>{t('fAction')}</label>{txt('action')}</div>
           <div style={{ gridColumn: '1/3' }}>

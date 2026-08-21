@@ -79,7 +79,7 @@ export function ReportCenter() {
       section: 'reportLog',
       cat: rl('سجل المتابعة', 'Tracking register'), icon: 'list', statusLabel: rl('سجل حي', 'Live register'), stBg: '#e6eef6', stFg: '#3a6ea5',
       title: rl('سجل التقارير', 'Reports Register'), period: rl('2026 · متابعة شهرية', '2026 · monthly tracking'), freq: rl('متعدد الدوريات', 'Mixed frequency'), entity: rl('كل الإدارات', 'All departments'),
-      ownerAr: 'هاجر هلول', ownerName: rl('هاجر هلول', 'Hajar Halloul'), ownerRole: rl('إداري - الإنجاز والمتابعة', 'Admin – Delivery & Follow-up'),
+      ownerAr: 'هاجر هلول', ownerName: rl('هاجر هلول', 'Hager Halloul'), ownerRole: rl('إداري - الإنجاز والمتابعة', 'Admin – Delivery & Follow-up'),
       updatedLabel: rl('آخر تحديث: مايو 2026', 'Updated: May 2026'), viewLabel: rl('عرض السجل', 'View register'), downloadLabel: rl('تحميل السجل', 'Download register'), open: () => goto('reglog'),
     },
     {

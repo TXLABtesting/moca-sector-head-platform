@@ -6,7 +6,7 @@ export type Page =
   | 'correspondence' | 'docDetail'
   | 'committees'
   | 'reportcenter' | 'reportDetail' | 'auditDetail' | 'finDetail' | 'reglog'
-  | 'otasks' | 'leaves' | 'settings' | 'notifications';
+  | 'otasks' | 'leaves' | 'settings' | 'notifications' | 'completionReview';
 
 export interface NavParams {
   selProject?: string | null;

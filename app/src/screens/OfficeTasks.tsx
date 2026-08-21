@@ -9,7 +9,7 @@ import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
-import { pushUpdateReq } from './member/workflow';
+import { pushUpdateReq, completionOptions, markDoneStatus, DONE_PENDING } from './member/workflow';
 import { APP_TODAY, APP_TODAY_AR, todayPlus } from '../shared/today';
 import { useNav } from '../store/nav';
 import { useCurrentUser } from '../store/useCurrentUser';
@@ -27,15 +27,23 @@ const OTS: Record<string, [string, string]> = {
   'بانتظار اعتماد': ['#e6eef6', '#3a6ea5'],
   'يحتاج توجيه': ['#f7ece0', '#c26a2b'],
   'مكتمل': ['#e2f0e8', '#2e7d55'],
+  'مكتمل قيد الاعتماد': ['#fbf0d6', '#a9791f'],
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
 
 const PROG: Record<string, number> = {
   'لم يبدأ': 6, 'يحتاج توجيه': 35, 'متأخر': 45,
-  'قيد التنفيذ': 60, 'بانتظار اعتماد': 80, 'مكتمل': 100,
+  'قيد التنفيذ': 60, 'بانتظار اعتماد': 80, 'مكتمل قيد الاعتماد': 100, 'مكتمل': 100,
 };
 
 const O_STATUS_LIST = ['لم يبدأ', 'قيد التنفيذ', 'بانتظار اعتماد', 'مكتمل', 'متأخر'];
+// Statuses shown in the new-task form for a member (مكتمل → مكتمل قيد الاعتماد).
+// The bulk template dropdown mirrors this exactly; the parser also accepts the
+// legacy values above for older files.
+const OT_FORM_STATUSES = completionOptions(['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'], false);
+const OT_STATUS_ACCEPTED = [...OT_FORM_STATUSES, 'مكتمل', 'بانتظار اعتماد'];
+// Organizational units for the "الإدارة / الجهة" dropdown.
+const ORG_UNITS = ['مكتب رئيس القطاع', 'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية', 'إدارة العقود والمشتريات', 'إدارة الخدمات والبنية التحتية', 'مركز التجربة المتكاملة'];
 
 /** Prototype "today" from the single source; WEEKEND = end of this week. */
 const TODAY = APP_TODAY;
@@ -75,21 +83,24 @@ export function OfficeTasks() {
   const [taskForm, setTaskForm] = useState<{ id: string | null } | null>(null);
 
   // ---- bulk import (one office task per row) ----
+  // Columns mirror the "مهمة جديدة" input form: العنوان · التصنيف · الإدارة/الجهة ·
+  // الحالة · تاريخ البدء · الموعد النهائي · الوصف. The parser also tolerates legacy
+  // columns (المسؤول / ملاحظات / تاريخ الاستحقاق) so older files still import.
   const OT_COLS = [
     { field: 'title', match: alias('عنوان المهمة', 'المهمة', 'العنوان') },
-    { field: 'dept', match: alias('الإدارة', 'القسم') },
-    { field: 'owner', match: alias('المسؤول', 'المكلّف') },
-    { field: 'status', match: alias('الحالة'), norm: pick(O_STATUS_LIST, 'لم يبدأ') },
-    { field: 'desc', match: alias('الوصف') },
-    { field: 'due', match: alias('تاريخ الاستحقاق', 'الاستحقاق', 'الموعد'), norm: excelSerialToDate },
+    { field: 'label', match: alias('التصنيف', 'النوع') },
+    { field: 'dept', match: alias('الإدارة / الجهة', 'الإدارة', 'الجهة', 'القسم') },
+    { field: 'status', match: alias('الحالة'), norm: pick(OT_STATUS_ACCEPTED, 'لم يبدأ') },
     { field: 'start', match: alias('تاريخ البدء', 'البدء'), norm: excelSerialToDate },
-    { field: 'end', match: alias('تاريخ الانتهاء', 'الانتهاء'), norm: excelSerialToDate },
+    { field: 'end', match: alias('الموعد النهائي', 'تاريخ الانتهاء', 'الانتهاء', 'تاريخ الاستحقاق', 'الاستحقاق'), norm: excelSerialToDate },
+    { field: 'desc', match: alias('الوصف') },
+    { field: 'owner', match: alias('المسؤول', 'المكلّف') },
     { field: 'notes', match: alias('ملاحظات') },
   ];
-  const OT_HEADERS = ['عنوان المهمة', 'الإدارة', 'المسؤول', 'الحالة', 'الوصف', 'تاريخ الاستحقاق', 'تاريخ البدء', 'تاريخ الانتهاء', 'ملاحظات'];
-  const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'إدارة الشؤون الإدارية', 'موزة المرزوقي', 'قيد التنفيذ', 'تجميع مؤشرات الأداء', '25 يوليو 2026', '1 يوليو 2026', '', 'صف مثال — احذفه'];
+  const OT_HEADERS = ['عنوان المهمة', 'التصنيف', 'الإدارة / الجهة', 'الحالة', 'تاريخ البدء', 'الموعد النهائي', 'الوصف'];
+  const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'تقرير', 'إدارة الشؤون الإدارية', 'قيد التنفيذ', '1 يوليو 2026', '25 يوليو 2026', 'تجميع مؤشرات الأداء — صف مثال يُحذف'];
   const bulkRef = useRef<HTMLInputElement>(null);
-  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب'), 'Office_Tasks_Bulk_Template.xlsx');
+  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب', [{ col: OT_HEADERS.indexOf('الحالة'), values: OT_FORM_STATUSES }]), 'Office_Tasks_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
     try {
       const blocks = await fileToBlocks(file);
@@ -98,9 +109,9 @@ export function OfficeTasks() {
       mutate((d) => {
         rows.forEach((r, i) => {
           const rec = {
-            id: 'ot' + Date.now() + i, start: r.start || '', end: r.end || '', label: '',
-            title: r.title, dept: r.dept || '', owner: r.owner || cu.name, status: r.status || 'لم يبدأ',
-            desc: r.desc || '', lastUpdate: TODAY_AR, due: r.due || '', notes: r.notes || '',
+            id: 'ot' + Date.now() + i, start: r.start || '', end: r.end || '', label: r.label || 'مهمة',
+            title: r.title, dept: r.dept || 'مكتب رئيس القطاع', owner: r.owner || cu.name, status: r.status || 'لم يبدأ',
+            desc: r.desc || '', lastUpdate: TODAY_AR, due: r.end || r.due || '', notes: r.notes || '',
             directives: [], reviewed: false, attachments: [], participants: [], _mowner: cu.id,
           } as unknown as OfficeTask;
           d.otasks.unshift(rec);
@@ -131,7 +142,11 @@ export function OfficeTasks() {
   const [dlNote, setDlNote] = useState('');
   const [dirNote, setDirNote] = useState('');
 
-  const otasks = data.otasks;
+  // Each user sees only their own tasks (owner name match, or tasks they
+  // created). The Sector Head is the only one who sees the whole office.
+  const otasks = isChair
+    ? data.otasks
+    : data.otasks.filter((tk) => tk.owner === cu.name || (tk as { _mowner?: string })._mowner === cu.id);
 
   // ---- decorate (display + computed) ----
   const decorate = (tk: OfficeTask) => {
@@ -180,10 +195,11 @@ export function OfficeTasks() {
 
   // ---- board columns (final 5-column set) ----
   const colDefs: { key: string; label: string; dot: string; match: (r: Dec) => boolean }[] = [
-    { key: 'nodue', label: rl('بدون موعد نهائي', 'No deadline'), dot: '#7a4d94', match: (r) => r.status !== 'مكتمل' && r.noDue },
+    { key: 'nodue', label: rl('بدون موعد نهائي', 'No deadline'), dot: '#7a4d94', match: (r) => r.status !== 'مكتمل' && r.status !== DONE_PENDING && r.noDue },
     { key: 'inprogress', label: rl('قيد التنفيذ', 'In progress'), dot: '#a9791f', match: (r) => (r.status === 'قيد التنفيذ' || r.status === 'يحتاج توجيه' || r.status === 'بانتظار اعتماد') && !r.noDue },
     { key: 'late', label: rl('متأخر', 'Overdue'), dot: '#b0433b', match: (r) => r.status === 'متأخر' && !r.noDue },
     { key: 'notstarted', label: rl('لم يبدأ', 'Not started'), dot: '#9aa39b', match: (r) => r.status === 'لم يبدأ' && !r.noDue },
+    { key: 'donepending', label: rl('مكتمل قيد الاعتماد', 'Completion pending'), dot: '#c9a24b', match: (r) => r.status === DONE_PENDING },
     { key: 'done', label: rl('مكتمل', 'Completed'), dot: '#2e7d55', match: (r) => r.status === 'مكتمل' },
   ];
   const columns = colDefs.map((c) => { const list = rows.filter(c.match); return { ...c, count: list.length, tasks: list, isEmpty: list.length === 0 }; });
@@ -210,15 +226,16 @@ export function OfficeTasks() {
 
   // ---- filter dropdown options ----
   const statusOpts = [{ v: '', label: t('allStatuses') }].concat(O_STATUS_LIST.map((s) => ({ v: s, label: tr(s) })));
-  const statusSetOpts = O_STATUS_LIST.map((s) => ({ v: s, label: tr(s) }));
+  const statusSetOpts = completionOptions(O_STATUS_LIST, isChair).map((s) => ({ v: s, label: tr(s) }));
   const ownerOpts = [{ v: '', label: rl('كل المسؤولين', 'All owners') }].concat([...new Set(otasks.map((tk) => tk.owner))].map((o) => ({ v: o, label: tr(o) })));
 
   // ---- mutations ----
   const setStatus = (id: string, v: string) => mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = v; tk.lastUpdate = TODAY_AR; } });
   const reqUpdate = (id: string) => { mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) pushUpdateReq(d, { owner: tk.owner, title: tk.title, section: 'myTasks' }); }); showToast(rl('تم إرسال طلب تحديث — وصل إشعارٌ للمسؤول', 'Update request sent — the owner was notified')); };
   const markComplete = (id: string) => {
-    mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = 'مكتمل'; tk.lastUpdate = TODAY_AR; } });
-    showToast(rl('تم وضع علامة الاكتمال', 'Task marked complete'));
+    const done = markDoneStatus(isChair);
+    mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = done; tk.lastUpdate = TODAY_AR; } });
+    showToast(isChair ? rl('تم وضع علامة الاكتمال', 'Task marked complete') : rl('أُرسل طلب اعتماد الاكتمال لرئيس القطاع', 'Completion approval requested from the Sector Head'));
   };
   const openModal = (type: 'deadline' | 'directive', id: string) => {
     const tk = otasks.find((x) => x.id === id);
@@ -355,8 +372,10 @@ export function OfficeTasks() {
                 if (cur && c.match(cur)) return; // dropped on its own column
                 const wasNoDue = noDueOf(tk);
                 mutate((d) => {
-                  const r = d.otasks.find((x) => x.id === tid); if (!r) return;
-                  if (c.key === 'nodue') { r.due = ''; r.end = ''; if (r.status === 'مكتمل') r.status = 'قيد التنفيذ'; }
+                  const r = d.otasks.find((x) => x.id === tid) as typeof d.otasks[number] & { _mowner?: string; _mret?: string }; if (!r) return;
+                  if (c.key === 'nodue') { r.due = ''; r.end = ''; if (r.status === 'مكتمل' || r.status === DONE_PENDING) r.status = 'قيد التنفيذ'; }
+                  // members can't finalize — dropping on "مكتمل" routes to completion review
+                  else if (c.key === 'donepending' || (c.key === 'done' && !isChair)) { r.status = DONE_PENDING; r._mret = ''; r._mowner = r._mowner || cu.id; }
                   else if (c.key === 'done') { r.status = 'مكتمل'; }
                   else { r.status = c.key === 'inprogress' ? 'قيد التنفيذ' : c.key === 'late' ? 'متأخر' : 'لم يبدأ'; }
                   r.lastUpdate = rl('اليوم', 'Today');
@@ -384,14 +403,7 @@ export function OfficeTasks() {
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: a.prBg, color: a.prFg }}>{a.prLabel}</span>
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: '#eef3f0', color: '#2b5c44', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>{a.dept}</span>
                     </div>
-                    <div onClick={() => setSelOtask(a.id)} style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c', lineHeight: 1.45, marginBottom: 10, cursor: 'pointer' }}>{a.title}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 10.5, color: '#9aa39b' }}>{t('progress')}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#17211c' }}>{a.prog}%</span>
-                    </div>
-                    <div style={{ height: 5, borderRadius: 4, background: '#eef0ec', overflow: 'hidden', marginBottom: 11 }}>
-                      <div style={{ height: '100%', borderRadius: 4, background: a.accent, width: a.prog + '%' }} />
-                    </div>
+                    <div onClick={() => setSelOtask(a.id)} style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c', lineHeight: 1.45, marginBottom: 11, cursor: 'pointer' }}>{a.title}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, fontSize: 10.5, color: '#8a938c', paddingBottom: 10 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                         <Avatar name={a.ownerRaw} size={20} />
@@ -725,14 +737,12 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setI = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((p) => ({ ...p, [k]: e.target.value }));
   const [atts, setAtts] = useState<string[]>(() => (existing?.attachments ? [...existing.attachments] : []));
-  const [parts, setParts] = useState<string[]>(() => (existing?.participants ? [...existing.participants] : []));
+  // participants preserved on edit; the field was removed from the form.
+  const parts = existing?.participants ? [...existing.participants] : [];
 
   // creator is automatically the primary owner — no manual selection
   const primaryOwner = existing ? existing.owner : cu.name;
-  const partOptions = Array.from(new Set([...data.members.map((m) => m.name), ...data.sectorManagers.map((m) => m.name)]))
-    .filter((n) => n !== primaryOwner);
-  const togglePart = (n: string) => setParts((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p, n]));
-  const STATUSES = ['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'];
+  const STATUSES = completionOptions(['لم يبدأ', 'قيد التنفيذ', 'متأخر', 'مكتمل'], cu.type === 'chair');
 
   const save = (send: boolean) => {
     const title = (f.title || '').trim();
@@ -766,25 +776,10 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
-        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} style={inputStyle} /></div>
+        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} list="ot-dept-suggestions" placeholder={rl('اكتب اسم الإدارة أو الجهة…', 'Type a department or unit…')} style={inputStyle} /><datalist id="ot-dept-suggestions">{ORG_UNITS.map((u) => <option key={u} value={u} />)}</datalist></div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
-        <div>
-          <Label>{rl('المشاركون في المهمة (اختياري)', 'Participants (optional)')}</Label>
-          <Dropdown value="" options={partOptions.filter((n) => !parts.includes(n)).map((n) => ({ v: n, label: tr(n) }))} onChange={(v) => { if (v) togglePart(v); }} opt={{ block: true, size: 'sm', placeholder: rl('اختر مشاركًا لإضافته…', 'Pick a participant to add…') }} />
-        </div>
-        {parts.length > 0 && (
-          <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-            {parts.map((n) => (
-              <span key={n} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1.5px solid #1e4634', background: '#eef5f0', color: '#1e4634', borderRadius: 20, padding: '4px 8px 4px 7px', fontSize: 11.5, fontWeight: 700 }}>
-                <Avatar name={n} size={20} />
-                {tr(n)}
-                <button type="button" onClick={() => togglePart(n)} title={rl('إزالة', 'Remove')} style={{ border: 'none', background: 'transparent', color: '#b0433b', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1, display: 'flex' }}>✕</button>
-              </span>
-            ))}
-          </div>
-        )}
         <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
-        <div><Label>{rl('الموعد النهائي (فارغ = بدون موعد)', 'Deadline (empty = none)')}</Label><DateField value={f.end} onChange={set('end')} /></div>
+        <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><DateField value={f.end} onChange={set('end')} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('المرفقات', 'Attachments')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('الوصف', 'Description')}</Label><textarea value={f.desc} onChange={setI('desc')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
       </div>

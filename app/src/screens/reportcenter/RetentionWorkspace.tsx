@@ -7,6 +7,7 @@ import { AttachmentDownload } from '../../components/AttachmentDownload';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
+import { ChairNotes } from '../../components/ChairNotes';
 import { useCurrentUser } from '../../store/useCurrentUser';
 import { can } from '../../domain/permissions';
 import type { RetReport, RetRecommendation, RetEntityRow, RetCase } from '../../data/types';
@@ -617,6 +618,7 @@ export function RetentionWorkspace() {
 
       {viewRep && <RetView report={viewRep} onClose={() => setViewId(null)} />}
       {formId && <RetForm reportId={formId.id} onClose={() => setFormId(null)} />}
+      <ChairNotes noteKey="retention" />
     </div>
   );
 }
