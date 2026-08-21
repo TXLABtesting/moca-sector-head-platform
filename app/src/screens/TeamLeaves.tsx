@@ -22,6 +22,8 @@ const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي�
 // Department managers roster (code-defined so they always appear in the person
 // picker regardless of the shared-DB contents). Treated as the "manager" category.
 const DEPT_MANAGERS = ['علي عيسى', 'محمد الياسي', 'شما المري', 'مريم البلوشي', 'شيماء خماس', 'حصة الحوسني', 'عبدالرحمن البلوشي'];
+// Leave types shown in the New/Edit leave form and the type filter.
+const LEAVE_TYPES = ['سنوية', 'اعتيادية', 'قصيرة', 'مرضية'];
 const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** status -> [pill bg, pill fg] */
@@ -318,7 +320,7 @@ export function TeamLeaves() {
   const opt = (arr: string[]) => arr.map((v) => ({ v, label: tr(v) }));
   const catOpts = [{ v: '', label: rl('كل الفئات', 'All groups') }, { v: 'manager', label: CATL.manager }, { v: 'office', label: CATL.office }];
   const statusOpts = [{ v: '', label: rl('كل الحالات', 'All statuses') }, ...opt(['بانتظار الاعتماد', 'معتمدة', 'مرفوضة', 'مخططة', 'منتهية'])];
-  const typeOpts = [{ v: '', label: rl('كل الأنواع', 'All types') }, ...opt(['سنوية', 'طارئة', 'مرضية'])];
+  const typeOpts = [{ v: '', label: rl('كل الأنواع', 'All types') }, ...opt(LEAVE_TYPES)];
   const monthOpts = [{ v: '', label: rl('كل الأشهر', 'All months') }, ...monthKeys.map((k) => ({ v: k, label: monName(monthMap[k].m) + ' ' + monthMap[k].y }))];
   const phaseOpts = [{ v: '', label: rl('كل المراحل', 'All phases') }, ...opt(['قادمة', 'جارية', 'منتهية', 'ملغاة'])];
 
@@ -969,7 +971,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
           <datalist id="lv-people">{allPeople.map((n, i) => <option key={i} value={n} />)}</datalist></div>
         <div><Label>{rl('الفئة', 'Group')}</Label>
           <Dropdown value={f.cat} options={[{ v: 'office', label: rl('فريق المكتب', 'Office team') }, { v: 'manager', label: rl('مدراء الوحدات التنظيمية', 'Unit managers') }]} onChange={set('cat')} opt={{ block: true, size: 'sm' }} /></div>
-        <div><Label>{rl('نوع الإجازة', 'Leave type')}</Label><Dropdown value={f.type || 'سنوية'} options={['سنوية'].map((v) => ({ v, label: tr(v) }))} onChange={set('type')} opt={{ block: true, size: 'sm' }} /></div>
+        <div><Label>{rl('نوع الإجازة', 'Leave type')}</Label><Dropdown value={f.type || 'سنوية'} options={[...new Set([...LEAVE_TYPES, (f.type || '').trim()])].filter(Boolean).map((v) => ({ v, label: tr(v) }))} onChange={set('type')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('حالة التخطيط', 'Planning status')}</Label>
           {lockedStatus
             ? <div style={{ ...inputStyle, background: '#f2f4f0', color: '#7d867f' }}>{tr(existing!.status)} — {rl('تُدار من رئيس القطاع', 'managed by the Sector Head')}</div>
