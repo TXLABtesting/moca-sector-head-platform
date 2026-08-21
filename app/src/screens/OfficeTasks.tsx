@@ -95,7 +95,7 @@ export function OfficeTasks() {
   const OT_HEADERS = ['عنوان المهمة', 'التصنيف', 'الإدارة / الجهة', 'الحالة', 'تاريخ البدء', 'الموعد النهائي', 'الوصف'];
   const OT_EXAMPLE = ['إعداد تقرير الإنجاز الشهري', 'تقرير', 'إدارة الشؤون الإدارية', 'قيد التنفيذ', '1 يوليو 2026', '25 يوليو 2026', 'تجميع مؤشرات الأداء — صف مثال يُحذف'];
   const bulkRef = useRef<HTMLInputElement>(null);
-  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب'), 'Office_Tasks_Bulk_Template.xlsx');
+  const dlTaskBulk = () => triggerDownload(makeXlsx([OT_HEADERS, OT_EXAMPLE], 'مهام المكتب', [{ col: OT_HEADERS.indexOf('الحالة'), values: O_STATUS_LIST }]), 'Office_Tasks_Bulk_Template.xlsx');
   const onBulk = async (file: File) => {
     try {
       const blocks = await fileToBlocks(file);
@@ -771,7 +771,7 @@ function TaskEditForm({ taskId, onDone, onCancel }: { taskId: string | null; onD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('عنوان المهمة', 'Task title')}</Label><input value={f.title} onChange={setI('title')} style={inputStyle} /></div>
         <div><Label>{rl('التصنيف', 'Label')}</Label><input value={f.label} onChange={setI('label')} style={inputStyle} /></div>
-        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><Dropdown value={f.dept} options={[...new Set([...ORG_UNITS, (f.dept || '').trim()])].filter(Boolean).map((u) => ({ v: u, label: tr(u) }))} onChange={set('dept')} opt={{ block: true, size: 'sm', placeholder: rl('اختر الإدارة', 'Select unit') }} /></div>
+        <div><Label>{rl('الإدارة / الجهة', 'Department')}</Label><input value={f.dept} onChange={setI('dept')} list="ot-dept-suggestions" placeholder={rl('اكتب اسم الإدارة أو الجهة…', 'Type a department or unit…')} style={inputStyle} /><datalist id="ot-dept-suggestions">{ORG_UNITS.map((u) => <option key={u} value={u} />)}</datalist></div>
         <div><Label>{rl('الحالة', 'Status')}</Label><Dropdown value={f.status} options={STATUSES.map((s) => ({ v: s, label: tr(s) }))} onChange={set('status')} opt={{ block: true, size: 'sm' }} /></div>
         <div><Label>{rl('تاريخ البدء', 'Start date')}</Label><DateField value={f.start} onChange={set('start')} /></div>
         <div><Label>{rl('الموعد النهائي', 'Deadline')}</Label><DateField value={f.end} onChange={set('end')} /></div>
