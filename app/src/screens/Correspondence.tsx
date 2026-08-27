@@ -6,6 +6,7 @@ import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
+import { DeleteAction } from '../components/DeleteAction';
 import { useToast } from '../components/Toast';
 import { triggerDownload } from '../shared/fileGen';
 import { wP, wTbl, makeDocx, makeXlsx, fileToBlocks, kvLookup, excelSerialToDate } from './reportcenter/templateIO';
@@ -443,6 +444,7 @@ export function Correspondence() {
                     <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z" /></svg>
                   </button>
                 )}
+                <DeleteAction section="correspondence" itemName={tr(c.name)} onConfirm={() => mutate((d) => { d.correspondence = d.correspondence.filter((x) => x.id !== c.id); })} style={{ width: 28, height: 28 }} />
               </div>
             </div>
           );

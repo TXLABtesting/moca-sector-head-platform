@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Fade } from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { Dropdown } from '../../components/Dropdown';
+import { DeleteAction } from '../../components/DeleteAction';
 import { MobileFilters } from '../../components/MobileFilters';
 import { Modal, Drawer, Badge, Avatar } from '../../components/ui';
 import { useToast } from '../../components/Toast';
@@ -366,6 +367,7 @@ export function MinuteTasks() {
                   {canDirect && (
                     <button onClick={() => openDirective(a.id)} style={{ background: '#fbf3df', color: '#8a6a1f', border: '1px solid #ecdcae', borderRadius: 9, padding: '9px 15px', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', minHeight: 38 }}>{t('mt_addDirective')}</button>
                   )}
+                  <DeleteAction section="minuteTasks" itemName={tr(a.task)} onConfirm={() => mutate((d) => { d.mtasks = d.mtasks.filter((x) => x.id !== a.id); })} style={{ width: 38, height: 38 }} />
                 </div>
               </div>
             );

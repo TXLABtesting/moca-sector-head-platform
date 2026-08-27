@@ -7,6 +7,7 @@ import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
+import { DeleteAction } from '../components/DeleteAction';
 import { useI18n } from '../i18n/i18n';
 import { useStore } from '../store/store';
 import { pushUpdateReq, completionOptions, markDoneStatus, DONE_PENDING } from './member/workflow';
@@ -402,6 +403,7 @@ export function OfficeTasks() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: a.prBg, color: a.prFg }}>{a.prLabel}</span>
                       <span style={{ fontSize: 9.5, fontWeight: 600, borderRadius: 20, padding: '3px 9px', background: '#eef3f0', color: '#2b5c44', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 155 }}>{a.dept}</span>
+                      <DeleteAction section="myTasks" itemName={a.title} onConfirm={() => mutate((d) => { d.otasks = d.otasks.filter((x) => x.id !== a.id); })} style={{ width: 26, height: 26, marginInlineStart: 'auto' }} />
                     </div>
                     <div onClick={() => setSelOtask(a.id)} style={{ fontSize: 13.5, fontWeight: 700, color: '#17211c', lineHeight: 1.45, marginBottom: 11, cursor: 'pointer' }}>{a.title}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, fontSize: 10.5, color: '#8a938c', paddingBottom: 10 }}>

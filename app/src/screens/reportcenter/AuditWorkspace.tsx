@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
 import { ChairNotes } from '../../components/ChairNotes';
+import { DeleteAction } from '../../components/DeleteAction';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -656,6 +657,7 @@ function RepView({ repId, onEditRep, onAddObs, onOpenObs, onEditObs, onClose }: 
 }) {
   const { tr, dl } = useI18n();
   const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
   const r = (data.auditReps || []).find((x) => x.id === repId);
   if (!r) return null;
   const meta = r as AuditRep & { _mret?: string };
@@ -712,6 +714,7 @@ function RepView({ repId, onEditRep, onAddObs, onOpenObs, onEditObs, onClose }: 
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => onOpenObs(a.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>فتح</button>
                 <button onClick={() => onEditObs(a.id)} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '6px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>
+                <DeleteAction section="auditReports" itemName={tr(a.area)} onConfirm={() => mutate((d) => { d.audit = (d.audit || []).filter((x) => x.id !== a.id); })} style={{ width: 28, height: 28 }} />
               </div>
             </div>
           );
@@ -731,6 +734,8 @@ export function AuditWorkspace() {
   const { showToast } = useToast();
   const reports = (data.auditReps || []).slice().sort((a, b) => (b.year || '').localeCompare(a.year || ''));
   const manage = cu.type !== 'chair' && (can(cu, 'auditReports', 'add') || can(cu, 'auditReports', 'edit'));
+  // Deletion follows the explicit `d` grant, independent of add/edit (chair/`all` passes).
+  const canDel = can(cu, 'auditReports', 'del');
 
   const [openRep, setOpenRep] = useState<string | null>(null);
   const [repForm, setRepForm] = useState<{ id: string | null } | null>(null);
@@ -839,7 +844,9 @@ export function AuditWorkspace() {
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <button onClick={() => setOpenRep(r.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>فتح</button>
                 {manage && <button onClick={() => setRepForm({ id: r.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>}
-                {manage && <button onClick={() => setAskDel(r.id)} title="حذف التقرير وكل ملاحظاته" style={{ background: '#fbf1ef', color: '#a5342b', border: '1px solid #eccbc6', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حذف</button>}
+                {/* Delete (report + its observations) is governed by the explicit
+                    `d` (حذف) grant — auditReports:del — not by add/edit. */}
+                {canDel && <button onClick={() => setAskDel(r.id)} title="حذف التقرير وكل ملاحظاته" style={{ background: '#fbf1ef', color: '#a5342b', border: '1px solid #eccbc6', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>حذف</button>}
               </div>
             </div>
           );

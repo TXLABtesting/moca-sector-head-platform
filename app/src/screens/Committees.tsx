@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Fade, Card, Badge, Modal } from '../components/ui';
+import { DeleteAction } from '../components/DeleteAction';
 import { useStore } from '../store/store';
 import { triggerDownload } from '../shared/fileGen';
 import { makeXlsx, fileToBlocks, parseBulk, alias, pick } from './reportcenter/templateIO';
@@ -176,7 +177,7 @@ export function Committees() {
             )}
           </div>
         )}
-        {!cur && <ListView committees={visible} rl={rl} tr={tr} dl={dl} openC={openC} />}
+        {!cur && <ListView committees={visible} rl={rl} tr={tr} dl={dl} openC={openC} onDelete={(id) => mutate((d) => { d.committees = d.committees.filter((x) => x.id !== id); })} />}
         {cur && (
           <DetailView
             canManage={manage}
@@ -228,12 +229,13 @@ export function Committees() {
 }
 
 /* ================= LIST ================= */
-function ListView({ committees, rl, tr, dl, openC }: {
+function ListView({ committees, rl, tr, dl, openC, onDelete }: {
   committees: Committee[];
   rl: (a: string, b: string) => string;
   tr: (s: string) => string;
   dl: (s: string) => string;
   openC: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const withOpen = committees.filter((c) => openTaskCount(c) > 0).length;
   let lateN = 0, mThisMonth = 0, decN = 0;
@@ -325,7 +327,8 @@ function ListView({ committees, rl, tr, dl, openC }: {
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <DeleteAction section="committees" itemName={tr(c.name)} onConfirm={() => onDelete(c.id)} style={{ width: 34, height: 34 }} />
                 <button onClick={() => openC(c.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('عرض التفاصيل', 'View details')}</button>
               </div>
             </div>

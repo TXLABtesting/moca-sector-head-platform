@@ -8,6 +8,7 @@ import { Fade, Avatar } from '../../components/ui';
 import { MobileFilters } from '../../components/MobileFilters';
 import { Dropdown } from '../../components/Dropdown';
 import { Icon } from '../../components/Icon';
+import { DeleteAction } from '../../components/DeleteAction';
 import { UNITS } from '../../shared/constants';
 import { triggerDownload } from '../../shared/fileGen';
 import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from '../reportcenter/templateIO';
@@ -270,7 +271,8 @@ export function ProjectsList() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minHeight: 60 }}>
               {col.items.map((p) => (
                 <KanbanCard key={p.id} p={p} tr={tr} dl={dl} t={t} open={open(p.id)} reqUpdate={() => reqUpdate(p)}
-                  role={cardRole} onEdit={() => setEditProj(p)} draggable={canDrag} editLabel={rl('تعديل', 'Edit')} />
+                  role={cardRole} onEdit={() => setEditProj(p)} draggable={canDrag} editLabel={rl('تعديل', 'Edit')}
+                  onDelete={() => mutate((d) => { d.projects = d.projects.filter((x) => x.id !== p.id); })} />
               ))}
               {col.items.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '20px 10px', color: '#aab2a9', fontSize: 11.5 }}>{t('pv_emptyCol')}</div>
@@ -283,12 +285,13 @@ export function ProjectsList() {
   );
 }
 
-function KanbanCard({ p, tr, dl, t, open, reqUpdate, role, onEdit, draggable, editLabel }: {
+function KanbanCard({ p, tr, dl, t, open, reqUpdate, role, onEdit, draggable, editLabel, onDelete }: {
   p: Project;
   tr: (s: string) => string; dl: (s: string) => string;
   t: (k: string) => string;
   open: () => void; reqUpdate: () => void;
   role: 'chair' | 'editor' | 'viewer'; onEdit: () => void; draggable: boolean; editLabel: string;
+  onDelete: () => void;
 }) {
   const [prBg, prFg] = prColors(p.priority);
   const accent = accentOf(p.status);
@@ -344,6 +347,7 @@ function KanbanCard({ p, tr, dl, t, open, reqUpdate, role, onEdit, draggable, ed
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>{editLabel}
           </button>
         )}
+        <DeleteAction section="projects" itemName={tr(p.name)} onConfirm={onDelete} style={{ width: 32, height: 32 }} />
       </div>
     </div>
   );
