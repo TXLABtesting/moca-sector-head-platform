@@ -12,6 +12,7 @@ import { initials } from '../shared/helpers';
 import { MinuteTasks } from './meetings/MinuteTasks';
 import { MinutesForm } from './meetings/MinutesForm';
 import { AttachmentDownload } from '../components/AttachmentDownload';
+import { DeleteAction } from '../components/DeleteAction';
 
 const DETAIL_CARD: CSSProperties = {
   background: '#ffffff', border: 'none', borderRadius: 24,
@@ -31,6 +32,7 @@ function MinutesList() {
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
   const { goto } = useNav();
   const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
   const cu = useCurrentUser();
   const canEditMin = cu.type !== 'chair' && can(cu, 'minutes', 'edit');
   const canAddMin = cu.type !== 'chair' && (can(cu, 'minutes', 'add') || can(cu, 'minutes', 'edit'));
@@ -134,6 +136,9 @@ function MinutesList() {
                 {canEditMin && (
                   <button onClick={(e) => { e.stopPropagation(); setMForm({ id: mt.id }); }} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تعديل', 'Edit')}</button>
                 )}
+                {/* Minute records are persisted/guarded under the `meetings` section on the
+                    server, so the delete grant that governs them is meetings:del. */}
+                <DeleteAction section="meetings" itemName={tr(mt.title)} onConfirm={() => mutate((d) => { d.meetings = d.meetings.filter((x) => x.id !== mt.id); })} />
               </div>
             </div>
           );

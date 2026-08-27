@@ -9,6 +9,7 @@ import { can } from '../domain/permissions';
 import { useToast } from '../components/Toast';
 import { Dropdown } from '../components/Dropdown';
 import { Fade, Modal, Avatar } from '../components/ui';
+import { DeleteAction } from '../components/DeleteAction';
 import { DateField } from '../components/DateField';
 import { FileUploadField } from '../components/FileUploadField';
 import { AttachmentDownload } from '../components/AttachmentDownload';
@@ -459,6 +460,11 @@ export function ReqMeetings() {
                 <button onClick={closePopup} aria-label={rl('إغلاق', 'Close')} style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, border: '1px solid #e2e6df', background: '#fff', cursor: 'pointer', color: '#7d867f', fontSize: 15 }}>✕</button>
               </div>
               <h2 style={{ margin: 0, fontSize: 17.5, fontWeight: 800, color: '#17211c', lineHeight: 1.5 }}>{pd.subject}</h2>
+              {!popupEdit && (
+                <div style={{ display: 'flex', marginTop: 12 }}>
+                  <DeleteAction section="meetings" variant="text" itemName={pd.subject} onConfirm={() => { closePopup(); mutate((d) => { d.reqMeetings = d.reqMeetings.filter((x) => x.id !== pd.id); }); }} />
+                </div>
+              )}
               {pd.isPending && chairDecide && !popupEdit && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
                   <button onClick={() => approveMeeting(pd.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>

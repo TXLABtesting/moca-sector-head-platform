@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { triggerDownload } from '../shared/fileGen';
 import { makeXlsx, fileToBlocks, parseBulk, alias, pick, excelSerialToDate } from './reportcenter/templateIO';
 import { Fade, Drawer, Avatar, Badge, Modal } from '../components/ui';
+import { DeleteAction } from '../components/DeleteAction';
 import { APP_TODAY } from '../shared/today';
 import { Dropdown } from '../components/Dropdown';
 import { MobileFilters } from '../components/MobileFilters';
@@ -575,6 +576,7 @@ export function TeamLeaves() {
           onSaveDates={() => doSaveDates(selLv.id)}
           onReqEdit={doReqEdit}
           onReviewed={() => doReviewed(selLv.id)}
+          onDelete={() => { closePanel(); mutate((d) => { d.leaves = d.leaves.filter((x) => x.id !== selLv.id); }); }}
         />}
       </Drawer>
 
@@ -623,6 +625,7 @@ interface PanelProps {
   onSaveDates: () => void;
   onReqEdit: () => void;
   onReviewed: () => void;
+  onDelete: () => void;
 }
 
 function LeavePanel(p: PanelProps) {
@@ -855,6 +858,7 @@ function LeavePanel(p: PanelProps) {
             </button>
           </>
         )}
+        <DeleteAction section="leaves" variant="text" itemName={p.tr(p.lv.person)} onConfirm={p.onDelete} />
       </div>
     </div>
   );

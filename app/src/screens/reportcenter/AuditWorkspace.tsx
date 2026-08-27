@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { DeleteAction } from '../../components/DeleteAction';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -652,6 +653,7 @@ function RepView({ repId, onEditRep, onAddObs, onOpenObs, onEditObs, onClose }: 
 }) {
   const { tr, dl } = useI18n();
   const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
   const r = (data.auditReps || []).find((x) => x.id === repId);
   if (!r) return null;
   const meta = r as AuditRep & { _mret?: string };
@@ -708,6 +710,7 @@ function RepView({ repId, onEditRep, onAddObs, onOpenObs, onEditObs, onClose }: 
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => onOpenObs(a.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>فتح</button>
                 <button onClick={() => onEditObs(a.id)} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '6px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>
+                <DeleteAction section="auditReports" itemName={tr(a.area)} onConfirm={() => mutate((d) => { d.audit = (d.audit || []).filter((x) => x.id !== a.id); })} style={{ width: 28, height: 28 }} />
               </div>
             </div>
           );
@@ -820,6 +823,8 @@ export function AuditWorkspace() {
                 <button onClick={() => setOpenRep(r.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>فتح</button>
                 {manage && <button onClick={() => setRepForm({ id: r.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>}
                 {manage && <button onClick={() => setObsForm({ repId: r.id, obsId: null })} style={{ background: '#fbf3df', color: '#8a6a1f', border: '1px solid #ecdcae', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>إضافة ملاحظة جديدة</button>}
+                {/* Deleting an audit report also removes its observations. Gated on auditReports:del. */}
+                <DeleteAction section="auditReports" itemName={tr(r.title)} onConfirm={() => mutate((d) => { d.auditReps = (d.auditReps || []).filter((x) => x.id !== r.id); d.audit = (d.audit || []).filter((a) => (a.rep || 'admin2025') !== r.id); })} style={{ width: 30, height: 30 }} />
               </div>
             </div>
           );

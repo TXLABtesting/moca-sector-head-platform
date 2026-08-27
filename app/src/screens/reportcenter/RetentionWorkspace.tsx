@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { DeleteAction } from '../../components/DeleteAction';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -608,6 +609,7 @@ export function RetentionWorkspace() {
                 {editable && (
                   <button onClick={() => setFormId({ id: r.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>
                 )}
+                <DeleteAction section="reportCenter" itemName={`${r.year} · ${tr(r.quarter)}`} onConfirm={() => mutate((d) => { d.retReports = (d.retReports || []).filter((x) => x.id !== r.id); })} style={{ width: 30, height: 30 }} />
               </div>
             </div>
           );

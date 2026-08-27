@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { DeleteAction } from '../../components/DeleteAction';
 import { Dropdown } from '../../components/Dropdown';
 import { DateField } from '../../components/DateField';
 import { FileUploadField } from '../../components/FileUploadField';
@@ -508,6 +509,7 @@ export function RegisterWorkspace() {
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 <button onClick={() => setOpenId(r.id)} style={{ background: '#1e4634', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>فتح</button>
                 {manage && <button onClick={() => setFormId({ id: r.id })} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>تعديل</button>}
+                <DeleteAction section="reportLog" itemName={tr(r.title)} onConfirm={() => mutate((d) => { d.regReports = d.regReports.filter((x) => x.id !== r.id); })} style={{ width: 30, height: 30 }} />
               </div>
             </div>
           );
