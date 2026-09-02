@@ -856,6 +856,7 @@ function LeavePanel(p: PanelProps) {
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
               {rl('تعديل', 'Edit')}
             </button>
+            <DeleteAction section="leaves" variant="text" itemName={p.tr(p.lv.person)} onConfirm={p.onDelete} />
             <button onClick={p.onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 9, padding: '9px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{rl('إلغاء', 'Cancel')}</button>
             <span style={{ width: '100%', fontSize: 10, color: '#9aa39b', lineHeight: 1.6 }}>
               {rl('الاعتماد الرسمي وتعديل الأرصدة ومعالجة الإجازة في Oracle من اختصاص الموارد البشرية — هذه الشاشة للتخطيط الداخلي فقط.', 'Official approval, balances and Oracle processing stay with HR — this screen is for internal planning only.')}
@@ -874,7 +875,8 @@ function LeavePanel(p: PanelProps) {
             </button>
           </>
         )}
-        <DeleteAction section="leaves" variant="text" itemName={p.tr(p.lv.person)} onConfirm={p.onDelete} />
+        {/* Fallback placement for a delete-only user (no manage row above). */}
+        {!p.canManage && <DeleteAction section="leaves" variant="text" itemName={p.tr(p.lv.person)} onConfirm={p.onDelete} />}
       </div>
     </div>
   );
