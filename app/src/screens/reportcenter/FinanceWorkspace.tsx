@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Modal, Badge } from '../../components/ui';
+import { DeleteAction } from '../../components/DeleteAction';
 import { useStore } from '../../store/store';
 import { useI18n } from '../../i18n/i18n';
 import { useToast } from '../../components/Toast';
@@ -573,6 +574,7 @@ export function FinanceWorkspace() {
   const { tr, dl } = useI18n();
   const cu = useCurrentUser();
   const finModels = useStore((s) => s.data.finModels);
+  const mutate = useStore((s) => s.mutate);
   const manage = cu.type !== 'chair' && (can(cu, 'finReports', 'add') || can(cu, 'finReports', 'edit'));
   const years = financeYears(finModels);
   const [year, setYear] = useState(defaultFinYear(finModels));
@@ -595,9 +597,9 @@ export function FinanceWorkspace() {
             سجل مشترك واحد لكل سنة يظهر لرئيس القطاع فوراً{fm?.lastUpdate ? ' · آخر تحديث: ' + dl(fm.lastUpdate) + (fm.updatedBy ? ' بواسطة ' + tr(fm.updatedBy) : '') : ''}
           </p>
         </div>
-        {manage && (
-          <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {fm
+        {(manage || can(cu, 'finReports', 'del')) && (
+          <div className="page-head-action" style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {manage && (fm
               ? <button onClick={() => setForm({ year, create: false })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
                   <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
                   تعديل بيانات الملخص
@@ -605,7 +607,9 @@ export function FinanceWorkspace() {
               : <button onClick={() => setForm({ year, create: true })} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 8px 20px -10px rgba(30,70,52,.45)' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                   إنشاء ملخص لسنة {year}
-                </button>}
+                </button>)}
+            {/* Record-level delete of the selected year's financial report (finReports:del). */}
+            {fm && <DeleteAction section="finReports" itemName={'الملخص التنفيذي المالي — ' + year} onConfirm={() => mutate((d) => { d.finModels = d.finModels.filter((x) => x.year !== year); })} />}
           </div>
         )}
       </div>
