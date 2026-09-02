@@ -40,8 +40,14 @@ function MinutesList() {
   const meetings = data.meetings;
   const mtasks = data.mtasks;
 
-  const lateMt = mtasks.filter((a) => a.status === 'متأخر').length;
-  const doneMt = mtasks.filter((a) => a.status === 'مكتمل').length;
+  // «مهام الاجتماعات» must reflect only the tasks that belong to an actual
+  // uploaded محضر — matched to an existing meeting by its title. Tasks added or
+  // bulk-imported standalone on the minute-tasks page that reference no real
+  // meeting record must NOT inflate this count.
+  const meetingTitles = new Set(meetings.map((m) => m.title));
+  const meetingTasks = mtasks.filter((a) => meetingTitles.has(a.meeting));
+  const lateMt = meetingTasks.filter((a) => a.status === 'متأخر').length;
+  const doneMt = meetingTasks.filter((a) => a.status === 'مكتمل').length;
 
   // Minute-tasks live behind their own permission section; only expose the drilldowns
   // to users who can actually open that page (otherwise the Shell guard bounces them).
@@ -49,7 +55,7 @@ function MinutesList() {
   const openMt = (p: Record<string, unknown> = {}) => (seeMt ? () => goto('mtasks', p) : undefined);
   const kpis = [
     { value: meetings.length, label: t('minutesCount'), color: '#17211c', open: openMt() },
-    { value: mtasks.length, label: rl('مهام الاجتماعات', 'Meeting tasks'), color: '#2f6aa8', open: openMt() },
+    { value: meetingTasks.length, label: rl('مهام الاجتماعات', 'Meeting tasks'), color: '#2f6aa8', open: openMt() },
     { value: lateMt, label: t('overdueActions'), color: '#b0433b', open: openMt({ mtStatus: 'متأخر' }) },
     { value: doneMt, label: t('decisionsDone'), color: '#2e7d55', open: openMt({ mtStatus: 'مكتمل' }) },
   ];
