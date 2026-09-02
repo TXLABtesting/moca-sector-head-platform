@@ -118,8 +118,7 @@ export function OfficeTasks() {
   const [oSearch, setOSearch] = useState('');
   const [oStatus, setOStatus] = useState('');
   const [oOwner, setOOwner] = useState('');
-  const [oLate, setOLate] = useState(false);
-  const [oNoDue, setONoDue] = useState(false);
+  const [oDept, setODept] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('board');
   const [selOtask, setSelOtask] = useState<string | null>(null);
   const { params } = useNav();
@@ -172,8 +171,7 @@ export function OfficeTasks() {
   const filtered = otasks.filter((tk) => {
     if (oStatus && tk.status !== oStatus) return false;
     if (oOwner && tk.owner !== oOwner) return false;
-    if (oLate && tk.status !== 'متأخر') return false;
-    if (oNoDue && !(noDueOf(tk) && tk.status !== 'مكتمل')) return false;
+    if (oDept && tk.dept !== oDept) return false;
     if (oq && !(tk.title.includes(oq) || tk.desc.includes(oq) || tk.owner.includes(oq))) return false;
     return true;
   });
@@ -213,6 +211,11 @@ export function OfficeTasks() {
   const statusOpts = [{ v: '', label: t('allStatuses') }].concat(O_STATUS_LIST.map((s) => ({ v: s, label: tr(s) })));
   const statusSetOpts = O_STATUS_LIST.map((s) => ({ v: s, label: tr(s) }));
   const ownerOpts = [{ v: '', label: rl('كل المسؤولين', 'All owners') }].concat([...new Set(otasks.map((tk) => tk.owner))].map((o) => ({ v: o, label: tr(o) })));
+  // Department/entity options are derived from the values users actually entered
+  // in the «الإدارة / الجهة» field of their tasks (distinct, non-empty).
+  const deptOpts = [{ v: '', label: rl('كل الإدارات', 'All departments') }].concat(
+    [...new Set(otasks.map((tk) => (tk.dept || '').trim()).filter(Boolean))].map((dp) => ({ v: dp, label: tr(dp) })),
+  );
 
   // ---- mutations ----
   const setStatus = (id: string, v: string) => mutate((d) => { const tk = d.otasks.find((x) => x.id === id); if (tk) { tk.status = v; tk.lastUpdate = TODAY_AR; } });
@@ -263,18 +266,6 @@ export function OfficeTasks() {
     padding: '8px 15px', fontSize: 12.5, fontWeight: on ? 700 : 600, cursor: 'pointer',
     fontFamily: 'inherit', background: on ? '#1e4634' : 'transparent', color: on ? '#fff' : '#5b6b62',
   });
-  const lateBtnStyle: CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, padding: '9px 13px', fontSize: 12,
-    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-    border: '1px solid ' + (oLate ? '#b0433b' : '#e2e6df'),
-    background: oLate ? '#faf0ef' : '#f7f8f6', color: oLate ? '#b0433b' : '#7d867f',
-  };
-  const noDueBtnStyle: CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, padding: '9px 13px', fontSize: 12,
-    fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-    border: '1px solid ' + (oNoDue ? '#7a4d94' : '#e2e6df'),
-    background: oNoDue ? '#f3ecf6' : '#f7f8f6', color: oNoDue ? '#7a4d94' : '#7d867f',
-  };
 
   const calIcon = (w = 11) => (
     <svg width={w} height={w} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -310,8 +301,8 @@ export function OfficeTasks() {
       </div>
 
       {/* filters (bottom sheet on phones) */}
-      <MobileFilters activeCount={(oSearch ? 1 : 0) + (oOwner ? 1 : 0) + (oStatus ? 1 : 0) + (oLate ? 1 : 0) + (oNoDue ? 1 : 0)}
-        onClear={() => { setOSearch(''); setOStatus(''); setOOwner(''); setOLate(false); setONoDue(false); }}
+      <MobileFilters activeCount={(oSearch ? 1 : 0) + (oOwner ? 1 : 0) + (oStatus ? 1 : 0) + (oDept ? 1 : 0)}
+        onClear={() => { setOSearch(''); setOStatus(''); setOOwner(''); setODept(''); }}
         rowStyle={{ background: '#ffffff', border: 'none', borderRadius: 16, boxShadow: '0 2px 6px rgba(23,40,32,.04),0 12px 30px -16px rgba(23,40,32,.14)', padding: '14px 16px', marginBottom: 18, display: 'flex', gap: 9, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9aa39b" strokeWidth={2} style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
@@ -319,13 +310,8 @@ export function OfficeTasks() {
         </div>
         <Dropdown value={oOwner} options={ownerOpts} onChange={setOOwner} opt={{ size: 'sm', minWidth: '120px' }} />
         <Dropdown value={oStatus} options={statusOpts} onChange={setOStatus} opt={{ size: 'sm', minWidth: '118px' }} />
-        <button onClick={() => setOLate((v) => !v)} style={lateBtnStyle}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{t('ot_onlyLate')}
-        </button>
-        <button onClick={() => setONoDue((v) => !v)} style={noDueBtnStyle}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>{t('ot_onlyNoDue')}
-        </button>
-        <button onClick={() => { setOSearch(''); setOStatus(''); setOOwner(''); setOLate(false); setONoDue(false); }} style={{ border: '1px solid #e2e6df', background: '#ffffff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('ot_clear')}</button>
+        <Dropdown value={oDept} options={deptOpts} onChange={setODept} opt={{ size: 'sm', minWidth: '150px' }} />
+        <button onClick={() => { setOSearch(''); setOStatus(''); setOOwner(''); setODept(''); }} style={{ border: '1px solid #e2e6df', background: '#ffffff', color: '#7d867f', borderRadius: 9, padding: '9px 13px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('ot_clear')}</button>
       </MobileFilters>
 
       {/* view toggle */}
