@@ -140,9 +140,10 @@ function MinutesList() {
                 {canEditMin && (
                   <button onClick={(e) => { e.stopPropagation(); setMForm({ id: mt.id }); }} style={{ background: '#f4f6f2', color: '#2b5c44', border: '1px solid #dfe6dd', borderRadius: 8, padding: '7px 13px', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('تعديل', 'Edit')}</button>
                 )}
-                {/* Minute records are persisted/guarded under the `meetings` section on the
-                    server, so the delete grant that governs them is meetings:del. */}
-                <DeleteAction section="meetings" itemName={tr(mt.title)} onConfirm={() => mutate((d) => { d.meetings = d.meetings.filter((x) => x.id !== mt.id); })} />
+                {/* Deleting a محضر is governed by the same section that gates adding/
+                    editing it on this screen — «محاضر الاجتماعات» (minutes) — so a user
+                    who uploads minutes and is granted delete (minutes:d) can remove them. */}
+                <DeleteAction section="minutes" itemName={tr(mt.title)} onConfirm={() => mutate((d) => { d.meetings = d.meetings.filter((x) => x.id !== mt.id); })} />
               </div>
             </div>
           );
