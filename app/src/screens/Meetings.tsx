@@ -38,16 +38,14 @@ function MinutesList() {
   const canAddMin = cu.type !== 'chair' && (can(cu, 'minutes', 'add') || can(cu, 'minutes', 'edit'));
   const [mForm, setMForm] = useState<{ id: string | null } | null>(null);
   const meetings = data.meetings;
-  const mtasks = data.mtasks;
-
-  // «مهام الاجتماعات» must reflect only the tasks that belong to an actual
-  // uploaded محضر — matched to an existing meeting by its title. Tasks added or
-  // bulk-imported standalone on the minute-tasks page that reference no real
-  // meeting record must NOT inflate this count.
-  const meetingTitles = new Set(meetings.map((m) => m.title));
-  const meetingTasks = mtasks.filter((a) => meetingTitles.has(a.meeting));
-  const lateMt = meetingTasks.filter((a) => a.status === 'متأخر').length;
-  const doneMt = meetingTasks.filter((a) => a.status === 'مكتمل').length;
+  // «مهام الاجتماعات» is generated ONLY from the tasks recorded inside the
+  // meeting minutes themselves («المهام الناتجة عن الاجتماع» in the minutes
+  // form) — i.e. each meeting's own `actions`. Tasks added or bulk-imported on
+  // the standalone minute-tasks page do not belong to an uploaded محضر and are
+  // not counted here.
+  const meetingActions = meetings.flatMap((m) => m.actions || []);
+  const lateMt = meetingActions.filter((a) => a.status === 'متأخر').length;
+  const doneMt = meetingActions.filter((a) => a.status === 'مكتمل').length;
 
   // Minute-tasks live behind their own permission section; only expose the drilldowns
   // to users who can actually open that page (otherwise the Shell guard bounces them).
@@ -55,7 +53,7 @@ function MinutesList() {
   const openMt = (p: Record<string, unknown> = {}) => (seeMt ? () => goto('mtasks', p) : undefined);
   const kpis = [
     { value: meetings.length, label: t('minutesCount'), color: '#17211c', open: openMt() },
-    { value: meetingTasks.length, label: rl('مهام الاجتماعات', 'Meeting tasks'), color: '#2f6aa8', open: openMt() },
+    { value: meetingActions.length, label: rl('مهام الاجتماعات', 'Meeting tasks'), color: '#2f6aa8', open: openMt() },
     { value: lateMt, label: t('overdueActions'), color: '#b0433b', open: openMt({ mtStatus: 'متأخر' }) },
     { value: doneMt, label: t('decisionsDone'), color: '#2e7d55', open: openMt({ mtStatus: 'مكتمل' }) },
   ];
