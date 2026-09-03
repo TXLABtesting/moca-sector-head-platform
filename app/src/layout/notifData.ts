@@ -3,12 +3,13 @@ import type { Page, NavParams } from '../store/nav';
 import type { SeedUser } from '../domain/permissions';
 import { SECTIONS, SEC_PAGE } from '../domain/permissions';
 import { mColl, OWNER_OF, ownedBy } from '../screens/member/workflow';
-import { todayPlus } from '../shared/today';
+import { todayPlus, APP_TODAY } from '../shared/today';
 import { AR_MONTHS } from '../shared/constants';
+import { parseAr } from '../shared/helpers';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export type NotifKind = 'returned' | 'approved' | 'review' | 'meeting' | 'directive' | 'leave' | 'update';
+export type NotifKind = 'returned' | 'approved' | 'review' | 'meeting' | 'directive' | 'leave' | 'update' | 'deadline';
 
 export interface Notif {
   key: string; kind: NotifKind;
@@ -46,6 +47,7 @@ export const KIND_LABELS: { k: NotifKind; ar: string; en: string }[] = [
   { k: 'approved', ar: 'اعتماد', en: 'Approved' },
   { k: 'directive', ar: 'توجيه', en: 'Directive' },
   { k: 'update', ar: 'طلب تحديث', en: 'Update requested' },
+  { k: 'deadline', ar: 'مواعيد نهائية', en: 'Deadlines' },
   { k: 'meeting', ar: 'اجتماعات', en: 'Meetings' },
   { k: 'leave', ar: 'إجازات', en: 'Leaves' },
 ];
@@ -156,6 +158,41 @@ export function buildNotifications(
     });
   }
 
+  // ---- deadline reminders (demo build) ----
+  // In production these come from the daily server CronJob (RemindersService).
+  // This build has no server, so derive them client-side here: for the current
+  // user's own tasks, remind when a task is overdue or due within 3 days of the
+  // app's reference "today". Read/dedup follow the notif key like every other item.
+  {
+    const TERMINAL = new Set(['مكتمل', 'مكتملة', 'منجز', 'منجزة', 'معتمد', 'معتمدة', 'مغلق']);
+    const t0 = new Date(APP_TODAY.getFullYear(), APP_TODAY.getMonth(), APP_TODAY.getDate()).getTime();
+    const dueScan: { coll: string; id: string; due: string; owner: string; mowner?: string; title: string; status: string; sec: string }[] = [
+      ...(data.otasks || []).map((r: any) => ({ coll: 'otasks', id: r.id, due: r.due, owner: r.owner, mowner: r._mowner, title: r.title, status: r.status, sec: 'myTasks' })),
+      ...(data.mtasks || []).map((r: any) => ({ coll: 'mtasks', id: r.id, due: r.due, owner: r.owner, mowner: r._mowner, title: r.task, status: r.status, sec: 'minuteTasks' })),
+      ...(data.projects || []).map((r: any) => ({ coll: 'projects', id: r.id, due: r.dueDate, owner: r.owner, mowner: r._mowner, title: r.name, status: r.completionState || r.status, sec: 'projects' })),
+    ];
+    dueScan.forEach((r) => {
+      const mine = isChair || r.mowner === cu.id || (!!r.owner && ownedBy(r.owner, cu.name));
+      if (!mine) return;
+      if (TERMINAL.has(String(r.status || '').trim())) return;
+      const parsed = parseAr(r.due);
+      if (!parsed) return;
+      const days = Math.ceil((new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()).getTime() - t0) / 86_400_000);
+      if (days > 3) return; // only overdue or within the next 3 days
+      const overdue = days < 0;
+      const tg = target(r.coll, r.id);
+      push({
+        key: 'dl:' + r.coll + ':' + r.id,
+        kind: 'deadline',
+        title: (overdue ? rl('تأخر الموعد النهائي: ', 'Deadline overdue: ') : rl('اقترب الموعد النهائي: ', 'Deadline approaching: ')) + tr(r.title),
+        sub: rl('الموعد النهائي: ', 'Deadline: ') + tr(r.due) + (overdue ? '' : (days === 0 ? rl(' — اليوم', ' — today') : rl(` — خلال ${days} يوم`, ` — in ${days} day(s)`))),
+        meta: secName(r.sec),
+        page: tg.page,
+        params: tg.params,
+      }, true);
+    });
+  }
+
   return items.sort((a, b) => a.ord - b.ord);
 }
 
@@ -184,5 +221,6 @@ export const KIND_STYLE: Record<NotifKind, { bg: string; fg: string; icon: strin
   meeting: { bg: '#e6eef6', fg: '#3a6ea5', icon: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
   directive: { bg: '#fbf2df', fg: '#a9791f', icon: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z' },
   update: { bg: '#e9f0f6', fg: '#3a6ea5', icon: 'M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5' },
+  deadline: { bg: '#fbeee6', fg: '#b4632a', icon: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
   leave: { bg: '#f0eaf6', fg: '#7a4fa3', icon: 'M8 3v4M16 3v4M3.5 10.5h17M3.5 8.5A3.5 3.5 0 0 1 7 5h10a3.5 3.5 0 0 1 3.5 3.5v9A3.5 3.5 0 0 1 17 21H7a3.5 3.5 0 0 1-3.5-3.5v-9Z' },
 };
