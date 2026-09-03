@@ -80,7 +80,8 @@ export function MemberDashboard() {
       isWork: false, own: r._mowner === cu.id || (ownerOf ? ownedBy(ownerOf(r), cu.name) : false),
       logLine: r._mlog?.[0] ? (r._mlog[0].chair ? rl('رئيس القطاع: ', 'Sector Head: ') : '') + (r._mlog[0].to || '') : '',
     }));
-    return [...own, ...real];
+    // A member's home shows only records they own/created — never other people's.
+    return [...own, ...real.filter((x) => x.own)];
   };
 
   const groups = editableCollections(cu).map((sec) => ({ sec, label: secName(sec), items: secItems(sec) }));
