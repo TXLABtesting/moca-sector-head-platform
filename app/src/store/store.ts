@@ -104,7 +104,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'moca.platform',
-      version: 22,
+      version: 23,
       storage: createJSONStorage(safeStorage),
       // Permission-model corrections ship in the seed (e.g. Report Center scoping).
       // Refresh persisted users to the latest seed so the change applies on existing installs.
@@ -124,6 +124,9 @@ export const useStore = create<AppState>()(
         }
         // v16: "request update" became a real, notified collection.
         if (s && s.data && !s.data.updateRequests) s.data.updateRequests = [];
+        // v23: per-person leave balances. Backfill so older installs don't read
+        // `undefined` when opening the balances manager or a leave form.
+        if (s && s.data && !s.data.leaveBalances) s.data.leaveBalances = [];
         // v17: documents no longer submit for approval — drop the ad-hoc queue.
         if (s && typeof from === 'number' && from < 17) s.work = [];
         // Refresh grants from the seed so permission corrections reach existing

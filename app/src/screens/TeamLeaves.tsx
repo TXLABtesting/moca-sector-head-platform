@@ -57,8 +57,8 @@ function balanceField(type: string): BalField | null {
 // and rejected leaves do not consume — so the balance is restored automatically.
 const CONSUMING_STATUSES = new Set(['مخططة', 'بانتظار الاعتماد', 'معتمدة', 'منتهية']);
 /** Entitlement (initial credit) for a person; zero when none is set. */
-function entitlementOf(balances: import('../data/types').LeaveBalance[], person: string): { annual: number; comp: number } {
-  const b = balances.find((x) => x.person === person);
+function entitlementOf(balances: import('../data/types').LeaveBalance[] | undefined, person: string): { annual: number; comp: number } {
+  const b = (balances || []).find((x) => x.person === person);
   return { annual: b ? b.annual : 0, comp: b ? b.comp : 0 };
 }
 /** Days already consumed by a person's counted leaves of one balance kind.
@@ -961,7 +961,7 @@ function BalancesManager({ onClose }: { onClose: () => void }) {
     ...data.members.map((m) => m.name),
     ...data.sectorManagers.map((m) => m.name),
     ...DEPT_MANAGERS,
-    ...data.leaveBalances.map((b) => b.person),
+    ...(data.leaveBalances || []).map((b) => b.person),
     ...data.leaves.map((l) => l.person),
   ].filter(Boolean))];
 
