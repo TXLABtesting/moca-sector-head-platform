@@ -24,7 +24,53 @@ const AR_MON = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي�
 // picker regardless of the shared-DB contents). Treated as the "manager" category.
 const DEPT_MANAGERS = ['علي عيسى', 'محمد الياسي', 'شما المري', 'مريم البلوشي', 'شيماء خماس', 'حصة الحوسني', 'عبدالرحمن البلوشي'];
 // Leave types shown in the New/Edit leave form and the type filter.
-const LEAVE_TYPES = ['سنوية'];
+// «سنوية» draws from the annual balance, «تعويضية» from the compensatory balance;
+// any other typed value (e.g. «طارئة») is not balance-bearing.
+const LEAVE_TYPES = ['سنوية', 'تعويضية'];
+
+// Official UAE federal-government weekend (working week Mon–Fri): Saturday and
+// Sunday. Change this single set to [5, 6] for a Friday–Saturday weekend.
+// JS getDay(): Sun=0 … Sat=6.
+const WEEKEND_DAYS = new Set([6, 0]);
+/** Working days between two dates (inclusive), excluding weekend days. */
+function workingDays(a: Date, b: Date): number {
+  if (!a || !b || +b < +a) return 0;
+  let count = 0;
+  const cur = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  while (+cur <= +end) {
+    if (!WEEKEND_DAYS.has(cur.getDay())) count += 1;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+// Which balance a leave type draws from (null = does not touch any balance).
+type BalField = 'annual' | 'comp';
+function balanceField(type: string): BalField | null {
+  const t = (type || '').trim();
+  if (t === 'سنوية') return 'annual';
+  if (t === 'تعويضية') return 'comp';
+  return null;
+}
+// Leave statuses that CONSUME balance (planned/pending/approved/ended). Cancelled
+// and rejected leaves do not consume — so the balance is restored automatically.
+const CONSUMING_STATUSES = new Set(['مخططة', 'بانتظار الاعتماد', 'معتمدة', 'منتهية']);
+/** Entitlement (initial credit) for a person; zero when none is set. */
+function entitlementOf(balances: import('../data/types').LeaveBalance[], person: string): { annual: number; comp: number } {
+  const b = balances.find((x) => x.person === person);
+  return { annual: b ? b.annual : 0, comp: b ? b.comp : 0 };
+}
+/** Days already consumed by a person's counted leaves of one balance kind.
+ *  `excludeId` omits the leave currently being edited so it isn't double-counted. */
+function consumedDays(leaves: Leave[], person: string, field: BalField, excludeId?: string | null): number {
+  return leaves.reduce((sum, l) => {
+    if (l.person !== person || l.id === excludeId) return sum;
+    if (balanceField(l.type) !== field) return sum;
+    if (!CONSUMING_STATUSES.has((l.status || '').trim())) return sum;
+    return sum + (Number(l.days) || 0);
+  }, 0);
+}
 const EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** status -> [pill bg, pill fg] */
@@ -74,6 +120,9 @@ export function TeamLeaves() {
   const canReview = can(cu, 'leaves', 'review');
   // Leave planners manage records end-to-end; official approval stays with the chair.
   const canManage = cu.type !== 'chair' && (can(cu, 'leaves', 'add') || can(cu, 'leaves', 'edit'));
+  // The person responsible for entering leave entitlements (annual/compensatory):
+  // the Sector Head or anyone with edit rights on the leaves section.
+  const canEditBalances = cu.type === 'chair' || can(cu, 'leaves', 'edit');
 
   // ---- state
   const [view, setView] = useState<'timeline' | 'table'>('timeline');
@@ -90,6 +139,7 @@ export function TeamLeaves() {
   const [editEnd, setEditEnd] = useState('');
   const [fPhase, setFPhase] = useState('');
   const [lvForm, setLvForm] = useState(false);
+  const [balForm, setBalForm] = useState(false);
 
   // ---- bulk import (one leave per row) ----
   const LV_STATUS = ['بانتظار الاعتماد', 'معتمدة', 'مرفوضة', 'مخططة', 'منتهية'];
@@ -392,8 +442,14 @@ export function TeamLeaves() {
             {rl('عرض زمني لإجازات فريق المكتب ومدراء الوحدات التنظيمية — التداخلات تظهر بوضوح على المحور الزمني.', 'A timeline of office-team and sector-manager leaves — overlaps are highlighted on the date axis.')}
           </p>
         </div>
-        {canManage && (
+        {(canManage || canEditBalances) && (
           <div className="page-head-action" style={{ flex: 'none', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {canEditBalances && (
+              <button onClick={() => setBalForm(true)} title={rl('عرض وتعديل أرصدة الإجازات لكل شخص', 'View and edit each person\u2019s leave balances')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h10" /><circle cx="19" cy="18" r="2.5" /></svg>{rl('أرصدة الإجازات', 'Leave balances')}
+              </button>
+            )}
+            {canManage && (<>
             <button onClick={dlLeaveBulk} title={rl('تنزيل قالب إكسيل بصف لكل إجازة', 'Template: one leave per row')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#1e4634', border: '1px solid #cdd8ce', borderRadius: 11, padding: '11px 15px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14" /></svg>{rl('قالب الاستيراد', 'Import template')}
             </button>
@@ -405,6 +461,7 @@ export function TeamLeaves() {
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               {rl('إضافة إجازة', 'New leave')}
             </button>
+            </>)}
           </div>
         )}
       </div>
@@ -597,6 +654,12 @@ export function TeamLeaves() {
           <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{rl('إجازة جديدة', 'New leave record')}</h3>
           <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9aa39b' }}>{rl('تخطيط داخلي للإجازات — الاعتماد الرسمي والأرصدة عبر Oracle من اختصاص الموارد البشرية.', 'Internal planning only — official approval, balances and Oracle stay with HR.')}</p>
           <LeaveFormFields leaveId={null} onDone={() => setLvForm(false)} onCancel={() => setLvForm(false)} />
+        </Modal>
+      )}
+
+      {balForm && (
+        <Modal open onClose={() => setBalForm(false)} width={680}>
+          <BalancesManager onClose={() => setBalForm(false)} />
         </Modal>
       )}
     </Fade>
@@ -887,6 +950,104 @@ function LeavePanel(p: PanelProps) {
    supporting attachments. Conflicts are detected live; conflicted or
    review-worthy records can be sent to the Sector Head. Official approval,
    balances and Oracle processing are out of scope by design. ---- */
+function BalancesManager({ onClose }: { onClose: () => void }) {
+  const { lang, tr } = useI18n();
+  const rl = (a: string, b: string) => (lang === 'en' ? b : a);
+  const data = useStore((s) => s.data);
+  const mutate = useStore((s) => s.mutate);
+  const { showToast } = useToast();
+
+  const pool = [...new Set([
+    ...data.members.map((m) => m.name),
+    ...data.sectorManagers.map((m) => m.name),
+    ...DEPT_MANAGERS,
+    ...data.leaveBalances.map((b) => b.person),
+    ...data.leaves.map((l) => l.person),
+  ].filter(Boolean))];
+
+  const initial: Record<string, { annual: string; comp: string }> = {};
+  pool.forEach((p) => {
+    const e = entitlementOf(data.leaveBalances, p);
+    initial[p] = { annual: String(e.annual), comp: String(e.comp) };
+  });
+  const [edited, setEdited] = useState(initial);
+  const [q, setQ] = useState('');
+
+  const setVal = (person: string, k: 'annual' | 'comp') => (raw: string) => {
+    const clean = raw.replace(/[^\d]/g, '');
+    setEdited((p) => ({ ...p, [person]: { ...p[person], [k]: clean } }));
+  };
+
+  const shown = pool.filter((p) => !q.trim() || tr(p).includes(q.trim()) || p.includes(q.trim()));
+
+  const save = () => {
+    mutate((d) => {
+      pool.forEach((person) => {
+        const annual = Math.max(0, parseInt(edited[person]?.annual || '0', 10) || 0);
+        const comp = Math.max(0, parseInt(edited[person]?.comp || '0', 10) || 0);
+        const ex = d.leaveBalances.find((b) => b.person === person);
+        if (ex) {
+          if (ex.annual !== annual || ex.comp !== comp) { ex.annual = annual; ex.comp = comp; }
+        } else if (annual || comp) {
+          d.leaveBalances.unshift({ id: 'lb' + Math.floor(Math.random() * 1e9), person, annual, comp });
+        }
+      });
+    });
+    showToast(rl('تم حفظ الأرصدة', 'Balances saved'));
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = { width: 70, boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 8, padding: '6px 8px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none', textAlign: 'center' };
+  const cell: React.CSSProperties = { padding: '9px 10px', fontSize: 12, borderBottom: '1px solid #f2f4f0' };
+  const head: React.CSSProperties = { padding: '9px 10px', fontSize: 11, fontWeight: 700, color: '#7d867f', textAlign: 'center', position: 'sticky', top: 0, background: '#f7f9f6' };
+
+  return (
+    <>
+      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{rl('أرصدة الإجازات', 'Leave balances')}</h3>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rl('أدخِل الرصيد المبدئي لكل شخص (سنوي / تعويضي). «المتبقي» يُحسب تلقائياً بعد خصم أيام الإجازات المحتسَبة.', 'Enter each person\u2019s initial balance (annual / compensatory). \u201CRemaining\u201D is computed automatically after counted leave days.')}</p>
+      <div style={{ position: 'relative', marginBottom: 12 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={rl('بحث بالاسم…', 'Search by name…')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit' }} />
+      </div>
+      <div style={{ maxHeight: 380, overflowY: 'auto', border: '1px solid #eef1ec', borderRadius: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{ ...head, textAlign: 'start' }}>{rl('الشخص', 'Person')}</th>
+              <th style={head}>{rl('السنوي', 'Annual')}</th>
+              <th style={head}>{rl('المتبقي السنوي', 'Annual left')}</th>
+              <th style={head}>{rl('التعويضي', 'Comp.')}</th>
+              <th style={head}>{rl('المتبقي التعويضي', 'Comp. left')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((person) => {
+              const annualEnt = parseInt(edited[person]?.annual || '0', 10) || 0;
+              const compEnt = parseInt(edited[person]?.comp || '0', 10) || 0;
+              const annualLeft = annualEnt - consumedDays(data.leaves, person, 'annual');
+              const compLeft = compEnt - consumedDays(data.leaves, person, 'comp');
+              const chip = (n: number): React.CSSProperties => ({ display: 'inline-block', minWidth: 30, padding: '3px 8px', borderRadius: 20, fontSize: 11.5, fontWeight: 800, background: n < 0 ? '#f7e6e4' : '#e2f0e8', color: n < 0 ? '#b0433b' : '#2e7d55' });
+              return (
+                <tr key={person}>
+                  <td style={{ ...cell, textAlign: 'start', fontWeight: 600, color: '#17211c' }}>{tr(person)}</td>
+                  <td style={{ ...cell, textAlign: 'center' }}><input value={edited[person]?.annual ?? '0'} onChange={(e) => setVal(person, 'annual')(e.target.value)} inputMode="numeric" style={inputStyle} /></td>
+                  <td style={{ ...cell, textAlign: 'center' }}><span style={chip(annualLeft)}>{annualLeft}</span></td>
+                  <td style={{ ...cell, textAlign: 'center' }}><input value={edited[person]?.comp ?? '0'} onChange={(e) => setVal(person, 'comp')(e.target.value)} inputMode="numeric" style={inputStyle} /></td>
+                  <td style={{ ...cell, textAlign: 'center' }}><span style={chip(compLeft)}>{compLeft}</span></td>
+                </tr>
+              );
+            })}
+            {shown.length === 0 && <tr><td colSpan={5} style={{ ...cell, textAlign: 'center', color: '#9aa39b' }}>{rl('لا نتائج', 'No results')}</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
+        <button onClick={save} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ الأرصدة', 'Save balances')}</button>
+      </div>
+    </>
+  );
+}
+
 function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null; onDone: () => void; onCancel: () => void }) {
   const { lang, tr } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
@@ -917,7 +1078,16 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
 
   // auto day count
   const ps = parseAr(f.start), pe = parseAr(f.end);
-  const days = ps && pe && +pe >= +ps ? Math.round((+pe - +ps) / DAY) + 1 : 0;
+  const days = ps && pe && +pe >= +ps ? workingDays(ps, pe) : 0;
+
+  // ---- balance (only for balance-bearing types: سنوية / تعويضية) ----
+  const bField = balanceField(f.type);
+  const ent = f.person ? entitlementOf(data.leaveBalances, f.person) : { annual: 0, comp: 0 };
+  const entValue = bField ? ent[bField] : 0;
+  const usedByOthers = bField && f.person ? consumedDays(data.leaves, f.person, bField, leaveId) : 0;
+  const remainingBefore = entValue - usedByOthers;
+  const remainingAfter = remainingBefore - days;
+  const overBalance = !!bField && !!f.person && days > 0 && remainingAfter < 0;
 
   // live conflict detection: overlapping active leave in the same category
   const clash = (ps && pe && f.person) ? data.leaves.filter((l) => {
@@ -932,6 +1102,11 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   const save = (send: boolean) => {
     if (!f.person) { showToast(rl('يرجى اختيار الموظف أو مدير القطاع', 'Please pick the employee or sector director')); return; }
     if (!ps || !pe || +pe < +ps) { showToast(rl('يرجى ضبط تاريخي البداية والنهاية', 'Please set valid start and end dates')); return; }
+    if (overBalance) {
+      const kind = bField === 'annual' ? rl('السنوي', 'annual') : rl('التعويضي', 'compensatory');
+      showToast(rl(`لا يمكن الحفظ: الأيام (${days}) تتجاوز الرصيد ${kind} المتبقي (${remainingBefore})`, `Cannot save: ${days} day(s) exceed the remaining ${kind} balance (${remainingBefore})`));
+      return;
+    }
     mutate((d) => {
       let lv: Leave & { _mowner?: string; _mrev?: boolean; _mret?: string; _mlog?: unknown[] };
       if (existing) lv = d.leaves.find((l) => l.id === leaveId)! as never;
@@ -987,9 +1162,23 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
         <div><Label>{rl('تاريخ النهاية', 'End date')}</Label><DateField value={f.end} onChange={set('end')} /></div>
         <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 10, padding: '9px 12px' }}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1e4634" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>
-          <span style={{ fontSize: 12, color: '#3c4a42' }}>{rl('عدد الأيام (محسوب تلقائياً): ', 'Days (auto-calculated): ')}</span>
+          <span style={{ fontSize: 12, color: '#3c4a42' }}>{rl('عدد أيام العمل (بدون عطلة نهاية الأسبوع): ', 'Working days (weekends excluded): ')}</span>
           <span style={{ fontSize: 13.5, fontWeight: 800, color: '#1e4634' }}>{days || '—'}</span>
         </div>
+        {bField && f.person && (
+          <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, background: overBalance ? '#fdf3ef' : '#f0f7f2', border: '1px solid ' + (overBalance ? '#f0d8ce' : '#d3e7db'), borderRadius: 10, padding: '9px 12px' }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={overBalance ? '#b0433b' : '#2e7d55'} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+            <span style={{ fontSize: 12, color: '#3c4a42' }}>{rl(bField === 'annual' ? 'الرصيد السنوي المتبقي: ' : 'الرصيد التعويضي المتبقي: ', bField === 'annual' ? 'Remaining annual balance: ' : 'Remaining compensatory balance: ')}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#1e4634' }}>{remainingBefore}</span>
+            {days > 0 && (
+              <span style={{ fontSize: 12, color: overBalance ? '#b0433b' : '#3c4a42' }}>
+                {rl(` \u2212 ${days} = `, ` \u2212 ${days} = `)}
+                <span style={{ fontWeight: 800, color: overBalance ? '#b0433b' : '#2e7d55' }}>{remainingAfter}</span>
+              </span>
+            )}
+            {overBalance && <span style={{ fontSize: 11.5, fontWeight: 800, color: '#b0433b', marginInlineStart: 'auto' }}>{rl('الرصيد لا يكفي — لا يمكن الحفظ', 'Insufficient balance — cannot save')}</span>}
+          </div>
+        )}
         {clash.length > 0 && (
           <div style={{ gridColumn: '1 / -1', background: '#fdf3ef', border: '1px solid #f0d8ce', borderRadius: 11, padding: '11px 13px' }}>
             <div style={{ fontSize: 11, color: '#b0433b', fontWeight: 800, marginBottom: 4 }}>{rl('تنبيه: تعارض في الجدولة', 'Warning: scheduling conflict')}</div>
@@ -1006,12 +1195,12 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
         <div style={{ gridColumn: '1 / -1' }}><Label>{rl('مرفقات داعمة (إن وجدت)', 'Supporting attachments (optional)')}</Label><FileUploadField files={atts} onChange={setAtts} /></div>
       </div>
       <div style={{ marginTop: 12, fontSize: 10.5, color: '#9aa39b', lineHeight: 1.7 }}>
-        {rl('هذه الشاشة للتخطيط الداخلي والاطلاع فقط — الاعتماد الرسمي وتعديل الأرصدة ومعالجة الإجازة في Oracle من اختصاص الموارد البشرية.', 'Internal planning and visibility only — official approval, leave balances and Oracle processing remain with HR.')}
+        {rl('أرصدة التخطيط الداخلي تظهر أعلاه لأنواع «سنوية» و«تعويضية» — الاعتماد الرسمي والمعالجة النهائية في Oracle من اختصاص الموارد البشرية.', 'The internal planning balances above apply to \u201Cannual\u201D and \u201Ccompensatory\u201D types — official approval and final Oracle processing remain with HR.')}
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onCancel} style={{ background: '#f2f4f0', border: '1px solid #e2e6df', color: '#3c4a42', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إلغاء', 'Cancel')}</button>
-        {!existing && <button onClick={() => save(false)} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>}
-        <button onClick={() => save(true)} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع', 'Send to Sector Head')}</button>
+        {!existing && <button onClick={() => save(false)} disabled={overBalance} style={{ background: '#fff', border: '1px solid #cdd8ce', color: '#1e4634', borderRadius: 10, padding: '10px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('حفظ', 'Save')}</button>}
+        <button onClick={() => save(true)} disabled={overBalance} style={{ background: '#1e4634', border: 'none', color: '#fff', borderRadius: 10, padding: '10px 18px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }}>{rl('إرسال لرئيس القطاع', 'Send to Sector Head')}</button>
       </div>
     </>
   );

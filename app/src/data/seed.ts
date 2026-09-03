@@ -4,6 +4,7 @@
 import type { AppData } from "./types";
 
 export const seedData = ({
+  "leaveBalances": [],
   "members": [
     {
       "id": "m1",
