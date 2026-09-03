@@ -24,6 +24,14 @@ export interface SectorManager {
 
 export type LeaveCat = 'manager' | 'office';
 
+/** Per-person leave entitlement (initial credit), keyed by person name. */
+export interface LeaveBalance {
+  id: string;
+  person: string;
+  annual: number;
+  comp: number;
+}
+
 export interface Leave {
   id: string;
   person: string;
@@ -446,6 +454,7 @@ export interface AppData {
   members: Member[];
   sectorManagers: SectorManager[];
   leaves: Leave[];
+  leaveBalances: LeaveBalance[];
   projects: Project[];
   meetings: Meeting[];
   actions: ActionItem[];
