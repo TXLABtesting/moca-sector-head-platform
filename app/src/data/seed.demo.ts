@@ -47,15 +47,17 @@ const blankFinModel: FinModel = {
   aging: [],
 };
 
+const rosterNames = [...new Set([
+  ...members.map((m) => m.name),
+  ...seedData.sectorManagers.map((m) => m.name),
+].filter(Boolean))];
+const leaveBalances = rosterNames.map((person, i) => ({ id: 'lb-' + (i + 1), person, annual: 30, comp: 5 }));
+
 export const demoSeed: AppData = {
   members,
   sectorManagers: seedData.sectorManagers,
   leaves: [],
-  leaveBalances: [
-    { id: 'lb-1', person: 'شيماء خماس', annual: 30, comp: 5 },
-    { id: 'lb-2', person: 'علي عيسى', annual: 30, comp: 3 },
-    { id: 'lb-3', person: 'محمد الياسي', annual: 28, comp: 0 },
-  ],
+  leaveBalances,
   projects: [],
   meetings: [],
   actions: [],

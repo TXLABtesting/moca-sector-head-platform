@@ -918,6 +918,7 @@ function LeavePanel(p: PanelProps) {
    supporting attachments. Conflicts are detected live; conflicted or
    review-worthy records can be sent to the Sector Head. Official approval,
    balances and Oracle processing are out of scope by design. ---- */
+interface BalRow { person: string; annual: string; comp: string }
 function BalancesManager({ onClose }: { onClose: () => void }) {
   const { lang, tr } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
@@ -925,72 +926,121 @@ function BalancesManager({ onClose }: { onClose: () => void }) {
   const mutate = useStore((s) => s.mutate);
   const { showToast } = useToast();
 
-  const pool = [...new Set([
+  // Roster names (office team + sector managers + department managers + anyone
+  // already on a leave) — used to pre-fill the list the first time and as
+  // add-name suggestions afterwards.
+  const roster = [...new Set([
     ...data.members.map((m) => m.name),
     ...data.sectorManagers.map((m) => m.name),
-    ...(data.leaveBalances || []).map((b) => b.person),
     ...data.leaves.map((l) => l.person),
   ].filter(Boolean))];
 
-  const initial: Record<string, { annual: string; comp: string }> = {};
-  pool.forEach((p) => { const e = entitlementOf(data.leaveBalances, p); initial[p] = { annual: String(e.annual), comp: String(e.comp) }; });
-  const [edited, setEdited] = useState(initial);
+  // The editable people list. Once any balance record exists, it is the source
+  // of truth (so removed people stay removed); before that, seed from the roster.
+  const [rows, setRows] = useState<BalRow[]>(() => {
+    const recs = data.leaveBalances || [];
+    if (recs.length) return recs.map((b) => ({ person: b.person, annual: String(b.annual), comp: String(b.comp) }));
+    return roster.map((p) => ({ person: p, annual: '0', comp: '0' }));
+  });
   const [q, setQ] = useState('');
+  const [newName, setNewName] = useState('');
+
   const setVal = (person: string, k: 'annual' | 'comp') => (raw: string) => {
     const clean = raw.replace(/[^\d]/g, '');
-    setEdited((p) => ({ ...p, [person]: { ...p[person], [k]: clean } }));
+    setRows((rs) => rs.map((r) => (r.person === person ? { ...r, [k]: clean } : r)));
   };
-  const shown = pool.filter((p) => !q.trim() || tr(p).includes(q.trim()) || p.includes(q.trim()));
+  const addPerson = () => {
+    const n = newName.trim();
+    if (!n) return;
+    if (rows.some((r) => r.person === n)) { showToast(rl('الاسم موجود بالفعل', 'Name already added')); return; }
+    setRows((rs) => [{ person: n, annual: '0', comp: '0' }, ...rs]);
+    setNewName('');
+  };
+  const removePerson = (person: string) => setRows((rs) => rs.filter((r) => r.person !== person));
+
+  const suggestions = roster.filter((n) => !rows.some((r) => r.person === n));
+  const shown = rows.filter((r) => !q.trim() || tr(r.person).includes(q.trim()) || r.person.includes(q.trim()));
+
   const save = () => {
+    const list = rows.map((r) => ({
+      person: r.person.trim(),
+      annual: Math.max(0, parseInt(r.annual || '0', 10) || 0),
+      comp: Math.max(0, parseInt(r.comp || '0', 10) || 0),
+    })).filter((r) => r.person);
     mutate((d) => {
-      pool.forEach((person) => {
-        const annual = Math.max(0, parseInt(edited[person]?.annual || '0', 10) || 0);
-        const comp = Math.max(0, parseInt(edited[person]?.comp || '0', 10) || 0);
-        const ex = d.leaveBalances.find((b) => b.person === person);
-        if (ex) { if (ex.annual !== annual || ex.comp !== comp) { ex.annual = annual; ex.comp = comp; } }
-        else if (annual || comp) { d.leaveBalances.unshift({ id: 'lb' + Math.floor(Math.random() * 1e9), person, annual, comp }); }
+      const names = new Set(list.map((r) => r.person));
+      // Drop records for people removed from the list.
+      d.leaveBalances = (d.leaveBalances || []).filter((b) => names.has(b.person));
+      // Upsert the rest.
+      list.forEach((r) => {
+        const ex = d.leaveBalances.find((b) => b.person === r.person);
+        if (ex) { ex.annual = r.annual; ex.comp = r.comp; }
+        else d.leaveBalances.push({ id: 'lb' + Math.floor(Math.random() * 1e9), person: r.person, annual: r.annual, comp: r.comp });
       });
     });
     showToast(rl('تم حفظ الأرصدة', 'Balances saved'));
     onClose();
   };
-  const inputStyle: React.CSSProperties = { width: 70, boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 8, padding: '6px 8px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none', textAlign: 'center' };
-  const cell: React.CSSProperties = { padding: '9px 10px', fontSize: 12, borderBottom: '1px solid #f2f4f0' };
-  const head: React.CSSProperties = { padding: '9px 10px', fontSize: 11, fontWeight: 700, color: '#7d867f', textAlign: 'center', position: 'sticky', top: 0, background: '#f7f9f6' };
+
+  const inputStyle: React.CSSProperties = { width: 66, boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 8, padding: '6px 8px', fontSize: 12.5, fontFamily: 'inherit', color: '#17211c', outline: 'none', textAlign: 'center' };
+  const cell: React.CSSProperties = { padding: '8px 8px', fontSize: 12, borderBottom: '1px solid #f2f4f0' };
+  const head: React.CSSProperties = { padding: '9px 8px', fontSize: 11, fontWeight: 700, color: '#7d867f', textAlign: 'center', position: 'sticky', top: 0, background: '#f7f9f6' };
+
   return (
     <>
       <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#17211c' }}>{rl('أرصدة الإجازات', 'Leave balances')}</h3>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: '#9aa39b' }}>{rl('أدخِل الرصيد المبدئي لكل شخص (سنوي / تعويضي). «المتبقي» يُحسب تلقائياً بعد خصم أيام الإجازات المحتسَبة.', 'Enter each person initial balance (annual / compensatory). Remaining is computed after counted leave days.')}</p>
-      <div style={{ position: 'relative', marginBottom: 12 }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={rl('بحث بالاسم…', 'Search by name…')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit' }} />
+      <p style={{ margin: '0 0 12px', fontSize: 12, color: '#9aa39b' }}>{rl('أضِف الأشخاص وأدخِل الرصيد المبدئي لكل منهم (سنوي / تعويضي). «المتبقي» يُحسب تلقائياً بعد خصم أيام الإجازات المحتسَبة.', 'Add people and enter each one’s initial balance (annual / compensatory). “Remaining” is computed automatically after counted leave days.')}</p>
+
+      {/* add a new person */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        <input value={newName} list="bal-suggestions" onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPerson(); } }}
+          placeholder={rl('أضِف اسم شخص…', 'Add a person…')} style={{ flex: 1, boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit' }} />
+        <datalist id="bal-suggestions">{suggestions.map((n, i) => <option key={i} value={n} />)}</datalist>
+        <button onClick={addPerson} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#1e4634', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{rl('إضافة', 'Add')}
+        </button>
       </div>
-      <div style={{ maxHeight: 380, overflowY: 'auto', border: '1px solid #eef1ec', borderRadius: 12 }}>
+
+      {rows.length > 6 && (
+        <div style={{ position: 'relative', marginBottom: 10 }}>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={rl('بحث بالاسم…', 'Search by name…')} style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e2e6df', background: '#f7f8f6', borderRadius: 9, padding: '9px 12px', fontSize: 12.5, fontFamily: 'inherit' }} />
+        </div>
+      )}
+      <div style={{ maxHeight: 360, overflowY: 'auto', border: '1px solid #eef1ec', borderRadius: 12 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>
-            <th style={{ ...head, textAlign: 'start' }}>{rl('الشخص', 'Person')}</th>
-            <th style={head}>{rl('السنوي', 'Annual')}</th>
-            <th style={head}>{rl('المتبقي السنوي', 'Annual left')}</th>
-            <th style={head}>{rl('التعويضي', 'Comp.')}</th>
-            <th style={head}>{rl('المتبقي التعويضي', 'Comp. left')}</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th style={{ ...head, textAlign: 'start' }}>{rl('الشخص', 'Person')}</th>
+              <th style={head}>{rl('السنوي', 'Annual')}</th>
+              <th style={head}>{rl('المتبقي السنوي', 'Annual left')}</th>
+              <th style={head}>{rl('التعويضي', 'Comp.')}</th>
+              <th style={head}>{rl('المتبقي التعويضي', 'Comp. left')}</th>
+              <th style={head} />
+            </tr>
+          </thead>
           <tbody>
-            {shown.map((person) => {
-              const annualEnt = parseInt(edited[person]?.annual || '0', 10) || 0;
-              const compEnt = parseInt(edited[person]?.comp || '0', 10) || 0;
-              const annualLeft = annualEnt - consumedDays(data.leaves, person, 'annual');
-              const compLeft = compEnt - consumedDays(data.leaves, person, 'comp');
+            {shown.map((r) => {
+              const annualEnt = parseInt(r.annual || '0', 10) || 0;
+              const compEnt = parseInt(r.comp || '0', 10) || 0;
+              const annualLeft = annualEnt - consumedDays(data.leaves, r.person, 'annual');
+              const compLeft = compEnt - consumedDays(data.leaves, r.person, 'comp');
               const chip = (n: number): React.CSSProperties => ({ display: 'inline-block', minWidth: 30, padding: '3px 8px', borderRadius: 20, fontSize: 11.5, fontWeight: 800, background: n < 0 ? '#f7e6e4' : '#e2f0e8', color: n < 0 ? '#b0433b' : '#2e7d55' });
               return (
-                <tr key={person}>
-                  <td style={{ ...cell, textAlign: 'start', fontWeight: 600, color: '#17211c' }}>{tr(person)}</td>
-                  <td style={{ ...cell, textAlign: 'center' }}><input value={edited[person]?.annual ?? '0'} onChange={(e) => setVal(person, 'annual')(e.target.value)} inputMode="numeric" style={inputStyle} /></td>
+                <tr key={r.person}>
+                  <td style={{ ...cell, textAlign: 'start', fontWeight: 600, color: '#17211c' }}>{tr(r.person)}</td>
+                  <td style={{ ...cell, textAlign: 'center' }}><input value={r.annual} onChange={(e) => setVal(r.person, 'annual')(e.target.value)} inputMode="numeric" style={inputStyle} /></td>
                   <td style={{ ...cell, textAlign: 'center' }}><span style={chip(annualLeft)}>{annualLeft}</span></td>
-                  <td style={{ ...cell, textAlign: 'center' }}><input value={edited[person]?.comp ?? '0'} onChange={(e) => setVal(person, 'comp')(e.target.value)} inputMode="numeric" style={inputStyle} /></td>
+                  <td style={{ ...cell, textAlign: 'center' }}><input value={r.comp} onChange={(e) => setVal(r.person, 'comp')(e.target.value)} inputMode="numeric" style={inputStyle} /></td>
                   <td style={{ ...cell, textAlign: 'center' }}><span style={chip(compLeft)}>{compLeft}</span></td>
+                  <td style={{ ...cell, textAlign: 'center' }}>
+                    <button onClick={() => removePerson(r.person)} title={rl('حذف الشخص', 'Remove person')} style={{ width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fbeeec', color: '#b0433b', border: '1px solid #f0d8d3', borderRadius: 8, cursor: 'pointer' }}>
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+                    </button>
+                  </td>
                 </tr>
               );
             })}
-            {shown.length === 0 && <tr><td colSpan={5} style={{ ...cell, textAlign: 'center', color: '#9aa39b' }}>{rl('لا نتائج', 'No results')}</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={6} style={{ ...cell, textAlign: 'center', color: '#9aa39b' }}>{rows.length ? rl('لا نتائج', 'No results') : rl('لا يوجد أشخاص بعد — أضِف اسماً بالأعلى', 'No people yet — add a name above')}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1002,6 +1052,11 @@ function BalancesManager({ onClose }: { onClose: () => void }) {
   );
 }
 
+/* ---- Leave planning form (leave planner): employee or sector director,
+   type, dates with auto WORKING-day count (weekends excluded), backup, notes,
+   chair instructions and attachments. Conflicts are detected live. Balance-
+   bearing types (سنوية/تعويضية) deduct from the person's entitlement and are
+   blocked when the remaining balance is insufficient. ---- */
 function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null; onDone: () => void; onCancel: () => void }) {
   const { lang, tr } = useI18n();
   const rl = (a: string, b: string) => (lang === 'en' ? b : a);
@@ -1023,9 +1078,12 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   // people pool: office team + sector directors (cat derives from the pick)
   const officeNames = data.members.map((m) => m.name);
   const managerNames = data.sectorManagers.map((m) => m.name);
+  // People added in the balances manager (not part of the roster) also appear.
+  const extraBalancePeople = (data.leaveBalances || []).map((b) => b.person).filter((n) => n && !officeNames.includes(n) && !managerNames.includes(n));
   const personOpts = [
     ...officeNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('فريق المكتب', 'Office team') })),
     ...managerNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء القطاع', 'Sector directors') })),
+    ...[...new Set(extraBalancePeople)].map((n) => ({ v: n, label: tr(n) })),
   ];
   const catOfPerson = (n: string): LeaveCat => (managerNames.includes(n) ? 'manager' : 'office');
   const backupOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') },
