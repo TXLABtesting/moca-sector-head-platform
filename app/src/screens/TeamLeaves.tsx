@@ -39,8 +39,8 @@ function balanceField(type: string): BalField | null {
   return null;
 }
 const CONSUMING_STATUSES = new Set(['مخططة', 'بانتظار الاعتماد', 'معتمدة', 'منتهية']);
-function entitlementOf(balances: import('../data/types').LeaveBalance[], person: string): { annual: number; comp: number } {
-  const b = balances.find((x) => x.person === person);
+function entitlementOf(balances: import('../data/types').LeaveBalance[] | undefined, person: string): { annual: number; comp: number } {
+  const b = (balances || []).find((x) => x.person === person);
   return { annual: b ? b.annual : 0, comp: b ? b.comp : 0 };
 }
 function consumedDays(leaves: import('../data/types').Leave[], person: string, field: BalField, excludeId?: string | null): number {
@@ -928,7 +928,7 @@ function BalancesManager({ onClose }: { onClose: () => void }) {
   const pool = [...new Set([
     ...data.members.map((m) => m.name),
     ...data.sectorManagers.map((m) => m.name),
-    ...data.leaveBalances.map((b) => b.person),
+    ...(data.leaveBalances || []).map((b) => b.person),
     ...data.leaves.map((l) => l.person),
   ].filter(Boolean))];
 
