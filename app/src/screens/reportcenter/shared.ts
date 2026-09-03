@@ -16,6 +16,7 @@ export const impMap: Record<string, Pair> = {
 export const AUS: Record<string, Pair> = {
   'مغلق': ['#e2f0e8', '#2e7d55'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
+  'مستمر': ['#e6eef6', '#3a6ea5'],
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
 

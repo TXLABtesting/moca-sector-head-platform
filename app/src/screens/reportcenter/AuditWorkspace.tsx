@@ -18,7 +18,7 @@ import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const OBS_STATUSES = ['متأخر', 'قيد التنفيذ', 'مغلق'];
+const OBS_STATUSES = ['متأخر', 'قيد التنفيذ', 'مستمر', 'مغلق'];
 const FREQS = ['دوري', 'حسب الحاجة'];
 const AUDIT_UNITS = [
   'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية',
@@ -27,6 +27,7 @@ const AUDIT_UNITS = [
 const OBSC: Record<string, [string, string]> = {
   'مغلق': ['#e2f0e8', '#2e7d55'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
+  'مستمر': ['#e6eef6', '#3a6ea5'],
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
 
