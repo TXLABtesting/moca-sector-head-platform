@@ -53,6 +53,10 @@ const TODAY_AR = APP_TODAY_AR;
 
 const noDueOf = (tk: OfficeTask) => !tk.due || !String(tk.due).trim();
 
+// Normalize a department/entity value for the filter: trim and collapse inner
+// whitespace so a value typed with a stray space still matches its own option.
+const normDept = (s?: string) => (s || '').replace(/\s+/g, ' ').trim();
+
 function isoFromAr(s: string): string {
   const d = parseAr(s);
   if (!d) return '';
@@ -186,7 +190,7 @@ export function OfficeTasks() {
   const filtered = otasks.filter((tk) => {
     if (oStatus && tk.status !== oStatus) return false;
     if (oOwner && tk.owner !== oOwner) return false;
-    if (oDept && tk.dept !== oDept) return false;
+    if (oDept && normDept(tk.dept) !== oDept) return false;
     if (oq && !(tk.title.includes(oq) || tk.desc.includes(oq) || tk.owner.includes(oq))) return false;
     return true;
   });
@@ -230,7 +234,7 @@ export function OfficeTasks() {
   // Department/entity options are derived from the values users actually entered
   // in the «الإدارة / الجهة» field of their tasks (distinct, non-empty).
   const deptOpts = [{ v: '', label: rl('كل الإدارات', 'All departments') }].concat(
-    [...new Set(otasks.map((tk) => (tk.dept || '').trim()).filter(Boolean))].map((dp) => ({ v: dp, label: tr(dp) })),
+    [...new Set(otasks.map((tk) => normDept(tk.dept)).filter(Boolean))].map((dp) => ({ v: dp, label: tr(dp) })),
   );
 
   // ---- mutations ----
