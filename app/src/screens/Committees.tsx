@@ -231,7 +231,7 @@ export function Committees() {
                 return (
                   <div style={{ border: '1px solid #e6ece7', borderRadius: 12, background: '#fbfcfb', padding: '22px 18px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: '#5b6b62' }}>
                     <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#8aa0b3" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M9.5 13h6M9.5 16.5h6" /></svg>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#17211c', textAlign: 'center', wordBreak: 'break-word' }}>{attachmentName(img)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#17211c', textAlign: 'center', wordBreak: 'break-word' }}>{decodeURIComponent((img.split('?')[0].split('/').pop()) || img).replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/i, '')}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 12, color: '#5b6b62' }}>{rl('افتح الملف أو نزّله لعرض القرار', 'Open or download the file to view the decision')}</span>
                       <AttachmentDownload name={img} size={30} />
