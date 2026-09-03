@@ -21,7 +21,7 @@ import { wfTone } from '../../domain/approval';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const OBS_STATUSES = ['متأخر', 'قيد التنفيذ', 'مغلق'];
+const OBS_STATUSES = ['متأخر', 'قيد التنفيذ', 'مستمر', 'مغلق'];
 const FREQS = ['دوري', 'حسب الحاجة'];
 const AUDIT_UNITS = [
   'إدارة الشؤون الإدارية', 'إدارة الخدمات المالية', 'إدارة خدمات الموارد البشرية',
@@ -31,6 +31,7 @@ const OBSC: Record<string, [string, string]> = {
   'مغلق': ['#e2f0e8', '#2e7d55'],
   'مغلق قيد الاعتماد': ['#fbf0d6', '#a9791f'],
   'قيد التنفيذ': ['#fbf0d6', '#a9791f'],
+  'مستمر': ['#e6eef6', '#3a6ea5'],
   'متأخر': ['#f7e6e4', '#b0433b'],
 };
 
@@ -768,7 +769,7 @@ export function AuditWorkspace() {
   const AR_HEADERS = ['رقم الملاحظة', 'اسم الملاحظة', 'الملاحظة حسب تقرير التدقيق الداخلي', 'ملاحظات وشرح آلية اغلاق الملاحظة', 'تاريخ التنفيذ', 'المسؤول', 'الحالة', 'ملاحظات'];
   const AR_EXAMPLE = ['م1', 'ضعف في ضوابط الصلاحيات', 'لوحظ عدم مراجعة صلاحيات المستخدمين دورياً', 'تم تفعيل مراجعة ربع سنوية وإغلاق الصلاحيات غير المستخدمة', '30 يوليو 2026', 'حسن همام', 'قيد التنفيذ', 'صف مثال — احذفه قبل الرفع'];
   const bulkRef = useRef<HTMLInputElement>(null);
-  const dlAuditBulk = () => triggerDownload(makeXlsx([AR_HEADERS, AR_EXAMPLE], 'ملاحظات التدقيق'), 'Audit_Observations_Template.xlsx');
+  const dlAuditBulk = () => triggerDownload(makeXlsx([AR_HEADERS, AR_EXAMPLE], 'ملاحظات التدقيق', [{ col: AR_HEADERS.indexOf('الحالة'), values: OBS_STATUSES }]), 'Audit_Observations_Template.xlsx');
   const onBulk = async (file: File) => {
     try {
       const blocks = await fileToBlocks(file);

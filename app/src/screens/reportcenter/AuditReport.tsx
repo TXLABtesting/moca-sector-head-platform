@@ -133,7 +133,7 @@ export function AuditReport({ canApprove }: { canApprove: boolean }) {
 
   // dropdown option lists
   const uniq = (k: 'owner' | 'area' | 'due') => [...new Set(audit.map((a) => a[k]).filter(Boolean))];
-  const statusOpts = [{ v: '', label: t('allStatuses') }, ...['متأخر', 'قيد التنفيذ', 'مغلق'].map((s) => ({ v: s, label: audLbl(s) }))];
+  const statusOpts = [{ v: '', label: t('allStatuses') }, ...['متأخر', 'قيد التنفيذ', 'مستمر', 'مغلق'].map((s) => ({ v: s, label: audLbl(s) }))];
   const ownerOpts = [{ v: '', label: rl('كل المسؤولين', 'All responsibles') }, ...uniq('owner').map((o) => ({ v: o, label: tr(o) }))];
   const deptOpts = [{ v: '', label: rl('كل الوحدات', 'All units') }, ...uniq('area').map((o) => ({ v: o, label: tr(o) }))];
   const dueOpts = [{ v: '', label: rl('كل التواريخ', 'All dates') }, ...uniq('due').map((o) => ({ v: o, label: dl(o) }))];
