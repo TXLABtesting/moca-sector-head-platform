@@ -601,6 +601,7 @@ export function TeamLeaves() {
           managerNames={leaves.filter((l) => l.cat === 'manager').map((l) => l.person)}
           officeNames={leaves.filter((l) => l.cat === 'office').map((l) => l.person)}
           sectorManagers={data.sectorManagers.map((m) => m.name)}
+          balances={data.leaveBalances || []}
           noteDraft={noteDraft}
           setNoteDraft={setNoteDraft}
           editingDates={editingDates}
@@ -656,6 +657,7 @@ interface PanelProps {
   managerNames: string[];
   officeNames: string[];
   sectorManagers: string[];
+  balances: import('../data/types').LeaveBalance[];
   noteDraft: string;
   setNoteDraft: (s: string) => void;
   editingDates: boolean;
@@ -699,6 +701,13 @@ function LeavePanel(p: PanelProps) {
   const add = (n: string) => { if (n && !seen[n]) { seen[n] = true; pool.push(n); } };
   if (lv.cat === 'manager') { p.managerNames.forEach(add); p.sectorManagers.forEach(add); }
   else { p.members.forEach(add); p.officeNames.forEach(add); }
+
+  const allLeaves = p.parsed.map((x) => x.lv);
+  const bField = balanceField(lv.type);
+  const ent = entitlementOf(p.balances, lv.person);
+  const balInfo = bField
+    ? { label: bField === 'annual' ? rl('الرصيد السنوي', 'Annual balance') : rl('الرصيد التعويضي', 'Compensatory balance'), total: ent[bField], used: consumedDays(allLeaves, lv.person, bField), left: ent[bField] - consumedDays(allLeaves, lv.person, bField) }
+    : null;
   const bkOpts = [{ v: '—', label: rl('— بدون بديل —', '— No backup —') }, ...pool.filter((n) => n !== lv.person && !busy[n]).map((n) => ({ v: n, label: n }))];
 
   return (
@@ -748,6 +757,28 @@ function LeavePanel(p: PanelProps) {
             <div style={{ fontSize: 13, fontWeight: 600, color: '#17211c' }}>{lv.days} {rl('أيام', 'days')}</div>
           </div>
         </div>
+        {balInfo && (
+          <div style={{ background: '#f0f7f2', border: '1px solid #d3e7db', borderRadius: 11, padding: '11px 13px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#2e7d55" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+              <span style={{ fontSize: 11.5, fontWeight: 800, color: '#1e4634' }}>{balInfo.label} — {tr(lv.person)}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 90, textAlign: 'center', background: '#ffffff', border: '1px solid #e6efe9', borderRadius: 9, padding: '7px 6px' }}>
+                <div style={{ fontSize: 10, color: '#9aa39b', marginBottom: 2 }}>{rl('المخصّص', 'Allocated')}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#17211c' }}>{balInfo.total}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 90, textAlign: 'center', background: '#ffffff', border: '1px solid #e6efe9', borderRadius: 9, padding: '7px 6px' }}>
+                <div style={{ fontSize: 10, color: '#9aa39b', marginBottom: 2 }}>{rl('المستهلك', 'Used')}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#a9791f' }}>{balInfo.used}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 90, textAlign: 'center', background: '#ffffff', border: '1px solid #e6efe9', borderRadius: 9, padding: '7px 6px' }}>
+                <div style={{ fontSize: 10, color: '#9aa39b', marginBottom: 2 }}>{rl('المتبقّي', 'Remaining')}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: balInfo.left < 0 ? '#b0433b' : '#2e7d55' }}>{balInfo.left}</div>
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 130, background: '#f7f9f6', borderRadius: 11, padding: '11px 13px' }}>
             <div style={{ fontSize: 10.5, color: '#9aa39b', marginBottom: 3 }}>{rl('تاريخ البداية', 'Start date')}</div>
@@ -1079,7 +1110,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
   const officeNames = data.members.map((m) => m.name);
   const managerNames = data.sectorManagers.map((m) => m.name);
   // People added in the balances manager (not part of the roster) also appear.
-  const extraBalancePeople = (data.leaveBalances || []).map((b) => b.person).filter((n) => n && !officeNames.includes(n) && !managerNames.includes(n));
+  const extraBalancePeople = [...(data.leaveBalances || []).map((b) => b.person), f.person].filter((n) => n && !officeNames.includes(n) && !managerNames.includes(n));
   const personOpts = [
     ...officeNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('فريق المكتب', 'Office team') })),
     ...managerNames.map((n) => ({ v: n, label: tr(n) + ' — ' + rl('مدراء القطاع', 'Sector directors') })),
@@ -1171,7 +1202,7 @@ function LeaveFormFields({ leaveId, onDone, onCancel }: { leaveId: string | null
         <div><Label>{rl('تاريخ النهاية', 'End date')}</Label><DateField value={f.end} onChange={set('end')} /></div>
         <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, background: '#f7f9f6', border: '1px solid #eef1ec', borderRadius: 10, padding: '9px 12px' }}>
           <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1e4634" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3.5" /><path d="M8 3v4M16 3v4M3.5 10.5h17" /></svg>
-          <span style={{ fontSize: 12, color: '#3c4a42' }}>{rl('عدد أيام العمل (بدون عطلة نهاية الأسبوع): ', 'Working days (weekends excluded): ')}</span>
+          <span style={{ fontSize: 12, color: '#3c4a42' }}>{rl('عدد الأيام: ', 'Days: ')}</span>
           <span style={{ fontSize: 13.5, fontWeight: 800, color: '#1e4634' }}>{days || '—'}</span>
         </div>
         {bField && f.person && (
