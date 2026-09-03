@@ -207,17 +207,38 @@ export function Committees() {
                   {rl('هذا القرار ملغى', 'This decision is cancelled')}
                 </div>
               )}
-              {preview.img ? (
-                <img src={asset(preview.img)} alt="" style={{ width: '100%', border: '1px solid #e6ece7', borderRadius: 12, display: 'block' }} />
-              ) : (
-                <div style={{ border: '1px solid #e6ece7', borderRadius: 12, background: '#fbfcfb', aspectRatio: '1 / 1.28', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, color: '#9aa39b' }}>
-                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#c3cec4" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M9.5 13h6M9.5 16.5h6" /></svg>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#5b6b62', textAlign: 'center', lineHeight: 1.7 }}>
-                    {rl('صورة القرار رقم', 'Image of decision No.')} ({preview.num}) {rl('لسنة', 'of')} {preview.year}<br />
-                    <span style={{ fontSize: 11, color: '#9aa39b' }}>{rl('لم تُرفق صورة رسمية لهذا القرار', 'No official image attached for this decision')}</span>
+              {(() => {
+                const img = preview.img || '';
+                if (!img) return (
+                  <div style={{ border: '1px solid #e6ece7', borderRadius: 12, background: '#fbfcfb', aspectRatio: '1 / 1.28', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, color: '#9aa39b' }}>
+                    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#c3cec4" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M9.5 13h6M9.5 16.5h6" /></svg>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#5b6b62', textAlign: 'center', lineHeight: 1.7 }}>
+                      {rl('صورة القرار رقم', 'Image of decision No.')} ({preview.num}) {rl('لسنة', 'of')} {preview.year}<br />
+                      <span style={{ fontSize: 11, color: '#9aa39b' }}>{rl('لم يُرفق ملف رسمي لهذا القرار', 'No official file attached for this decision')}</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+                const isData = img.startsWith('data:');
+                const isHttp = /^https?:\/\//i.test(img);
+                const uploaded = img.startsWith('/api/');           // protected upload — needs auth, can't inline
+                const isImage = isData ? img.startsWith('data:image/') : /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(img);
+                const isPdf = isData ? img.startsWith('data:application/pdf') : /\.pdf(\?|$)/i.test(img);
+                // Directly embeddable: data URIs, public URLs, or bundled seed images.
+                if (!uploaded && (isData || isHttp) && isPdf) return <iframe title="decision" src={img} style={{ width: '100%', height: 560, border: '1px solid #e6ece7', borderRadius: 12, display: 'block' }} />;
+                if (!uploaded && (isData || isHttp) && isImage) return <img src={img} alt="" style={{ width: '100%', border: '1px solid #e6ece7', borderRadius: 12, display: 'block' }} />;
+                if (!uploaded && !isData && !isHttp && isImage) return <img src={asset(img)} alt="" style={{ width: '100%', border: '1px solid #e6ece7', borderRadius: 12, display: 'block' }} />;
+                // Uploaded / protected / non-embeddable file → show a file card the user can open or download.
+                return (
+                  <div style={{ border: '1px solid #e6ece7', borderRadius: 12, background: '#fbfcfb', padding: '22px 18px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: '#5b6b62' }}>
+                    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#8aa0b3" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /><path d="M9.5 13h6M9.5 16.5h6" /></svg>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#17211c', textAlign: 'center', wordBreak: 'break-word' }}>{attachmentName(img)}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, color: '#5b6b62' }}>{rl('افتح الملف أو نزّله لعرض القرار', 'Open or download the file to view the decision')}</span>
+                      <AttachmentDownload name={img} size={30} />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </>
         )}
