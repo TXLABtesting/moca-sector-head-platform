@@ -47,9 +47,11 @@ const blankFinModel: FinModel = {
   aging: [],
 };
 
+const DEPT_MANAGERS = ['علي عيسى', 'محمد الياسي', 'شما المري', 'مريم البلوشي', 'شيماء خماس', 'حصة الحوسني', 'عبدالرحمن البلوشي'];
 const rosterNames = [...new Set([
   ...members.map((m) => m.name),
   ...seedData.sectorManagers.map((m) => m.name),
+  ...DEPT_MANAGERS,
 ].filter(Boolean))];
 const leaveBalances = rosterNames.map((person, i) => ({ id: 'lb-' + (i + 1), person, annual: 30, comp: 5 }));
 
